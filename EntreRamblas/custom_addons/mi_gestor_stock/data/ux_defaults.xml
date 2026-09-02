@@ -3,59 +3,60 @@
     <!-- ==========================================================
          Pantalla de inicio tras el login
          ==========================================================
-         Fijamos "Inventario > Resumen" como pantalla de inicio para
-         el administrador y para la plantilla de usuarios nuevos. -->
+         "Stock > Productos" para el administrador y la plantilla de
+         usuarios nuevos: es la pantalla de solo lectura que más se
+         consulta en el día a día. -->
     <function model="res.users" name="write">
         <value model="res.users"
                eval="[ref('base.user_admin'), ref('base.default_user')]"/>
-        <value eval="{'action_id': ref('stock.stock_picking_type_action')}"/>
+        <value eval="{'action_id': ref('mi_gestor_stock.action_mgs_products')}"/>
     </function>
 
     <!-- ==========================================================
-         Ocultar aplicaciones y paneles técnicos que confunden
-         ========================================================== -->
-    <!-- 1. Conversaciones (chat interno) -->
+         Salida del TPV: al cerrar una sesión, Odoo redirige a la
+         acción cliente point_of_sale.action_client_pos_menu, que por
+         defecto reabre point_of_sale.menu_point_root (justo el menú
+         que desactivamos abajo). Sin este ajuste, salir del TPV
+         dejaría al usuario en un menú inexistente. Ese <record> vive
+         en un bloque noupdate="1" del módulo point_of_sale, así que
+         hay que reapuntarlo desde Python (mismo patrón que
+         base.main_company en res_company.py). -->
+    <function model="ir.actions.client" name="write">
+        <value model="ir.actions.client" eval="[ref('point_of_sale.action_client_pos_menu')]"/>
+        <value eval="{'params': {'menu_id': ref('mi_gestor_stock.menu_mgs_root')}}"/>
+    </function>
+
+    <!-- ==========================================================
+         Ocultar todas las apps salvo la nuestra.
+         ==========================================================
+         Lista completa de los 9 menús raíz de esta instalación
+         (verificada por consulta directa a ir_ui_menu). Se mantiene
+         SOLO base.menu_administration (Ajustes): ya está restringido
+         por grupo a administradores (base.group_system /
+         base.group_erp_manager), así que un usuario de tienda no lo
+         ve sin necesidad de tocarlo. -->
     <record id="mail.menu_root_discuss" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
-
-    <!-- 2. Tableros / Informes complejos (Spreadsheet Dashboard) -->
+    <record id="contacts.menu_contacts" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
     <record id="spreadsheet_dashboard.spreadsheet_dashboard_menu_root" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
-
-    <!-- 3. Catálogo de Apps (para no desconfigurar o instalar módulos por error) -->
+    <record id="point_of_sale.menu_point_root" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="account.menu_finance" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="stock.menu_stock_root" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
     <record id="base.menu_management" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
-
-    <!-- ==========================================================
-         Ocultar submenús innecesarios en Inventario
-         Deja únicamente: Resumen, Recepciones, Ajustes y Productos
-         ========================================================== -->
-    <!-- Informes complejos de valoración y analíticas -->
-    <record id="stock.menu_warehouse_report" model="ir.ui.menu">
+    <record id="base.menu_tests" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
-
-    <!-- Configuración técnica de inventario (rutas, almacenes, UoM) -->
-    <record id="stock.menu_stock_config_settings" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
-
-    <!-- Reglas complejas de reabastecimiento automático -->
-    <record id="stock.menu_stock_procurement" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
-
-    <!-- Transferencias entre múltiples almacenes (solo hay 1 tienda física) -->
-    <record id="stock.menu_stock_transfers" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
-
-    <!-- Desechos avanzados -->
-    <record id="stock.menu_stock_scrap" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
-
 </odoo>

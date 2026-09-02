@@ -5,7 +5,22 @@
 
 ---
 
-## 0. Cambios recientes (2026-09-02)
+## 0. Cambios recientes (2026-09-03)
+
+- **Limpieza total: el módulo se reduce a 4 flujos.** `mi_gestor_stock` pasa de
+  "maquillaje CSS sobre Odoo estándar" a una app propia con menú explícito:
+  **Recepción** (pantalla de escaneo propia), **Stock** (Productos + Alertas),
+  **Compra** (TPV) e **Informes** (Ventas/balance + Más vendidos). Se oculta
+  todo lo demás (Inventario, TPV nativo, Contactos, Facturación, Tableros,
+  Apps, Discuss); solo queda visible **Ajustes**, y solo para el administrador
+  (ya restringido por grupo). `backend.scss` se reescribió desde cero (de
+  ~1030 líneas y ~400 `!important` a ~170 sin ninguno real): ya no oculta el
+  chatter, los smart buttons, los botones de cabecera («Validar»/«Confirmar»)
+  ni las pestañas de los formularios de forma global. Detalle completo en
+  §6bis-§6quinquies. Plan de la reestructuración:
+  `C:\Users\Usuario\.claude\plans\busco-una-limpieza-total-vivid-aurora.md`.
+
+## 0bis. Cambios anteriores (2026-09-02)
 
 - **BD reproducible desde el repo.** La base de datos ya **no se sube a git**;
   se reconstruye idéntica en cualquier equipo con **`bootstrap.ps1`** (crea venv,
@@ -232,40 +247,51 @@ $env:PGPASSWORD='odoo'
 
 ```
 __manifest__.py
-__init__.py                # importa models/
+__init__.py                    # importa models/
 models/
   __init__.py
-  res_company.py           # aplica marca (nombre+logo) e idioma español  (NUEVO)
+  res_company.py                # aplica marca (nombre+logo) e idioma español
+  product_template.py           # defaults de floristería + campos y lógica de alertas de stock
+  mgs_reception.py               # wizard de Recepción (pantalla de escaneo)
 data/
-  branding.xml             # llama a los métodos de marca/idioma + desactiva registro público
-  ux_defaults.xml          # pantalla de inicio = Inventario; oculta la app Discuss
+  branding.xml                  # marca/idioma + desactiva registro público + fix salida TPV
+  ux_defaults.xml               # pantalla de inicio, home action, oculta apps que no se usan
+  cron_alerts.xml               # ir.cron diario: avisos de stock bajo mínimo
+security/
+  ir.model.access.csv           # ACL de mgs.reception y mgs.reception.line
 views/
-  stock_picking_views.xml  # herencia del formulario de albaranes (ejemplo inicial)
-  login_templates.xml      # personalización de la pantalla de login
+  mgs_menus.xml                  # ÚNICA app visible: Recepción · Stock · Compra · Informes
+  mgs_reception_views.xml       # formulario + acción de la pantalla de Recepción
+  product_views.xml             # ficha de producto simplificada + lista/buscador de Stock
+  pos_report_views.xml          # acciones de Informes (reutilizan report.pos.order nativo)
+  login_templates.xml           # personalización de la pantalla de login
 static/src/
   img/
-    logo-crest.svg / logo.svg  # emblema original (clavel + azahar), vectorial — FUENTE del logo
-    login-logo.png        # logo de la pantalla de login  — rasterizado del SVG
-    logo.png              # logo de la empresa (backend, informes PDF) — rasterizado del SVG
-    favicon.png           # favicon del login (vía x_icon en la plantilla)
-    login-logo.svg / favicon.svg  # placeholders antiguos (ya no se usan)
+    logo-emblema.png / logo.png / favicon.png   # emblema a color, USADOS (login/empresa/favicon)
   scss/
-    custom_style.scss     # estilos backend (ejemplo inicial: .custom-inventory-card)
-    login.scss            # estilos de la pantalla de login (paleta calmada)
-    backend.scss          # retoque de color del backend (navbar verde, botones verdes)
+    login.scss                  # estilos de la pantalla de login (paleta azul pizarra)
+    backend.scss                # estilos del backend, con ámbito acotado (ver §6bis)
+    primary_variables.scss      # color de marca de Odoo ($o-community-color, etc.)
   js/
-    title.js              # pone "Gestión de stock" como título de la pestaña
+    title.js                    # título de pestaña + limpieza mínima del systray
 ```
 
 ### `__manifest__.py` — puntos clave
-- `depends`: `["stock", "barcodes", "web", "point_of_sale"]`
-- `data`: `branding.xml`, `ux_defaults.xml`, `stock_picking_views.xml`, `login_templates.xml`
-- **Python**: `models/res_company.py` hereda `res.company` y añade `_mgs_apply_branding()`
-  (nombre + logo) y `_mgs_setup_spanish()` (idioma). `branding.xml` los invoca con
-  `<function ... eval="[[]]"/>` en cada `-u` — un `<record>` sobre `base.main_company`
-  no sirve (es `noupdate`).
-- `web.assets_backend`: `custom_style.scss`, `backend.scss`, `title.js`
+- `depends`: `["stock", "barcodes", "web", "point_of_sale", "contacts", "l10n_es"]`
+- `application: True` — el módulo se comporta como una app propia con su icono
+  (`static/description/icon.png`) en el lanzador.
+- `data`: `security/ir.model.access.csv`, `data/branding.xml`, `data/cron_alerts.xml`,
+  `views/mgs_reception_views.xml`, `views/product_views.xml`, `views/pos_report_views.xml`,
+  `views/mgs_menus.xml`, `views/login_templates.xml`, `data/ux_defaults.xml` — **este orden
+  importa**: `mgs_menus.xml` necesita las acciones ya cargadas, y `ux_defaults.xml` necesita
+  `menu_mgs_root` y `action_mgs_products` ya definidos (ambos van al final).
+- **Python**: `models/res_company.py` hereda `res.company` (marca + idioma, sin cambios);
+  `models/product_template.py` añade los campos de alerta (`mgs_alert_on`, `mgs_min_qty`,
+  `mgs_low_stock`) y el método del cron (`_mgs_cron_stock_alerts`); `models/mgs_reception.py`
+  es el wizard (`TransientModel`) de la pantalla de Recepción.
+- `web.assets_backend`: `backend.scss`, `title.js`
 - `web.assets_frontend`: `login.scss`  ← **el login usa el bundle FRONTEND, no el backend**
+- `web._assets_primary_variables`: `primary_variables.scss` (prepend)
 
 ---
 
@@ -319,80 +345,107 @@ static/src/
 
 ---
 
-## 7quater. Pantalla de inicio reestructurada (`backend.scss` §9–§12)
+## 6bis. Los 4 flujos de la app (limpieza total, 2026-09-03)
 
-Tras el login se abre **Inventario → Resumen** (kanban de tipos de operación).
-De serie Odoo pintaba tarjetas enormes de ancho desigual, cada una con una
-**gráfica de barras gris sin datos** que ocupaba 150 px y no aportaba nada.
+Tras el login se abre **Gestor de Stock**, la única app del sistema, con
+exactamente estos 4 flujos (`views/mgs_menus.xml`):
 
-Reestructurado a un panel compacto:
+1. **Recepción** (`models/mgs_reception.py` + `views/mgs_reception_views.xml`):
+   pantalla de escaneo. Hereda `barcodes.barcode_events_mixin` (nativo del
+   módulo `barcodes`), así que el lector Honeywell (HID + Enter) funciona en
+   cualquier parte de la pantalla, sin necesidad de tener el foco en un campo
+   — hay además un campo de respaldo para teclear el código a mano. Si el
+   código no existe, ofrece crear el producto ahí mismo (nombre + precio). Al
+   pulsar "Guardar en almacén" crea y valida un `stock.picking` de entrada de
+   verdad (trazabilidad completa: `WH/IN/000xx`), sin pedir proveedor ni
+   albarán manual.
+   > ⚠️ Al tocar este fichero, recuerda: en un `TransientModel` nuevo,
+   > `self.line_ids = [Command.create(...)]` dentro de un método que añade
+   > líneas **borra las líneas anteriores** (no tiene `_origin`). Hay que
+   > concatenar con `self.line_ids |= self.env[...].new({...})`.
+2. **Stock** (`views/product_views.xml`): Productos (lista con existencias y
+   mínimo) y Alertas (filtro `mgs_low_stock=True`, filas en rojo). El campo
+   `mgs_low_stock` es un booleano **no almacenado con `search=`** propio
+   (`_search_mgs_low_stock` en `models/product_template.py`) — un dominio
+   tipo `[('qty_available','<=','mgs_min_qty')]` no es una opción: Odoo
+   compara campo contra literal, y lanza `UserError` si el operando derecho
+   no es un número.
+3. **Compra**: abre `point_of_sale.action_pos_config_kanban` (el TPV nativo).
+   El descuento de stock al vender ya es nativo de Odoo. **Importante**: al
+   cerrar una sesión de TPV, Odoo redirige a la acción cliente
+   `point_of_sale.action_client_pos_menu`, cuyo `menu_id` por defecto es
+   `point_of_sale.menu_point_root` — como ese menú está desactivado (ver
+   §7bis), `data/ux_defaults.xml` lo reapunta a `mi_gestor_stock.menu_mgs_root`
+   con un `<function model="ir.actions.client" name="write">` (el `<record>`
+   normal se ignora: ese registro es `noupdate="1"`).
+4. **Informes** (`views/pos_report_views.xml`): "Ventas y balance" y
+   "Productos más vendidos" reutilizan el modelo nativo `report.pos.order` y
+   sus vistas pivot/graph/list (`point_of_sale.view_report_pos_order_*`); solo
+   cambian nombre, dominio y contexto por defecto. No hay modelo ni vista de
+   informe propios.
 
-- **Rejilla** en vez del `flex-wrap` de Odoo:
-  `grid-template-columns: repeat(auto-fit, minmax(260px, 340px))`, alineada a la
-  izquierda → todas las tarjetas del mismo tamaño.
-- **Tarjeta**: borde izquierdo azul de 3 px, radio 6 px, sombra suave y elevación
-  al pasar el ratón. Título a 17 px en negro carbón.
-- **Botón "Abierto" a ancho completo** (la columna derecha del `.row` viene vacía
-  cuando no hay albaranes pendientes, así que ya no se queda a media anchura).
-- **Gráfica del panel oculta** (`div[name="kanban_dashboard_graph"]`). Para
-  recuperarla, borra ese bloque en §9 de `backend.scss`.
-- **Barra de control** (§10): título a 20 px en negrita, buscador acotado a
-  480 px con foco azul, facetas de filtro en azul pizarra.
-- **Vistas de lista** (§11): cabecera en mayúsculas sobre gris perla, filas más
-  altas y con `hover`.
-- **Tarjetas kanban normales** (§12, p. ej. Productos): mismo lenguaje visual.
-- **`PoS Orders` → `Pedidos TPV`**: el TPV crea ese tipo de operación en inglés y
-  sin traducción, y era lo primero que se leía al entrar.
-  `_mgs_rename_picking_types()` en `res_company.py` lo renombra.
+`_mgs_rename_picking_types()` en `res_company.py` sigue renombrando
+"PoS Orders" → "Pedidos TPV" (nombre del albarán generado al vender).
 
-### El logo definitivo — ya está puesto
-El emblema (clavel + azahar) se guardó como **SVG** en
-`static\src\img\logo-crest.svg` (= `logo.svg`) y se **rasterizó a PNG** con
-`wkhtmltoimage` (no hay `cairosvg`/`inkscape`), recortando márgenes y centrando
-con Pillow:
-- `logo.png` 560×560 — logo de empresa (backend + informes)
-- `login-logo.png` 620×700 — pantalla de login
-- `favicon.png` 256×256
+### `backend.scss` reescrito desde cero
 
-**Para cambiarlo por otro:** sustituye el/los SVG, vuelve a rasterizar (el script
-está en el historial de la sesión; en resumen `wkhtmltoimage --transparent --format png`
-sobre una copia del SVG con `width`/`height` explícitos + recorte con Pillow), deja los
-PNG con esos nombres y `.\start-odoo.ps1 -Update mi_gestor_stock`.
-`_mgs_apply_branding()` vuelve a cargar `logo.png` en la empresa en cada `-u`.
+De ~1030 líneas / ~400 `!important` a ~170 líneas sin ninguno real. Regla de
+oro: nada de `display:none` global sobre botones, pestañas o smart buttons —
+eso se hace en el **arch de la vista** (`invisible="1"`), no en CSS. Se
+eliminó en concreto: la ocultación global del chatter (rompía las alertas de
+stock, que usan actividades), `.oe_stat_button:not(:first-child)` (ocultaba
+smart buttons en cualquier formulario), `.o_form_view header
+button:not(:first-child)` (ocultaba "Validar"/"Confirmar" en los albaranes),
+`.o_notebook_headers{display:none}` (ocultaba pestañas en toda la app) y el
+rediseño CSS del kanban de "Inventario → Resumen" (esa pantalla ya no es
+accesible, al desactivarse `stock.menu_stock_root`). Lo que queda: navbar,
+hoja de formulario, botones con ámbito acotado, listas, kanban de productos y
+la caja de escaneo de Recepción (`.mgs-scan-box`).
+
+### Logo — sin cambios respecto a antes de esta limpieza
+`static/src/img/logo-emblema.png` (login + `res.company.logo`), `logo.png`
+(logo de respaldo) y `favicon.png` son los únicos ficheros de imagen que
+quedan en el módulo — los SVG originales y los PNG antiguos sin usar se
+borraron (~2 MB). Para cambiar el logo: sustituye esos PNG y
+`.\start-odoo.ps1 -Update mi_gestor_stock` (`_mgs_apply_branding()` recarga
+`logo.png` en la empresa en cada `-u`).
 
 ### Ajustar colores
-`static/src/scss/login.scss` (variables al principio):
-```scss
-$mgs-green:      #2f4a37;   // botón
-$mgs-green-dark: #14351f;   // títulos
-$mgs-sage:       #8a9a7b;   // foco de campos
-```
-`static/src/scss/backend.scss` para el resto de la app.
+Paleta azul pizarra, definida en dos sitios que conviene mantener
+sincronizados: `static/src/scss/login.scss` (variables `$navy-dark` / `$navy`
+/ `$navy-action` al principio del fichero) y `static/src/scss/backend.scss`
+(`$mgs-navy` / `$mgs-slate` / `$mgs-blue` al principio, misma paleta).
 
 ---
 
-## 7bis. Pantalla de inicio tras el login (`data/ux_defaults.xml`)
+## 7bis. Pantalla de inicio y menús ocultos (`data/ux_defaults.xml`)
 
-**Problema resuelto (2026-09-02):** al entrar, Odoo abría el primer menú por secuencia,
-que era **"Conversaciones" (Discuss)** — un chat interno que no interesa en una floristería.
+**`mi_gestor_stock/data/ux_defaults.xml`** hace tres cosas:
 
-**Solución en `mi_gestor_stock/data/ux_defaults.xml`:**
-
-1. **Pantalla de inicio = "Inventario → Resumen"** (`stock.stock_picking_type_action`).
+1. **Pantalla de inicio = "Stock → Productos"** (`mi_gestor_stock.action_mgs_products`).
    Se fija el campo *Home Action* (`res.users.action_id`) del administrador
    (`base.user_admin`) y de la plantilla de usuarios nuevos (`base.default_user`),
    mediante un `<function model="res.users" name="write">` (un `<field>` normal **no
    funciona** con este campo).
-2. **Se oculta la app Discuss** del menú principal: `mail.menu_root_discuss` con
-   `active = False`. El módulo `mail` es dependencia obligatoria y no se puede
-   desinstalar, pero el chat de las fichas (mensajes en productos, albaranes…) sigue
-   funcionando; solo desaparece la aplicación independiente de la barra superior.
+2. **Reapunta la salida del TPV** a `menu_mgs_root` (ver §6bis, punto 3) — si no, al
+   cerrar una sesión de caja el usuario aterriza en un menú desactivado.
+3. **Oculta todos los menús raíz salvo el nuestro y "Ajustes"** (`active = False` sobre
+   cada uno): `mail.menu_root_discuss`, `contacts.menu_contacts`,
+   `spreadsheet_dashboard.spreadsheet_dashboard_menu_root`,
+   `point_of_sale.menu_point_root`, `account.menu_finance`, `stock.menu_stock_root`,
+   `base.menu_management`, `base.menu_tests`. **`base.menu_administration` (Ajustes) NO
+   se toca**: ya está restringido por grupo (`base.group_system` /
+   `base.group_erp_manager`), así que un usuario de tienda no lo ve sin necesidad de
+   desactivarlo — y sigue haciendo falta para configurar TPV, impuestos y almacén.
 
-Verificado por login HTTP real: `action_id` del admin = `Inventory Overview` (id 278),
-`mail.menu_root_discuss.active = False`. Reproducible: partiendo de estado limpio,
-`-u mi_gestor_stock` vuelve a aplicar ambos cambios.
+Verificado por login HTTP real (`/web/webclient/load_menus`) tras un `bootstrap.ps1
+-Reset` completo: el lanzador de apps muestra exactamente **"Gestor de Stock"** y
+**"Ajustes"**; `action_id` del admin = `Stock` (`product.template`); los 6 elementos hoja
+del menú (Recepción, Productos, Alertas, Compra, Ventas y balance, Productos más
+vendidos) resuelven `actionID`; cerrar una sesión de TPV vuelve a la app, no a un menú
+en blanco. Reproducible: `-u mi_gestor_stock` vuelve a aplicar los tres puntos.
 
-Para revertir: poner `active = True` en el menú y borrar el `<function>`, luego `-u`.
+Para revertir algún menú oculto: quita su `<record>` de `ux_defaults.xml` y `-u`.
 Para cambiar la pantalla de inicio de un usuario puntualmente: Ajustes → Usuarios →
 (usuario) → pestaña *Preferencias* → *Acción de inicio*.
 
@@ -464,24 +517,29 @@ La localización fiscal española (`l10n_es`) ya estaba instalada (§3).
 ## 9. Pendiente (por orden sugerido)
 
 ### En desarrollo (PC actual)
-0. **Añadir `-d mi_base_stock` a `start-odoo.ps1`** en las ramas `-Init` / `-Update`.
+0. ~~Añadir `-d mi_base_stock` a `start-odoo.ps1`~~ ✅ hecho (§5).
 1. **Fijar la localización fiscal española** en la empresa (Ajustes → Contabilidad →
    paquete "España - PGCE PYMEs") y configurar impuestos por defecto.
 2. **Crear el almacén** y ubicaciones básicas de la floristería.
 3. **Configurar el Punto de Venta**: método de pago efectivo/tarjeta, formato de ticket
    80 mm, vincular al almacén para el descuento de stock, decidir si el stock baja al
    pagar o al cerrar caja.
-4. **Personalizar `mi_gestor_stock`**:
-   - Campos/vistas de producto (código de barras, stock mínimo, alertas).
-   - Pantalla de recepción de mercancía con escaneo.
-   - Informe de etiquetas de producto en formato 80 mm.
+4. ~~Personalizar `mi_gestor_stock` con los 4 flujos del negocio~~ ✅ hecho (§6bis,
+   2026-09-03): campos/vistas de producto con stock mínimo y alertas, pantalla de
+   recepción con escaneo, informes de ventas y más vendidos. **Pendiente dentro de
+   esto**: informe de etiquetas de producto en formato 80 mm (no se ha abordado).
 5. ~~Poner el logo definitivo~~ ✅ hecho (§7).
-6. **Datos de prueba**: productos con códigos de barras reales para validar el circuito
-   completo: compra → recepción escaneada → venta en TPV → stock actualizado.
-7. Instalar módulos OCA que hagan falta desde `custom_addons\stock-logistics-barcode`.
-8. (Opcional) Ampliar el tema de color del backend.
-   - (Opcional) Favicon del backend con la marca: requiere instalar `website` o
-     sobrescribir la ruta estática del favicon.
+6. **Datos de prueba con el lector físico**: la lógica de Recepción (escaneo, alta
+   rápida, dos escaneos del mismo producto, albarán generado) está verificada por
+   shell/HTTP (§6bis), pero falta probarla con el lector Honeywell real y a ojo en el
+   navegador — colores, que el widget `barcode_handler` engancha con el hardware real,
+   comportamiento del contador de alertas (reloj de actividades) en uso normal.
+7. ~~Instalar módulos OCA desde `custom_addons\stock-logistics-barcode`~~ — esa carpeta
+   ya **no existe** en este repo (ver §10); si hace falta en el futuro, hay que
+   volver a clonarla.
+8. (Opcional) Revisar si conviene un grupo de seguridad propio para la app en vez de
+   `base.group_user` en `security/ir.model.access.csv` (por ahora cualquier usuario
+   interno puede usar Recepción).
 
 ### En producción (PC i5) — más adelante
 9. Replicar el entorno o migrar: instalar PostgreSQL + Python + clonar repos, o copiar la
@@ -506,5 +564,7 @@ La localización fiscal española (`l10n_es`) ya estaba instalada (§3).
   `*.log`, `*.dump` y sacarlos del control de versiones (`git rm -r --cached`).
 - Odoo 18 clonado con `--depth 1` (sin historial). Para actualizar Odoo: `git -C odoo pull`
   (necesita internet).
-- `odoo.conf` — `addons_path = odoo/addons, custom_addons, custom_addons/stock-logistics-barcode`
-  (recoge `mi_gestor_stock` porque `custom_addons` es la carpeta padre).
+- `odoo.conf` — `addons_path = odoo/addons, custom_addons` (recoge `mi_gestor_stock`
+  porque `custom_addons` es la carpeta padre). No incluye `stock-logistics-barcode`:
+  esa carpeta OCA no está presente en este repo (solo existía en la carpeta antigua
+  `C:\Users\Usuario\Desktop\EntreRamblas\`, sin instalar).

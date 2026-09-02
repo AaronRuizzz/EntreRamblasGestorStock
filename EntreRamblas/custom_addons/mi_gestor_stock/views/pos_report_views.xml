@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Informes (Fase 5 del plan de limpieza): se reutiliza el modelo
+         nativo report.pos.order y sus vistas pivot/graph/list, solo se
+         cambian nombre, dominio y contexto por defecto.
+         ============================================================ -->
+
+    <record id="action_mgs_report_sales" model="ir.actions.act_window">
+        <field name="name">Ventas y balance</field>
+        <field name="res_model">report.pos.order</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="search_view_id" ref="point_of_sale.view_report_pos_order_search"/>
+        <field name="context">{'search_default_not_cancelled': 1, 'search_default_order_month': 1}</field>
+        <field name="view_ids" eval="[(5,0,0),
+            (0,0,{'sequence':1,'view_mode':'graph','view_id': ref('point_of_sale.view_report_pos_order_graph')}),
+            (0,0,{'sequence':2,'view_mode':'pivot','view_id': ref('point_of_sale.view_report_pos_order_pivot')}),
+            (0,0,{'sequence':3,'view_mode':'list', 'view_id': ref('point_of_sale.report_pos_order_view_tree')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay ventas registradas.</p>
+        </field>
+    </record>
+
+    <record id="action_mgs_report_top_products" model="ir.actions.act_window">
+        <field name="name">Productos más vendidos</field>
+        <field name="res_model">report.pos.order</field>
+        <field name="view_mode">list,graph,pivot</field>
+        <field name="search_view_id" ref="point_of_sale.view_report_pos_order_search"/>
+        <field name="context">{'search_default_not_cancelled': 1, 'search_default_product': 1,
+                                'group_by': ['product_id']}</field>
+        <field name="view_ids" eval="[(5,0,0),
+            (0,0,{'sequence':1,'view_mode':'list', 'view_id': ref('point_of_sale.report_pos_order_view_tree')}),
+            (0,0,{'sequence':2,'view_mode':'graph','view_id': ref('point_of_sale.view_report_pos_order_graph')}),
+            (0,0,{'sequence':3,'view_mode':'pivot','view_id': ref('point_of_sale.view_report_pos_order_pivot')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay ventas registradas.</p>
+        </field>
+    </record>
+</odoo>

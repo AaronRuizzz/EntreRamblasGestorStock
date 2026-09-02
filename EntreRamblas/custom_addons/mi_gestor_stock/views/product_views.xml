@@ -36,6 +36,8 @@
                     <div name="list_price_uom" class="d-flex align-items-center gap-2">
                         <field name="list_price" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                     </div>
+                    <field name="standard_price" string="Precio de coste (€)" widget="monetary"
+                           options="{'currency_field': 'cost_currency_id', 'field_digits': True}"/>
                     <field name="categ_id" string="Categoría"/>
                     <!-- Campos técnicos necesarios para lógica interna en modo invisible -->
                     <field name="type" invisible="1"/>
@@ -50,10 +52,19 @@
                     <field name="barcode" string="Código de barras" placeholder="Escanear con pistola Honeywell..."/>
                     <field name="default_code" string="Referencia interna"/>
                     <!-- Campos técnicos en modo invisible -->
-                    <field name="standard_price" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
                     <field name="cost_currency_id" invisible="1"/>
                     <field name="product_variant_id" invisible="1"/>
+                </group>
+            </xpath>
+
+            <!-- 4bis. Aviso de stock mínimo, junto a la información de precios -->
+            <xpath expr="//group[@name='group_stock_floristeria']" position="after">
+                <group name="group_mgs_alert" string="Aviso de stock">
+                    <field name="qty_available" string="Existencias" readonly="1"/>
+                    <field name="mgs_alert_on"/>
+                    <field name="mgs_min_qty" invisible="not mgs_alert_on"/>
+                    <field name="mgs_low_stock" invisible="1"/>
                 </group>
             </xpath>
 
@@ -73,6 +84,89 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
 
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Stock: lista y buscador propios (Fase 3 del plan de limpieza)
+         ============================================================ -->
+    <record id="view_mgs_product_list" model="ir.ui.view">
+        <field name="name">product.template.list.mgs</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <list string="Stock" decoration-danger="mgs_low_stock">
+                <field name="name" string="Producto"/>
+                <field name="barcode" optional="show"/>
+                <field name="categ_id" string="Categoría" optional="hide"/>
+                <field name="qty_available" string="Existencias"/>
+                <field name="mgs_min_qty" string="Mínimo"/>
+                <field name="list_price" string="PVP" widget="monetary"
+                       options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="mgs_low_stock" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mgs_alert_list" model="ir.ui.view">
+        <field name="name">product.template.list.mgs.alerts</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <list string="Alertas de stock" decoration-danger="mgs_low_stock">
+                <field name="name" string="Producto"/>
+                <field name="barcode" optional="show"/>
+                <field name="qty_available" string="Existencias"/>
+                <field name="mgs_min_qty" string="Mínimo"/>
+                <field name="mgs_low_stock" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mgs_product_search" model="ir.ui.view">
+        <field name="name">product.template.search.mgs</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <search string="Stock">
+                <field name="name" string="Producto"
+                       filter_domain="['|', '|', ('default_code','ilike',self), ('name','ilike',self), ('barcode','ilike',self)]"/>
+                <field name="categ_id" filter_domain="[('categ_id','child_of',raw_value)]"/>
+                <separator/>
+                <filter string="Bajo mínimo" name="filter_mgs_low_stock"
+                        domain="[('mgs_low_stock','=',True)]"/>
+                <separator/>
+                <filter string="Archivados" name="inactive" domain="[('active','=',False)]"/>
+                <group expand="1" string="Agrupar por">
+                    <filter string="Categoría" name="group_categ_id" context="{'group_by':'categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mgs_products" model="ir.actions.act_window">
+        <field name="name">Stock</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mgs_product_search"/>
+        <field name="view_ids" eval="[(5,0,0),
+            (0,0,{'sequence':1,'view_mode':'list','view_id': ref('view_mgs_product_list')}),
+            (0,0,{'sequence':2,'view_mode':'form'})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay productos.</p>
+            <p>Se dan de alta desde Recepción al escanear un código nuevo, o aquí con «Nuevo».</p>
+        </field>
+    </record>
+
+    <record id="action_mgs_stock_alerts" model="ir.actions.act_window">
+        <field name="name">Alertas de stock</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('mgs_low_stock','=',True)]</field>
+        <field name="search_view_id" ref="view_mgs_product_search"/>
+        <field name="view_ids" eval="[(5,0,0),
+            (0,0,{'sequence':1,'view_mode':'list','view_id': ref('view_mgs_alert_list')}),
+            (0,0,{'sequence':2,'view_mode':'form'})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin alertas: todo por encima del mínimo.</p>
         </field>
     </record>
 </odoo>
