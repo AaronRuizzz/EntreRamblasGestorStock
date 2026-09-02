@@ -70,20 +70,22 @@ body.o_mgs_login_body #wrapwrap {
     form > p:empty { display: none; }
 
     // ---- Emblema (dentro de la tarjeta, sin recortes) -----
+    // El emblema ya lleva el nombre de la marca, por eso no hay rotulo
+    // aparte. PNG con fondo transparente, se muestra entero (nada de
+    // `border-radius: 50%`, que recortaba las esquinas de la ilustracion).
     .border-bottom {
         border-bottom: 0 !important;
-        margin: 0 0 .35rem !important;
+        margin: 0 0 .25rem !important;
         padding: 0 !important;
         text-align: center;
     }
     .border-bottom img {
         display: block;
-        width: 60% !important;
-        max-width: 210px !important;
+        width: 72% !important;
+        max-width: 268px !important;
         height: auto !important;
-        margin: 0 auto .4rem !important;
+        margin: 0 auto .2rem !important;
         object-fit: contain;
-        filter: drop-shadow(0 6px 14px rgba(15, 23, 42, .12));
     }
 
     // ---- Titulo / subtitulo ------------------------------
@@ -161,13 +163,10 @@ body.o_mgs_login_body #wrapwrap {
         &:active { transform: translateY(0); }
     }
 
-    // ---- Pie -------------------------------------------
+    // ---- Pie: solo una linea fina de cierre -------------
     .o_mgs_login_foot {
-        color: #94a3b8;
+        height: 0;
         border-top: 1px solid $slate-line;
-        letter-spacing: .14em;
-        text-transform: uppercase;
-        font-size: .66rem;
     }
 
     .alert {
@@ -193,5 +192,5 @@ owl-component[name="web.user_switch"],
 // ------------------------------------------------------------
 @media (max-width: 520px) {
     .o_mgs_login_card .card-body { padding: 2.1rem 1.35rem 1.6rem; }
-    .o_mgs_login_card .border-bottom img { width: 62% !important; max-width: 180px !important; }
+    .o_mgs_login_card .border-bottom img { width: 78% !important; max-width: 230px !important; }
 }

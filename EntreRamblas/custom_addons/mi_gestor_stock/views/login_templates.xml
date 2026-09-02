@@ -53,11 +53,10 @@
                 <small class="text-muted">Gestor de stock y punto de venta</small>
             </div>
         </xpath>
-        <!-- Pie propio, discreto -->
+        <!-- Sin pie de marca: el emblema ya lleva el nombre de la floristeria,
+             repetirlo abajo sobraba. Se deja solo una linea de cierre. -->
         <xpath expr="//form" position="after">
-            <div class="o_mgs_login_foot text-center small mt-3 pt-2">
-                Entre Ramblas · Clavel &amp; Azahar
-            </div>
+            <div class="o_mgs_login_foot mt-3"/>
         </xpath>
     </template>
 

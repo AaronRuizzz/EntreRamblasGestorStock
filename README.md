@@ -278,8 +278,17 @@ static/src/
 > (`@media max-width: 520px`), campos y botón redondeados con foco/hover. El
 > emblema (`static/src/img/logo-emblema.png`, `<img>` directo, **sin recorte
 > circular** — el recorte cortaba las esquinas de la ilustración) se muestra a
-> ~60% del ancho. **Pendiente:** sustituir `logo-emblema.png` por el emblema
-> definitivo a color (ahora hay un provisional = copia de `login-logo.png`).
+> ~72% del ancho. Como el emblema ya lleva el nombre de la floristería, **no hay
+> rótulo ni pie de marca** en la tarjeta (sobraba repetirlo).
+>
+> **Emblema definitivo (a color) ya puesto.** Origen:
+> `Desktop\Clavel-y-Azahar\public\logo-orginal2.png` (1254×1254). Procesado con
+> Pillow: relleno por inundación desde las 4 esquinas (`ImageDraw.floodfill`,
+> `thresh=28`) para dejar el fondo crema **transparente**, recorte del margen y
+> lienzo cuadrado. Salidas en `static/src/img/`: `logo-emblema.png` 900px (login),
+> `logo.png` 560px (`res.company.logo`, backend + informes) y `favicon.png` 256px.
+> El vector monocromo original queda como `logo-emblema.svg` (solo referencia:
+> es de un solo color `#061b0e`, no sirve para la versión a color).
 >
 > - **Selector "Elija un usuario" eliminado**: la plantilla `mgs_login` quita el
 >   `<owl-component name="web.user_switch"/>` y le fuerza al `<form>` la clase
