@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.coverage
+htmlcov/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+
+# Odoo: datos locales, filestore, sesiones y logs
+EntreRamblas/.odoo_data/
+EntreRamblas/filestore/
+EntreRamblas/sessions/
+EntreRamblas/*.log
+EntreRamblas/*.err
+EntreRamblas/odoo-server.log
+EntreRamblas/odoo-server.err
+EntreRamblas/odoo-init.log
+EntreRamblas/odoo-pos-init.log
+EntreRamblas/pip-install.log
+
+# Configuración local y secretos
+*.local
+*.secret
+.env
+.env.*
+!.env.example
+
+# PostgreSQL local
+*.pgsql
+*.dump
+*.backup
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# VS Code e IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.iml
+
+# Temporales y archivos de edición
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Descargas o clones temporales
+*-source-temp/
