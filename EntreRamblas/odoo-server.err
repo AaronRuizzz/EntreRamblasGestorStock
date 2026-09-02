@@ -1,0 +1,57 @@
+2026-09-02 14:09:23,429 16212 INFO ? odoo: Odoo version 18.0 
+2026-09-02 14:09:23,431 16212 INFO ? odoo: Using configuration file at C:\Users\Usuario\Desktop\EntreRamblasGestorStock\EntreRamblas\odoo.conf 
+2026-09-02 14:09:23,431 16212 INFO ? odoo: addons paths: ['C:\\Users\\Usuario\\Desktop\\EntreRamblasGestorStock\\EntreRamblas\\odoo\\odoo\\addons', 'c:\\users\\usuario\\desktop\\entreramblasgestorstock\\entreramblas\\.odoo_data\\addons\\18.0', 'c:\\users\\usuario\\desktop\\entreramblasgestorstock\\entreramblas\\odoo\\addons', 'c:\\users\\usuario\\desktop\\entreramblasgestorstock\\entreramblas\\custom_addons', 'c:\\users\\usuario\\desktop\\entreramblasgestorstock\\entreramblas\\custom_addons\\stock-logistics-barcode', 'c:\\users\\usuario\\desktop\\entreramblasgestorstock\\entreramblas\\odoo\\odoo\\addons'] 
+2026-09-02 14:09:23,431 16212 INFO ? odoo: database: odoo@localhost:5432 
+2026-09-02 14:09:23,531 16212 INFO ? odoo.addons.base.models.ir_actions_report: Will use the Wkhtmltopdf binary at C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe 
+2026-09-02 14:09:23,555 16212 INFO ? odoo.addons.base.models.ir_actions_report: Will use the Wkhtmltoimage binary at C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe 
+2026-09-02 14:09:25,003 16212 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-49BLHDL:8069 
+2026-09-02 14:09:46,575 16212 INFO ? odoo.modules.loading: loading 1 modules... 
+2026-09-02 14:09:46,579 16212 INFO ? odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-09-02 14:09:46,632 16212 INFO ? odoo.modules.loading: loading 62 modules... 
+2026-09-02 14:09:47,462 16212 INFO ? odoo.modules.loading: 62 modules loaded in 0.83s, 0 queries (+0 extra) 
+2026-09-02 14:09:47,576 16212 INFO ? odoo.modules.loading: Modules loaded. 
+2026-09-02 14:09:47,580 16212 INFO ? odoo.modules.registry: Registry loaded in 1.070s 
+2026-09-02 14:09:47,582 16212 INFO mi_base_stock odoo.addons.base.models.ir_http: Generating routing map for key None 
+2026-09-02 14:09:48,125 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:09:48] "GET /web/login HTTP/1.1" 200 - 83 0.064 1.606
+2026-09-02 14:09:56,875 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:09:56] "GET /web/login HTTP/1.1" 200 - 4 0.003 0.064
+2026-09-02 14:09:59,122 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:09:59] "GET /web/assets/be137f1/web.assets_frontend_minimal.min.js HTTP/1.1" 200 - 5 0.002 0.153
+2026-09-02 14:09:59,127 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:09:59] "GET /web/assets/c988d1d/web.assets_frontend.min.css HTTP/1.1" 200 - 5 0.005 0.155
+2026-09-02 14:10:01,814 16212 INFO ? werkzeug: 127.0.0.1 - - [02/Sep/2026 14:10:01] "GET /mi_gestor_stock/static/src/img/login-logo.png HTTP/1.1" 200 - 1 0.003 0.561
+2026-09-02 14:10:25,157 16212 INFO mi_base_stock odoo.addons.base.models.ir_cron: Job 'Base: Auto-vacuum internal data' (1) starting 
+2026-09-02 14:10:25,191 16212 INFO mi_base_stock odoo.addons.base.models.ir_attachment: filestore gc 4 checked, 0 removed 
+2026-09-02 14:10:25,229 16212 INFO mi_base_stock odoo.addons.base.models.res_users: GC'd 0 user log entries 
+2026-09-02 14:10:25,236 16212 INFO mi_base_stock odoo.addons.base.models.res_users: GC 'res.users.apikeys' delete 0 entries 
+2026-09-02 14:10:25,242 16212 INFO mi_base_stock odoo.addons.base.models.res_device: GC device logs delete 0 entries 
+2026-09-02 14:10:25,243 16212 INFO mi_base_stock odoo.addons.base.models.res_device: GC device logs delete 0 entries 
+2026-09-02 14:10:25,256 16212 INFO mi_base_stock odoo.addons.base.models.res_users: GC 'auth_totp.device' delete 0 entries 
+2026-09-02 14:10:25,337 16212 INFO mi_base_stock odoo.addons.sms.models.sms_sms: GC'd 0 sms marked for deletion 
+2026-09-02 14:10:25,471 16212 INFO mi_base_stock odoo.addons.base.models.ir_cron: Job 'Base: Auto-vacuum internal data' (1) done in 0.313s 
+2026-09-02 14:10:25,473 16212 INFO mi_base_stock odoo.addons.base.models.ir_cron: Job 'Base: Auto-vacuum internal data' (1) processed 0 records, 0 records remaining 
+2026-09-02 14:10:25,476 16212 INFO mi_base_stock odoo.addons.base.models.ir_cron: Job 'Base: Auto-vacuum internal data' (1) completed 
+2026-09-02 14:12:36,939 16212 INFO mi_base_stock odoo.addons.base.models.res_users: Login successful for db:mi_base_stock login:entreramblasclavelyazahar@gmail.com from 127.0.0.1 
+2026-09-02 14:12:38,041 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:12:38] "POST /web/session/authenticate HTTP/1.1" 200 - 85 0.058 1.495
+2026-09-02 14:12:40,090 16212 INFO mi_base_stock odoo.addons.base.models.res_device: User 2 inserts device log (tFIL6eU4VOpRkR8tfFXMf-tm9UdnBuHp4XHXNdNTHR) 
+2026-09-02 14:12:40,100 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:12:40] "POST /web/dataset/call_kw HTTP/1.1" 200 - 4 0.001 0.013
+2026-09-02 14:12:42,137 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:12:42] "POST /web/dataset/call_kw HTTP/1.1" 200 - 8 0.004 0.005
+2026-09-02 14:12:44,196 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:12:44] "POST /web/dataset/call_kw HTTP/1.1" 200 - 3 0.003 0.002
+2026-09-02 14:12:46,236 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:12:46] "POST /web/dataset/call_kw HTTP/1.1" 200 - 3 0.003 0.004
+2026-09-02 14:13:07,008 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:13:07] "GET /web/login HTTP/1.1" 200 - 7 0.005 0.074
+2026-09-02 14:15:12,710 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:12] "GET / HTTP/1.1" 303 - 5 0.004 0.003
+2026-09-02 14:15:13,604 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:13] "GET /odoo HTTP/1.1" 200 - 53 0.023 0.615
+2026-09-02 14:15:13,681 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:13] "GET /web/webclient/load_menus/3c1693b7e6076f9fb1b7d5dc4be75b45d676d7c3bcbc95e361bf576c7f967f79 HTTP/1.1" 200 - 70 0.028 0.023
+2026-09-02 14:15:13,966 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:13] "GET /web/webclient/translations/c7f3825332622f48d80239c1477e5e571fb1674a?lang=es_ES HTTP/1.1" 200 - 1 0.001 0.022
+2026-09-02 14:15:13,974 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:13] "GET /web/manifest.webmanifest HTTP/1.1" 200 - 8 0.008 0.023
+2026-09-02 14:15:14,343 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "POST /mail/data HTTP/1.1" 200 - 27 0.030 0.014
+2026-09-02 14:15:14,416 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "GET /web/image/res.partner/3/avatar_128?unique=1788350951000 HTTP/1.1" 200 - 11 0.009 0.061
+2026-09-02 14:15:14,418 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "GET /web/image?model=res.users&field=avatar_128&id=2 HTTP/1.1" 200 - 15 0.010 0.061
+2026-09-02 14:15:14,418 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "GET /bus/websocket_worker_bundle?v=18.0-7 HTTP/1.1" 304 - 4 0.008 0.063
+2026-09-02 14:15:14,435 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "POST /web/action/load HTTP/1.1" 200 - 9 0.029 0.060
+2026-09-02 14:15:14,607 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "POST /web/dataset/call_kw/stock.picking.type/get_views HTTP/1.1" 200 - 53 0.035 0.027
+2026-09-02 14:15:14,753 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "GET /websocket?version=18.0-7 HTTP/1.1" 101 - 1 0.000 0.007
+2026-09-02 14:15:14,844 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "POST /web/dataset/call_kw/stock.picking.type/web_search_read HTTP/1.1" 200 - 22 0.018 0.080
+2026-09-02 14:15:14,936 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:14] "GET /web/bundle/web.chartjs_lib?lang=es_ES HTTP/1.1" 200 - 2 0.001 0.002
+2026-09-02 14:15:15,070 16212 INFO ? odoo.addons.bus.models.bus: Bus.loop listen imbus on db postgres 
+2026-09-02 14:15:16,055 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:16] "GET /web/service-worker.js HTTP/1.1" 200 - 1 0.000 0.003
+2026-09-02 14:15:23,573 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:23] "POST /web/dataset/call_kw/stock.picking.type/web_search_read HTTP/1.1" 200 - 12 0.013 0.007
+2026-09-02 14:15:24,887 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:24] "POST /web/dataset/call_kw/stock.picking.type/web_search_read HTTP/1.1" 200 - 12 0.008 0.005
+2026-09-02 14:15:32,863 16212 INFO mi_base_stock werkzeug: 127.0.0.1 - - [02/Sep/2026 14:15:32] "POST /mail/data HTTP/1.1" 200 - 5 0.003 0.002
