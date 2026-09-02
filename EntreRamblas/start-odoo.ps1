@@ -8,12 +8,34 @@ param(
 )
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
+$python = Join-Path $PSScriptRoot "venv\Scripts\python.exe"
+$odooBin = Join-Path $PSScriptRoot "odoo\odoo-bin"
+
+if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+    throw "No se encuentra el entorno virtual: $python"
+}
+
+$configDbHost = "localhost"
+$configDbPort = 5432
+
+if (-not (Test-Path -LiteralPath $odooBin -PathType Leaf)) {
+    $globalOdoo = Get-ChildItem "C:\Program Files\Odoo*\server\odoo-bin" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($globalOdoo) {
+        $odooBin = $globalOdoo.FullName
+    } else {
+        throw "No se encuentra odoo-bin en '$odooBin'. Descarga el código fuente de Odoo 18 en la carpeta 'odoo' del proyecto."
+    }
+}
+
+if (-not (Test-NetConnection -ComputerName $configDbHost -Port $configDbPort -InformationLevel Quiet)) {
+    throw "PostgreSQL no responde en $configDbHost`:$configDbPort. Inicia el servicio PostgreSQL y vuelve a ejecutar este script."
+}
+
 # Asegura que wkhtmltopdf este en el PATH de este proceso (para informes PDF)
 $wk = "C:\Program Files\wkhtmltopdf\bin"
 if ((Test-Path $wk) -and ($env:Path -notlike "*wkhtmltopdf*")) { $env:Path = "$wk;$env:Path" }
 
-$py = ".\venv\Scripts\python.exe"
-$args = @(".\odoo\odoo-bin", "-c", "odoo.conf")
+$args = @($odooBin, "-c", (Join-Path $PSScriptRoot "odoo.conf"))
 if ($Update) { $args += @("-u", $Update) }
 if ($Init)   { $args += @("-i", $Init) }
-& $py @args
+& $python @args
