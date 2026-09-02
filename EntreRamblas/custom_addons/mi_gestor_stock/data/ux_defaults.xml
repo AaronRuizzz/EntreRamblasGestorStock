@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ==========================================================
+         Pantalla de inicio tras el login
+         ==========================================================
+         Sin esto, Odoo abre el primer menu por secuencia (Discuss /
+         "Conversaciones"), que no interesa en una floristeria.
+         Fijamos "Inventario > Resumen" como pantalla de inicio para
+         el administrador y para la plantilla de usuarios nuevos. -->
+    <function model="res.users" name="write">
+        <value model="res.users"
+               eval="[ref('base.user_admin'), ref('base.default_user')]"/>
+        <value eval="{'action_id': ref('stock.stock_picking_type_action')}"/>
+    </function>
+
+    <!-- ==========================================================
+         Ocultar la app "Conversaciones" (Discuss)
+         ==========================================================
+         El modulo 'mail' es una dependencia obligatoria de casi todo
+         Odoo y no se puede desinstalar, pero si podemos quitar su
+         entrada del menu principal. El chat interno (mensajes en
+         fichas de productos, albaranes, etc.) sigue funcionando. -->
+    <record id="mail.menu_root_discuss" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+</odoo>

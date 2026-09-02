@@ -24,8 +24,8 @@
         </xpath>
         <!-- Nuestro logo en lugar de "Your logo" -->
         <xpath expr="//div[hasclass('border-bottom')]/img" position="attributes">
-            <attribute name="t-attf-src">/mi_gestor_stock/static/src/img/login-logo.svg</attribute>
-            <attribute name="style">width:100%; max-width:290px; height:auto</attribute>
+            <attribute name="t-attf-src">/mi_gestor_stock/static/src/img/login-logo.png</attribute>
+            <attribute name="style">width:100%; max-width:250px; height:auto</attribute>
         </xpath>
     </template>
 
@@ -34,7 +34,7 @@
             <!-- Titulo de la pestana del navegador -->
             <t t-set="title">Gestión de stock</t>
             <!-- Favicon de la pagina de login -->
-            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.svg</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
             <!-- Oculta el pie con "Manage Databases" y "Powered by Odoo" -->
             <t t-set="disable_footer" t-value="True"/>
 

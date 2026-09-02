@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Logo y favicon de la empresa (aparecen en el backend, informes PDF y
-         pestana del navegador). Se cargan desde los ficheros del modulo para
-         que viajen con el en el despliegue. -->
-    <record id="base.main_company" model="res.company">
-        <field name="name">Entre Ramblas · Clavel &amp; Azahar</field>
-        <field name="logo" type="base64" file="mi_gestor_stock/static/src/img/logo.png"/>
-        <field name="favicon" type="base64" file="mi_gestor_stock/static/src/img/favicon.png"/>
-    </record>
+    <!-- ============================================================
+         Marca de la empresa: nombre, logo y favicon.
+
+         NOTA: `base.main_company` se carga con noupdate="1" desde el
+         modulo `base`, asi que un <record> normal para cambiar su
+         nombre/logo se IGNORA en cada `-u`. Por eso se aplica desde
+         codigo Python (models/res_company.py), que si se ejecuta
+         siempre. El logo/favicon salen de los PNG del modulo para
+         que viajen con el en el despliegue.
+         ============================================================ -->
+    <function model="res.company" name="_mgs_apply_branding" eval="[[]]"/>
+
+    <!-- Idioma: toda la interfaz en espanol (es_ES) -->
+    <function model="res.company" name="_mgs_setup_spanish" eval="[[]]"/>
 
     <!-- Sin registro publico de cuentas ("Don't have an account?"):
          solo el administrador crea usuarios. -->
