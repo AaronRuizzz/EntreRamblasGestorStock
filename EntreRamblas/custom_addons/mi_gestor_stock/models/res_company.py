@@ -10,6 +10,12 @@ COMPANY_NAME = "Entre Ramblas · Clavel & Azahar"
 LANG_CODE = "es_ES"
 _IMG_DIR = "mi_gestor_stock/static/src/img"
 
+# Credenciales del administrador. Se fijan desde el modulo para que una BD
+# creada desde cero (bootstrap.ps1) tenga SIEMPRE el mismo acceso, igual en
+# el equipo de cualquiera. (Ver README §4.)
+ADMIN_LOGIN = "entreramblasclavelyazahar@gmail.com"
+ADMIN_PASSWORD = "gestionDeStockNani2026"
+
 
 def _img_b64(filename):
     """Lee un PNG del modulo y lo devuelve en base64 (o None si no existe)."""
@@ -35,7 +41,8 @@ class ResCompany(models.Model):
             return
 
         vals = {"name": COMPANY_NAME}
-        logo = _img_b64("logo.png")
+        # Emblema definitivo (mismo que el login) con respaldo al antiguo.
+        logo = _img_b64("logo-emblema.png") or _img_b64("logo.png")
         if logo:
             vals["logo"] = logo
         # `res.company.favicon` no existe en Odoo 18 Community sin el modulo
@@ -84,17 +91,10 @@ class ResCompany(models.Model):
             except Exception:  # noqa: BLE001 - no bloquear el update
                 _logger.exception("mi_gestor_stock: fallo al cargar traducciones es_ES")
 
-        # Deja el espanol como UNICO idioma activo: asi la pantalla de
-        # login y cualquier pagina anonima tambien salen en espanol.
-        # (en_US sigue siendo el idioma fuente interno de Odoo aunque
-        # este inactivo; para reactivarlo: Ajustes > Traducciones > Idiomas.)
-        en = lang_model.with_context(active_test=False).search(
-            [("code", "=", "en_US")], limit=1
-        )
-        if en and en.active:
-            en.active = False
-
-        # Idioma por defecto para usuarios nuevos y existentes.
+        # Idioma por defecto para usuarios nuevos y existentes. Esto va
+        # ANTES de desactivar en_US: Odoo no deja desactivar un idioma que
+        # todavia usa algun usuario ("Cannot deactivate a language that is
+        # currently used by users").
         self.env["ir.default"].set("res.partner", "lang", LANG_CODE)
         self.env["res.users"].with_context(active_test=False).search([]).write(
             {"lang": LANG_CODE}
@@ -103,9 +103,30 @@ class ResCompany(models.Model):
             [("lang", "!=", LANG_CODE)]
         ).write({"lang": LANG_CODE})
 
-        # Nombre del usuario administrador en espanol.
+        # Nombre + credenciales del usuario administrador, para que una BD
+        # recien creada tenga el acceso documentado en el README (§4).
         admin = self.env.ref("base.user_admin", raise_if_not_found=False)
-        if admin and admin.name in ("Administrator", "Mitchell Admin"):
-            admin.name = "Administrador"
+        if admin:
+            if admin.name in ("Administrator", "Mitchell Admin"):
+                admin.name = "Administrador"
+            # Mientras el login siga siendo el de fabrica ("admin") estamos
+            # ante una BD recien creada: fijamos login + contrasena. En cuanto
+            # el login pasa a ser el email, un `-u` posterior ya no toca la
+            # contrasena (respeta un cambio hecho en produccion).
+            if admin.login == "admin":
+                admin.sudo().write({"login": ADMIN_LOGIN, "password": ADMIN_PASSWORD})
+
+        # Ahora si: deja el espanol como UNICO idioma activo, para que la
+        # pantalla de login y cualquier pagina anonima salgan en espanol.
+        # (en_US sigue siendo el idioma fuente interno de Odoo aunque este
+        # inactivo; para reactivarlo: Ajustes > Traducciones > Idiomas.)
+        en = lang_model.with_context(active_test=False).search(
+            [("code", "=", "en_US")], limit=1
+        )
+        if en and en.active:
+            try:
+                en.active = False
+            except Exception:  # noqa: BLE001 - no bloquear el update
+                _logger.warning("mi_gestor_stock: no se pudo desactivar en_US todavia")
 
         _logger.info("mi_gestor_stock: interfaz configurada en %s", LANG_CODE)

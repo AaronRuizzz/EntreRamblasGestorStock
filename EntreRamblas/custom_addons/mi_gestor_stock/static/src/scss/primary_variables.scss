@@ -1,0 +1,11 @@
+// ============================================================
+//  Color de marca de Odoo -> azul pizarra Entre Ramblas
+//  Bundle: web._assets_primary_variables  (va con 'prepend' en el
+//  manifest para ganar a los `!default` de Odoo).
+//  Unifica el tono azul en TODO el backend: titulos de kanban,
+//  enlaces, foco de campos, casillas, botones primarios, etc.
+// ============================================================
+
+$o-community-color:        #1e3a5f;   // azul marino institucional
+$o-enterprise-color:       #1e3a5f;
+$o-enterprise-action-color: #1e293b;  // azul pizarra (acciones)

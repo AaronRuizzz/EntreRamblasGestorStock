@@ -1,78 +1,197 @@
 // ============================================================
 //  Pantalla de inicio de sesion  ·  Entre Ramblas
 //  Bundle: web.assets_frontend (la pagina de login es publica)
-//  Paleta calmada de floristeria: verde, crema y oro suave.
+//  Tema unificado con el backend (backend.scss): azul pizarra / navy.
 // ============================================================
 
-$mgs-green:      #2f4a37;   // verde principal (botones)
-$mgs-green-dark: #14351f;   // titulos
-$mgs-sage:       #8a9a7b;   // foco de campos
-$mgs-cream:      #fffef9;   // fondo de la tarjeta
-$mgs-line:       #e3e0d3;   // bordes suaves
+$navy-dark:   #0f172a;   // navy corporativo
+$navy:        #1e293b;   // azul pizarra (boton primario, igual que backend)
+$navy-mid:    #334155;   // pizarra media
+$navy-action: #1e3a5f;   // azul marino institucional
+$slate-bg:    #f8fafc;   // fondo perla frio
+$slate-line:  #e2e8f0;   // bordes suaves
+$slate-brd:   #cbd5e1;   // borde de campo
+$ink:         #0f172a;   // texto principal
+$ink-muted:   #475569;   // texto secundario
+$radius:      8px;
 
-// Fondo a pantalla completa (suave, sin brillos)
+// ------------------------------------------------------------
+//  Fondo a pantalla completa
+// ------------------------------------------------------------
 body.o_mgs_login_body,
 body.o_mgs_login_body #wrapwrap {
-    background: linear-gradient(160deg, #f2efe6 0%, #e9ede2 55%, #e2e8dc 100%);
+    background-color: $slate-bg;
+    background-image:
+        radial-gradient(1100px 640px at 12% -12%, rgba(30, 58, 95, .10), transparent 60%),
+        radial-gradient(1000px 720px at 100% 118%, rgba(51, 65, 85, .14), transparent 60%),
+        linear-gradient(165deg, #fbfcfe 0%, #eef2f7 55%, #e6ecf3 100%);
     background-attachment: fixed;
+    background-repeat: no-repeat;
 }
 
 .o_mgs_login_bg {
     min-height: 100vh;
     display: flex;
     align-items: center;
+    padding: 2.5rem 1rem;
 }
 
+// ------------------------------------------------------------
+//  Tarjeta
+// ------------------------------------------------------------
 .o_mgs_login_card {
-    max-width: 400px !important;           // la plantilla trae 300px inline
-    border-radius: 14px !important;
-    background-color: $mgs-cream !important;
-    border: 1px solid $mgs-line;
-    box-shadow: 0 18px 40px rgba(20, 53, 31, 0.14);
+    position: relative;
+    width: 100%;
+    max-width: 468px !important;             // la plantilla trae 300px inline
+    border: 1px solid $slate-line !important;
+    border-radius: $radius !important;
+    background-color: #ffffff !important;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .6) inset,
+        0 24px 60px -22px rgba(15, 23, 42, .34),
+        0 8px 22px -14px rgba(15, 23, 42, .22);
+    overflow: visible !important;
 
-    .card-body { padding: 2.25rem 2rem; }
+    // filete azul superior
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        border-radius: $radius $radius 0 0;
+        background: linear-gradient(90deg,
+            transparent 0%, $navy-action 22%, $navy-mid 50%, $navy-action 78%, transparent 100%);
+    }
 
-    // Zona del logo: quita la linea inferior y aprieta el espacio
+    .card-body { padding: 2.75rem 2.5rem 1.9rem; }
+
+    // el bloque de botones y el parrafo vacio que Odoo deja tras el form
+    .oe_login_buttons { margin-bottom: .25rem !important; padding-top: 1.2rem !important; }
+    form > p:empty { display: none; }
+
+    // ---- Emblema (dentro de la tarjeta, sin recortes) -----
     .border-bottom {
         border-bottom: 0 !important;
-        margin-bottom: .25rem !important;
-        padding-bottom: 0 !important;
+        margin: 0 0 .35rem !important;
+        padding: 0 !important;
+        text-align: center;
+    }
+    .border-bottom img {
+        display: block;
+        width: 60% !important;
+        max-width: 210px !important;
+        height: auto !important;
+        margin: 0 auto .4rem !important;
+        object-fit: contain;
+        filter: drop-shadow(0 6px 14px rgba(15, 23, 42, .12));
     }
 
-    .o_mgs_login_title small { letter-spacing: .04em; }
+    // ---- Titulo / subtitulo ------------------------------
+    .o_mgs_login_title {
+        margin-bottom: 1.25rem !important;
+        small, small.text-muted {
+            letter-spacing: .04em;
+            color: $ink-muted !important;
+            font-size: .9rem;
+        }
+    }
 
-    label { color: $mgs-green-dark; font-weight: 600; }
+    // ---- Formulario -------------------------------------
+    label {
+        color: $ink-muted;
+        font-weight: 700;
+        font-size: .72rem;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        margin-bottom: .35rem;
+        align-items: baseline;
+    }
+    label a,
+    label a.btn {
+        text-transform: none;
+        letter-spacing: normal;
+        font-weight: 500;
+        font-size: .78rem;
+        padding: 0;
+        color: $ink-muted;
+        &:hover { color: $navy; }
+    }
 
     .form-control {
-        border-radius: 9px;
-        border-color: #d8d5c6;
-        padding: .6rem .85rem;
+        border-radius: $radius;
+        border: 1.5px solid $slate-brd;
+        background-color: #fff;
+        padding: .8rem 1rem;
+        font-size: 1rem;
+        transition: border-color .15s ease, box-shadow .15s ease;
         &:focus {
-            border-color: $mgs-sage;
-            box-shadow: 0 0 0 .2rem rgba(138, 154, 123, .25);
+            border-color: $navy;
+            box-shadow: 0 0 0 3px rgba(30, 41, 59, .14);
         }
+        &::placeholder { color: #9aa6b6; }
     }
 
-    // Enlaces (Reset Password, etc.)
-    a { color: #6f7d63; }
-    a:hover { color: $mgs-green-dark; }
+    .form-check-input:checked {
+        background-color: $navy;
+        border-color: $navy;
+    }
+
+    a {
+        color: $navy-action;
+        text-decoration: none;
+        &:hover { color: $navy-dark; text-decoration: underline; }
+    }
 
     .btn-primary {
-        border-radius: 9px;
-        padding: .65rem 1rem;
+        border-radius: $radius;
+        padding: .85rem 1rem;
+        font-size: 1rem;
         font-weight: 600;
-        letter-spacing: .02em;
-        background-color: $mgs-green;
-        border-color: $mgs-green;
+        letter-spacing: .03em;
+        border: 1px solid $navy-dark;
+        background: linear-gradient(180deg, #24344a 0%, $navy 60%, #17222f 100%);
+        box-shadow: 0 10px 22px -10px rgba(15, 23, 42, .5);
+        transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+
         &:hover, &:focus {
-            background-color: darken($mgs-green, 6%);
-            border-color: darken($mgs-green, 6%);
+            filter: brightness(1.08);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px -10px rgba(15, 23, 42, .55);
         }
+        &:active { transform: translateY(0); }
     }
 
+    // ---- Pie -------------------------------------------
     .o_mgs_login_foot {
-        color: #9aa48c;
-        border-top: 1px solid $mgs-line;
-        letter-spacing: .06em;
+        color: #94a3b8;
+        border-top: 1px solid $slate-line;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        font-size: .66rem;
     }
+
+    .alert {
+        border-radius: $radius;
+        border: 0;
+        background-color: rgba(30, 58, 95, .08);
+        color: $navy-dark;
+        &.alert-danger { background-color: rgba(190, 50, 74, .09); color: #7d2436; }
+    }
+}
+
+// ------------------------------------------------------------
+//  Selector "Elija un usuario": no se usa (solo el administrador
+//  entra). Se elimina en la plantilla; esto es un cinturon extra.
+// ------------------------------------------------------------
+owl-component[name="web.user_switch"],
+.o_login_user_switch,
+.o_user_switch { display: none !important; }
+.oe_login_form.d-none { display: block !important; }
+
+// ------------------------------------------------------------
+//  Responsive
+// ------------------------------------------------------------
+@media (max-width: 520px) {
+    .o_mgs_login_card .card-body { padding: 2.1rem 1.35rem 1.6rem; }
+    .o_mgs_login_card .border-bottom img { width: 62% !important; max-width: 180px !important; }
 }

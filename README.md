@@ -7,6 +7,18 @@
 
 ## 0. Cambios recientes (2026-09-02)
 
+- **BD reproducible desde el repo.** La base de datos ya **no se sube a git**;
+  se reconstruye idéntica en cualquier equipo con **`bootstrap.ps1`** (crea venv,
+  instala deps y crea `mi_base_stock` instalando `mi_gestor_stock`). Todas las apps
+  del proyecto (Inventario, TPV, Contactos, `l10n_es`) están ahora en `depends` del
+  `__manifest__.py`, así `-i mi_gestor_stock` reproduce el mismo conjunto de módulos.
+  Flujo push/pull entre compañeros documentado en §5. `start-odoo.ps1 -Update/-Init`
+  ya pasa `-d mi_base_stock` solo.
+- **`venv\` y `odoo\` NO están en el repo** (`.gitignore`). Cada equipo los crea:
+  `bootstrap.ps1` hace el `venv`; el fuente de Odoo se clona con
+  `git clone --depth 1 --branch 18.0 https://github.com/odoo/odoo.git odoo`.
+  En el PC de desarrollo actual son *junctions* a la carpeta antigua
+  `C:\Users\Usuario\Desktop\EntreRamblas\{venv,odoo}`.
 - **El proyecto se movió de carpeta.** Antes: `C:\Users\Usuario\Desktop\EntreRamblas\`.
   Ahora: **`C:\Users\Usuario\Desktop\EntreRamblasGestorStock\EntreRamblas\`**
   (la raíz del repositorio git es `EntreRamblasGestorStock`; los archivos del proyecto
@@ -119,6 +131,12 @@ IVA 21/10/4, plan PYMEs, validación NIF), `point_of_sale`, `contacts`, `stock_s
 | Base de datos | `mi_base_stock` |
 | **Usuario administrador** | `entreramblasclavelyazahar@gmail.com` |
 | **Contraseña** | `gestionDeStockNani2026` |
+
+> Estas credenciales las **fija el módulo** (`_mgs_setup_spanish` en
+> `res_company.py`) al crear la BD desde cero. Si el cliente cambia la contraseña
+> en producción, un `-u` posterior **no** la vuelve a pisar (solo actúa mientras
+> el login siga siendo `admin`).
+
 | Contraseña maestra (crear/borrar BD) | `admin` (en `odoo.conf`, `admin_passwd`) — el gestor de BD está **desactivado** por `list_db = False` |
 | PostgreSQL superusuario | `postgres` / `postgres` |
 | PostgreSQL rol Odoo | `odoo` / `odoo` |
@@ -131,16 +149,42 @@ IVA 21/10/4, plan PYMEs, validación NIF), `point_of_sale`, `contacts`, `stock_s
 
 ## 5. Cómo arrancar / trabajar
 
-```powershell
-cd C:\Users\Usuario\Desktop\EntreRamblasGestorStock\EntreRamblas
+### La base de datos SALE DEL REPOSITORIO (no se sube a git)
 
-# Arrancar el servidor
+La BD `mi_base_stock` **no se versiona**. Es un producto derivado del módulo
+`mi_gestor_stock`: toda la personalización (marca, idioma español, estilos,
+vistas, ajustes, apps instaladas) vive como código/datos dentro del módulo.
+Cualquier equipo la reconstruye idéntica con **`bootstrap.ps1`**.
+
+```powershell
+cd ...\EntreRamblasGestorStock\EntreRamblas
+
+# --- PRIMERA VEZ en un equipo (crea venv, deps y la BD desde cero) ---
+.\bootstrap.ps1
+
+# --- Arrancar el servidor ---
 .\start-odoo.ps1
 
-# Tras editar XML de vistas o Python del módulo -> recargar cambios:
-.\start-odoo.ps1 -Update mi_gestor_stock
+# --- Recrear la BD desde cero (borra la actual) ---
+.\bootstrap.ps1 -Reset
+```
 
-# Instalar un módulo nuevo (ej. uno de la OCA):
+### Flujo de trabajo entre compañeros (push / pull)
+
+| Situación | Qué hacer |
+|---|---|
+| Cambié **SCSS / JS / QWeb** y hago push | El compañero: `git pull` → Ctrl+F5 en el navegador. Nada más. |
+| Cambié **vistas XML / modelos Python / datos** (`data/*.xml`) y hago push | El compañero: `git pull` → `.\start-odoo.ps1 -Update mi_gestor_stock` |
+| Añadí una **app nueva** (la puse en `depends` del `__manifest__.py`) | El compañero: `git pull` → `.\start-odoo.ps1 -Update mi_gestor_stock` (instala la nueva dependencia) |
+| La BD local quedó inconsistente | `.\bootstrap.ps1 -Reset` (se pierde solo lo tecleado a mano, no la config del módulo) |
+
+> ⚠️ Lo que se teclea **a mano** en Odoo (productos reales, configuración del
+> almacén, métodos de pago del TPV…) **NO viaja por git**. Si hay que compartirlo,
+> se convierte en datos del módulo (`data/*.xml` o `.csv`) o se pasa un dump de la
+> BD aparte. La marca, el idioma y los estilos SÍ viajan porque son del módulo.
+
+```powershell
+# Instalar un módulo suelto sin tocar el manifest (ej. uno de la OCA):
 .\start-odoo.ps1 -Init web_ir_actions_client_scan
 ```
 
@@ -161,8 +205,10 @@ se apaga ("Initiating shutdown") **sin tocar la base de datos**.
 .\venv\Scripts\python.exe .\odoo\odoo-bin -c odoo.conf -d mi_base_stock -u mi_gestor_stock --stop-after-init
 ```
 
-> `start-odoo.ps1 -Init` / `-Update` **también deberían llevar `-d mi_base_stock`**.
-> Pendiente de añadirlo al script (§9, punto 0).
+> ✅ **Ya resuelto**: `start-odoo.ps1` añade `-d mi_base_stock` automáticamente en
+> `-Init` / `-Update` (parámetro `-Database` para cambiarlo), lanza el paso con
+> `--stop-after-init` y luego arranca el servidor normal. `bootstrap.ps1` hace lo
+> mismo al crear la BD.
 
 Además, al lanzar desde PowerShell 5.1 **no uses `2>&1`** con Odoo: envuelve cada línea
 de log como error y puede abortar el arranque. Redirige a fichero con
@@ -225,9 +271,27 @@ static/src/
 
 ## 7. Personalización de la marca — hecho
 
+> **Rediseño del login (2026-09-02, v2):** `login.scss` reescrito en el **azul
+> pizarra del backend** (`#0f172a` / `#1e293b` / `#1e3a5f`, mismo `backend.scss`)
+> para unificar el tema. Fondo perla frío con brumas azules, tarjeta blanca con
+> filete azul y sombra, tarjeta más ancha (`max-width: 468px`) y responsive
+> (`@media max-width: 520px`), campos y botón redondeados con foco/hover. El
+> emblema (`static/src/img/logo-emblema.png`, `<img>` directo, **sin recorte
+> circular** — el recorte cortaba las esquinas de la ilustración) se muestra a
+> ~60% del ancho. **Pendiente:** sustituir `logo-emblema.png` por el emblema
+> definitivo a color (ahora hay un provisional = copia de `login-logo.png`).
+>
+> - **Selector "Elija un usuario" eliminado**: la plantilla `mgs_login` quita el
+>   `<owl-component name="web.user_switch"/>` y le fuerza al `<form>` la clase
+>   `oe_login_form` sin `d-none` (ese componente era quien destapaba el formulario).
+> - **Credenciales del admin** ahora las fija el módulo (`_mgs_setup_spanish` en
+>   `res_company.py`): en una BD nueva el login pasa de `admin` a
+>   `entreramblasclavelyazahar@gmail.com` / `gestionDeStockNani2026`. En cuanto el
+>   login deja de ser `admin`, un `-u` posterior ya no toca la contraseña.
+
 | Elemento | Estado |
 |---|---|
-| Logo en el login | ✅ **Emblema real** (clavel + azahar), `login-logo.png` rasterizado del SVG |
+| Logo en el login | ✅ Emblema en medallón (`logo-emblema.svg`) + marca escrita |
 | Logo de la empresa (backend + informes PDF) | ✅ Mismo emblema, `logo.png` → `res.company.logo` |
 | Fondo del login | ✅ Degradado calmado crema→verde salvia |
 | Botón "Iniciar sesión" | ✅ Verde bosque `#2f4a37` |

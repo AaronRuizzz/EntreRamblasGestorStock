@@ -4,7 +4,8 @@
 #       .\start-odoo.ps1 -Init otro_modulo         -> instala un modulo nuevo y arranca
 param(
     [string]$Update = "",
-    [string]$Init = ""
+    [string]$Init = "",
+    [string]$Database = "mi_base_stock"
 )
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
@@ -35,7 +36,15 @@ if (-not (Test-NetConnection -ComputerName $configDbHost -Port $configDbPort -In
 $wk = "C:\Program Files\wkhtmltopdf\bin"
 if ((Test-Path $wk) -and ($env:Path -notlike "*wkhtmltopdf*")) { $env:Path = "$wk;$env:Path" }
 
-$args = @($odooBin, "-c", (Join-Path $PSScriptRoot "odoo.conf"))
-if ($Update) { $args += @("-u", $Update) }
-if ($Init)   { $args += @("-i", $Init) }
+# -d <BD> es OBLIGATORIO en los comandos -i / -u: el dbfilter de odoo.conf solo
+# afecta al enrutado HTTP, no al destino de los comandos CLI. Sin -d, Odoo arranca
+# y se apaga sin tocar ninguna base de datos.
+$args = @($odooBin, "-c", (Join-Path $PSScriptRoot "odoo.conf"), "-d", $Database)
+if ($Update) { $args += @("-u", $Update, "--stop-after-init") }
+if ($Init)   { $args += @("-i", $Init, "--stop-after-init") }
 & $python @args
+
+# Tras -u / -i (que terminan con --stop-after-init), arranca el servidor normal.
+if ($Update -or $Init) {
+    & $python @($odooBin, "-c", (Join-Path $PSScriptRoot "odoo.conf"))
+}

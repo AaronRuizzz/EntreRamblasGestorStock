@@ -22,14 +22,25 @@
         <xpath expr="//div[hasclass('card-body')]/parent::div" position="attributes">
             <attribute name="t-attf-class" add="o_mgs_login_card" separator=" "/>
         </xpath>
-        <!-- Nuestro logo en lugar de "Your logo" -->
+        <!-- Nuestro emblema en lugar de "Your logo" -->
         <xpath expr="//div[hasclass('border-bottom')]/img" position="attributes">
-            <attribute name="t-attf-src">/mi_gestor_stock/static/src/img/login-logo.png</attribute>
-            <attribute name="style">width:100%; max-width:250px; height:auto</attribute>
+            <attribute name="t-attf-src">/mi_gestor_stock/static/src/img/logo-emblema.png</attribute>
+            <attribute name="alt">Entre Ramblas · Clavel &amp; Azahar</attribute>
+            <attribute name="style"/>
         </xpath>
     </template>
 
     <template id="mgs_login" inherit_id="web.login">
+        <!-- Quita el selector "Elija un usuario": aqui solo entra el
+             administrador, no interesa el listado de ultimos usuarios. -->
+        <xpath expr="//owl-component[@name='web.user_switch']" position="replace"/>
+        <!-- El formulario ya no lo destapa el componente user_switch:
+             hay que quitarle la clase d-none para que se vea siempre.
+             (usa t-attf-class dinamico, por eso no vale hasclass()) -->
+        <xpath expr="//form" position="attributes">
+            <attribute name="t-attf-class">oe_login_form</attribute>
+        </xpath>
+
         <xpath expr="//form" position="before">
             <!-- Titulo de la pestana del navegador -->
             <t t-set="title">Gestión de stock</t>
@@ -44,7 +55,7 @@
         </xpath>
         <!-- Pie propio, discreto -->
         <xpath expr="//form" position="after">
-            <div class="o_mgs_login_foot text-center small mt-4 pt-3">
+            <div class="o_mgs_login_foot text-center small mt-3 pt-2">
                 Entre Ramblas · Clavel &amp; Azahar
             </div>
         </xpath>
