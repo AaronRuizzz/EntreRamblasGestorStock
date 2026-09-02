@@ -300,20 +300,50 @@ static/src/
 
 | Elemento | Estado |
 |---|---|
-| Logo en el login | ✅ Emblema en medallón (`logo-emblema.svg`) + marca escrita |
+| Logo en el login | ✅ Emblema a color (`logo-emblema.png`, fondo transparente) |
 | Logo de la empresa (backend + informes PDF) | ✅ Mismo emblema, `logo.png` → `res.company.logo` |
-| Fondo del login | ✅ Degradado calmado crema→verde salvia |
-| Botón "Iniciar sesión" | ✅ Verde bosque `#2f4a37` |
+| Fondo del login | ✅ Degradado perla frío con brumas azules |
+| Botón "Iniciar sesión" | ✅ Azul pizarra `#1e293b` |
 | "Powered by Odoo" | ✅ Eliminado (`disable_footer` = True) |
 | "Manage Databases" | ✅ Eliminado (`disable_footer` + `list_db = False`) |
 | Registro público de cuentas | ✅ Eliminado (`auth_signup.allow_uninvited = False`) |
-| Pie propio del login | ✅ "Entre Ramblas · Clavel & Azahar" |
+| Selector "Elija un usuario" | ✅ Eliminado (`web.user_switch` fuera + `d-none` quitado del form) |
+| Pie propio del login | ✅ Sin texto (el emblema ya lleva el nombre), solo línea de cierre |
 | Título de la pestaña | ✅ "Gestión de stock" (login vía `<t t-set="title">`, backend vía `title.js`) |
 | Favicon del login | ✅ El emblema (`favicon.png` vía `x_icon` en la plantilla) |
 | Favicon del backend | ⚠️ Por defecto de Odoo. `res.company.favicon` **no existe** en Community sin el módulo `website` |
 | Nombre de la empresa | ✅ "Entre Ramblas · Clavel & Azahar" (`_mgs_apply_branding` en `res_company.py`) |
 | "My Company" / "Administrator" | ✅ Renombrados a la empresa y a "Administrador" |
-| Colores del backend | ✅ Retoque suave: barra superior verde oscuro, botones verdes |
+| Moneda de la empresa | ✅ EUR (Odoo la instala en USD; `_mgs_apply_branding` la corrige) |
+| Color de marca de Odoo | ✅ Azul `#1e3a5f` vía `primary_variables.scss` en `web._assets_primary_variables` |
+
+---
+
+## 7quater. Pantalla de inicio reestructurada (`backend.scss` §9–§12)
+
+Tras el login se abre **Inventario → Resumen** (kanban de tipos de operación).
+De serie Odoo pintaba tarjetas enormes de ancho desigual, cada una con una
+**gráfica de barras gris sin datos** que ocupaba 150 px y no aportaba nada.
+
+Reestructurado a un panel compacto:
+
+- **Rejilla** en vez del `flex-wrap` de Odoo:
+  `grid-template-columns: repeat(auto-fit, minmax(260px, 340px))`, alineada a la
+  izquierda → todas las tarjetas del mismo tamaño.
+- **Tarjeta**: borde izquierdo azul de 3 px, radio 6 px, sombra suave y elevación
+  al pasar el ratón. Título a 17 px en negro carbón.
+- **Botón "Abierto" a ancho completo** (la columna derecha del `.row` viene vacía
+  cuando no hay albaranes pendientes, así que ya no se queda a media anchura).
+- **Gráfica del panel oculta** (`div[name="kanban_dashboard_graph"]`). Para
+  recuperarla, borra ese bloque en §9 de `backend.scss`.
+- **Barra de control** (§10): título a 20 px en negrita, buscador acotado a
+  480 px con foco azul, facetas de filtro en azul pizarra.
+- **Vistas de lista** (§11): cabecera en mayúsculas sobre gris perla, filas más
+  altas y con `hover`.
+- **Tarjetas kanban normales** (§12, p. ej. Productos): mismo lenguaje visual.
+- **`PoS Orders` → `Pedidos TPV`**: el TPV crea ese tipo de operación en inglés y
+  sin traducción, y era lo primero que se leía al entrar.
+  `_mgs_rename_picking_types()` en `res_company.py` lo renombra.
 
 ### El logo definitivo — ya está puesto
 El emblema (clavel + azahar) se guardó como **SVG** en

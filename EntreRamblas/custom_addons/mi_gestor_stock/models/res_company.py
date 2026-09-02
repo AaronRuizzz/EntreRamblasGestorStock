@@ -59,7 +59,35 @@ class ResCompany(models.Model):
         if stale:
             stale.write({"name": COMPANY_NAME})
 
+        # Moneda en euros (Odoo instala la empresa en USD por defecto).
+        eur = self.env.ref("base.EUR", raise_if_not_found=False)
+        if eur and company.currency_id != eur:
+            if not eur.active:
+                eur.active = True
+            try:
+                company.currency_id = eur
+            except Exception:  # noqa: BLE001 - con asientos contables no se puede
+                _logger.warning("mi_gestor_stock: no se pudo cambiar la moneda a EUR")
+
+        self._mgs_rename_picking_types()
+
         _logger.info("mi_gestor_stock: marca aplicada -> %s", COMPANY_NAME)
+
+    # ------------------------------------------------------------------
+    # Nombres de los tipos de operacion que salen en la pantalla de inicio
+    # ------------------------------------------------------------------
+    def _mgs_rename_picking_types(self):
+        """El TPV crea su tipo de operacion como "PoS Orders", en ingles y
+        sin traduccion, y es lo primero que se ve al entrar."""
+        renames = {
+            "PoS Orders": "Pedidos TPV",
+            "PoS Orders Refund": "Devoluciones TPV",
+        }
+        picking_types = self.env["stock.picking.type"].with_context(
+            active_test=False
+        ).search([("name", "in", list(renames))])
+        for picking_type in picking_types:
+            picking_type.name = renames[picking_type.name]
 
     # ------------------------------------------------------------------
     # Idioma: espanol (es_ES) para toda la interfaz

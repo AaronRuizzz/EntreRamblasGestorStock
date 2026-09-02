@@ -616,3 +616,256 @@ button[name="get_action_picking_tree_ready"],
         padding: 0 !important;
     }
 }
+
+// ============================================================
+// 9. PANTALLA DE INICIO — "Resumen de inventario"
+// ------------------------------------------------------------
+// Es lo primero que se ve al entrar (ver data/ux_defaults.xml).
+// De serie Odoo pinta tarjetas enormes con una grafica de barras
+// vacia; aqui se reestructura como un panel compacto en rejilla.
+// DOM real: .o_stock_dashboard_kanban_view > .o_content >
+//   .o_kanban_renderer > article.o_kanban_record
+//     > div[name=stock_picking] > a.oe_kanban_action > span.fs-4
+//                               > .row > .col-6 > button.btn-primary
+//                               > div[name=kanban_dashboard_graph]
+// ============================================================
+
+.o_stock_dashboard_kanban_view {
+
+    .o_content {
+        background-color: $formal-bg !important;
+        padding: 20px !important;
+    }
+
+    // ---- Rejilla ordenada en lugar del flex-wrap desigual ----
+    // `auto-fit` + tope de 340px: las tarjetas quedan del mismo tamano
+    // y alineadas a la izquierda, sin estirarse a media pantalla.
+    .o_kanban_renderer.o_kanban_ungrouped {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 340px)) !important;
+        gap: 16px !important;
+        align-content: start !important;
+        justify-content: start !important;
+        padding: 0 !important;
+    }
+
+    // ---- Tarjeta ----
+    article.o_kanban_record {
+        // anula el dimensionado flex de Odoo (tarjetas de anchos dispares)
+        flex: none !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        margin: 0 !important;
+
+        position: relative;
+        display: block !important;
+        min-height: 0 !important;
+        padding: 18px 18px 16px !important;
+        background: $formal-card !important;
+        border: 1px solid #e2e8f0 !important;
+        border-left: 3px solid $formal-action !important;
+        border-radius: $formal-radius !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+        transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease !important;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .22) !important;
+            border-color: #cbd5e1 !important;
+            border-left-color: $formal-dark !important;
+        }
+
+        > div[name="stock_picking"] { padding: 0 !important; }
+
+        // Titulo ("Recepciones", "Ordenes de entrega"...)
+        a.oe_kanban_action span.fs-4 {
+            font-size: 17px !important;
+            font-weight: 700 !important;
+            color: $formal-text !important;
+            letter-spacing: .2px;
+        }
+        a.oe_kanban_action:hover span.fs-4 { color: $formal-action !important; }
+
+        // La fila del boton: la columna de la derecha viene vacia,
+        // asi que el boton ocupa el ancho completo.
+        .row {
+            margin: 14px 0 0 !important;
+            > .col-6 { flex: 0 0 100% !important; max-width: 100% !important; padding: 0 !important; }
+            > .col-6.stock-overview-links:empty { display: none !important; }
+        }
+
+        button.btn-primary {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+
+        // Grafica de barras del panel: sin datos reales solo aporta
+        // ruido gris. Para recuperarla, borra este bloque.
+        div[name="kanban_dashboard_graph"] { display: none !important; }
+
+        // Menu "..." de la esquina, mas discreto
+        .o_dropdown_kanban .btn {
+            color: #94a3b8 !important;
+            &:hover { color: $formal-text !important; }
+        }
+    }
+}
+
+// ============================================================
+// 10. BARRA DE CONTROL (titulo + buscador + paginador)
+// ============================================================
+.o_control_panel {
+    background-color: $formal-card !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 10px 20px 12px !important;
+
+    .o_breadcrumb .o_last_breadcrumb_item {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        color: $formal-text !important;
+    }
+
+    // El buscador se estiraba a lo ancho de la pantalla
+    .o_cp_searchview { max-width: 520px !important; }
+
+    .o_searchview {
+        border: 1.5px solid $formal-border !important;
+        border-radius: $formal-radius !important;
+        background: #fff !important;
+        padding: 3px 8px !important;
+        &:focus-within {
+            border-color: $formal-primary !important;
+            box-shadow: 0 0 0 2px rgba(30, 41, 59, .12) !important;
+        }
+    }
+    .o_searchview_icon { color: #94a3b8 !important; }
+
+    // IMPORTANTE: dentro del buscador hay varios `.btn` (la lupa, la
+    // etiqueta de la faceta y la "x" de quitar). La regla global de §6
+    // (`.btn { min-height:38px; padding:8px 18px }`) los inflaba y por eso
+    // las etiquetas salian como ladrillos enormes. Aqui se deshace.
+    .o_searchview .btn,
+    .o_searchview button {
+        min-height: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        font-size: 12px !important;
+        border-radius: 0 !important;
+    }
+
+    .o_searchview_input {
+        min-height: 26px !important;
+        font-size: 13px !important;
+        padding: 0 4px !important;
+    }
+
+    // --- Facetas (los "chips" de filtro) ---
+    .o_searchview_facet {
+        max-width: 100% !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        background-color: #e2e8f0 !important;
+        line-height: 1.5 !important;
+
+        // Lado izquierdo: icono del tipo de filtro, en azul marino
+        .o_searchview_facet_label {
+            background-color: $formal-primary !important;
+            color: #fff !important;
+            padding: 0 6px !important;
+            border-radius: 4px 0 0 4px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            i { font-size: 11px !important; }
+        }
+
+        // Lado derecho: el valor. Antes tambien iba en azul marino y la
+        // faceta entera quedaba como un bloque negro ilegible.
+        .o_facet_values {
+            background-color: #e2e8f0 !important;
+            color: $formal-text !important;
+            padding: 1px 2px 1px 7px !important;
+            border-radius: 0 4px 4px 0 !important;
+            gap: 2px !important;
+        }
+
+        .o_facet_value {
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            color: $formal-text !important;
+            max-width: 240px !important;
+        }
+
+        // La "x": pequena y discreta, no un boton de 52px
+        .o_facet_remove {
+            color: #94a3b8 !important;
+            font-size: 11px !important;
+            padding: 0 5px !important;
+            align-self: stretch !important;  // zona de click de alto completo
+            &:hover { color: #b91c1c !important; }
+        }
+    }
+
+    .o_pager_counter { font-size: 13px !important; color: $formal-text-muted !important; }
+}
+
+// ============================================================
+// 11. VISTA DE LISTA (Productos, albaranes...)
+// ============================================================
+.o_list_view {
+    thead th {
+        background-color: #f1f5f9 !important;
+        color: $formal-text-muted !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: .5px !important;
+        border-bottom: 1.5px solid $formal-border !important;
+        padding: 10px 12px !important;
+    }
+
+    tbody tr.o_data_row {
+        border-bottom: 1px solid #eef2f7 !important;
+        > td { padding: 10px 12px !important; font-size: 14px !important; }
+        &:hover > td { background-color: #f1f5f9 !important; }
+    }
+}
+
+// Estado vacio ("No hay nada por aqui"): centrado y sobrio
+.o_view_nocontent {
+    .o_nocontent_help {
+        color: $formal-text-muted !important;
+        max-width: 520px !important;
+        margin: 40px auto !important;
+        text-align: center !important;
+    }
+}
+
+// ============================================================
+// 12. TARJETAS KANBAN NORMALES (Productos, contactos...)
+//     Mismo lenguaje visual que el panel de inicio.
+// ============================================================
+.o_kanban_view:not(.o_stock_dashboard_kanban_view) {
+
+    .o_content { background-color: $formal-bg !important; padding: 16px !important; }
+
+    .o_kanban_renderer.o_kanban_ungrouped {
+        gap: 12px !important;
+        padding: 0 !important;
+    }
+
+    article.o_kanban_record {
+        margin: 0 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: $formal-radius !important;
+        background: $formal-card !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+        transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease !important;
+
+        &:hover {
+            transform: translateY(-2px);
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .2) !important;
+        }
+    }
+}
