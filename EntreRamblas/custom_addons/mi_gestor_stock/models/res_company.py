@@ -69,6 +69,13 @@ class ResCompany(models.Model):
             except Exception:  # noqa: BLE001 - con asientos contables no se puede
                 _logger.warning("mi_gestor_stock: no se pudo cambiar la moneda a EUR")
 
+        # Pais: Espana (Odoo instala la empresa con pais vacio o US).
+        # Necesario para: direccion en facturas/albaranes, formato NIF/CIF
+        # y reglas de posicion fiscal de l10n_es.
+        spain = self.env.ref("base.es", raise_if_not_found=False)
+        if spain and company.country_id != spain:
+            company.country_id = spain
+
         self._mgs_rename_picking_types()
 
         _logger.info("mi_gestor_stock: marca aplicada -> %s", COMPANY_NAME)
@@ -77,8 +84,8 @@ class ResCompany(models.Model):
     # Nombres de los tipos de operacion que salen en la pantalla de inicio
     # ------------------------------------------------------------------
     def _mgs_rename_picking_types(self):
-        """El TPV crea su tipo de operacion como "PoS Orders", en ingles y
-        sin traduccion, y es lo primero que se ve al entrar."""
+        """El TPV crea su tipo de operacion como 'PoS Orders' y el almacen por defecto
+        viene como 'My Company', en ingles y sin traduccion."""
         renames = {
             "PoS Orders": "Pedidos TPV",
             "PoS Orders Refund": "Devoluciones TPV",
@@ -88,6 +95,11 @@ class ResCompany(models.Model):
         ).search([("name", "in", list(renames))])
         for picking_type in picking_types:
             picking_type.name = renames[picking_type.name]
+
+        # Renombrar almacenes que sigan con el nombre por defecto 'My Company'
+        warehouses = self.env["stock.warehouse"].with_context(active_test=False).search([("name", "=", "My Company")])
+        for wh in warehouses:
+            wh.name = COMPANY_NAME
 
     # ------------------------------------------------------------------
     # Idioma: espanol (es_ES) para toda la interfaz

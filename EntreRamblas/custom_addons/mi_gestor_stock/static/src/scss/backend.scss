@@ -17,6 +17,21 @@ $formal-text:         #0f172a; // Negro carbón de máxima lectura
 $formal-text-muted:   #475569; // Gris medio formal
 $formal-radius:       6px;     // Esquinas moderadas y rectas
 
+// Paleta oficial de colores de etiquetas Kanban en Odoo (11 colores estándar)
+$kanban-tag-colors: (
+    1: #ee2d2d,  // Rojo
+    2: #dc8534,  // Naranja
+    3: #e8bb1d,  // Amarillo
+    4: #5794dd,  // Azul claro
+    5: #9f628f,  // Púrpura / Morado
+    6: #db8865,  // Salmón / Coral
+    7: #41a9a2,  // Verde azulado / Teal
+    8: #304be0,  // Azul eléctrico
+    9: #ee2f8a,  // Rosa / Magenta
+    10: #61c36e, // Verde
+    11: #9872e6  // Violeta
+);
+
 // ------------------------------------------------------------
 // 1. SUPRESIÓN COMPLETA DEL CHATTER (Panel Lateral Distractor)
 // ------------------------------------------------------------
@@ -471,6 +486,13 @@ button[name="get_action_picking_tree_ready"],
 
 // Separadores de grupo
 .o_inner_group {
+    width: 100% !important;
+
+    .o_cell {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
     .o_horizontal_separator {
         font-size: 15px !important;
         font-weight: 700 !important;
@@ -499,15 +521,20 @@ button[name="get_action_picking_tree_ready"],
     }
 }
 
-// Contenedor de widget alineado
+// Contenedor de widget alineado y responsivo al 100%
 .o_inner_group .o_field_widget {
     display: flex !important;
     align-items: center !important;
     min-height: 42px !important;
+    width: 100% !important;
+    min-width: 0 !important;
 }
 
-// Entradas de texto: fondo blanco limpio, borde sobrio y sin estridencias
+// Entradas de texto y selectores: fondo blanco limpio, adaptables y responsive
 .o_field_widget {
+    width: 100% !important;
+    min-width: 0 !important;
+
     input.o_input,
     select.o_input {
         border: 1.5px solid $formal-border !important;
@@ -518,6 +545,7 @@ button[name="get_action_picking_tree_ready"],
         background-color: #ffffff !important;
         color: $formal-text !important;
         width: 100% !important;
+        min-width: 0 !important;
         box-shadow: none !important;
 
         &:focus {
@@ -527,27 +555,110 @@ button[name="get_action_picking_tree_ready"],
         }
     }
 
-    .o_field_many2one_selection,
-    .o-autocomplete {
+    // Selectores y desplegables (Many2One, Autocomplete, comboboxes):
+    // Se adaptan automáticamente al ancho disponible y permiten lectura completa sin recortes
+    .o_field_many2one,
+    .o_field_many2one_selection {
+        display: flex !important;
         width: 100% !important;
-        border: none !important;
-        box-shadow: none !important;
+        min-width: 0 !important;
+        align-items: center !important;
+        gap: 6px !important;
         background: transparent !important;
+        border: none !important;
 
-        input.o-autocomplete--input {
-            border: 1.5px solid $formal-border !important;
-            border-radius: $formal-radius !important;
-            padding: 7px 12px !important;
-            font-size: 14px !important;
-            min-height: 38px !important;
-            background-color: #ffffff !important;
-            color: $formal-text !important;
+        .o-autocomplete {
+            flex: 1 1 auto !important;
             width: 100% !important;
+            min-width: 0 !important;
+            position: relative !important;
 
-            &:focus {
-                border-color: $formal-primary !important;
-                box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
+            input.o-autocomplete--input {
+                border: 1.5px solid $formal-border !important;
+                border-radius: $formal-radius !important;
+                padding: 7px 12px !important;
+                padding-right: 28px !important;
+                font-size: 14px !important;
+                min-height: 38px !important;
+                background-color: #ffffff !important;
+                color: $formal-text !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                text-overflow: ellipsis;
+
+                &:focus {
+                    border-color: $formal-primary !important;
+                    box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
+                }
             }
+
+            // Desplegable flotante de opciones (responsive y sin cortes)
+            .o-autocomplete--dropdown-menu {
+                min-width: 100% !important;
+                width: max-content !important;
+                max-width: 520px !important;
+                border-radius: $formal-radius !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18) !important;
+                z-index: 1050 !important;
+
+                li,
+                .dropdown-item,
+                .ui-menu-item a {
+                    padding: 8px 14px !important;
+                    font-size: 14px !important;
+                    white-space: normal !important;
+                    word-break: break-word !important;
+                }
+            }
+        }
+
+        .o_external_button {
+            flex: 0 0 auto !important;
+            color: $formal-action !important;
+            font-size: 14px !important;
+        }
+    }
+}
+
+// Adaptabilidad de la tarjeta del formulario (sheet) y columnas
+.o_form_view {
+    .o_form_sheet {
+        max-width: 1160px !important;
+        width: 100% !important;
+    }
+
+    .o_group {
+        width: 100% !important;
+
+        > .o_inner_group {
+            min-width: 280px !important;
+        }
+    }
+}
+
+// Responsive para móviles y tablets
+@media (max-width: 991.98px) {
+    .o_form_view .o_group.row {
+        flex-direction: column !important;
+
+        > .o_inner_group {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 16px !important;
+        }
+    }
+}
+
+@media (max-width: 575.98px) {
+    .o_inner_group {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+
+        .o_wrap_label {
+            min-height: auto !important;
+            padding-right: 0 !important;
+            padding-bottom: 2px !important;
         }
     }
 }
@@ -664,16 +775,46 @@ button[name="get_action_picking_tree_ready"],
         padding: 18px 18px 16px !important;
         background: $formal-card !important;
         border: 1px solid #e2e8f0 !important;
-        border-left: 3px solid $formal-action !important;
+        border-left: 4px solid $formal-action !important;
         border-radius: $formal-radius !important;
         box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
         transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease !important;
+
+        // Ocultar SIEMPRE el pseudo-elemento ::after nativo de Odoo.
+        // Odoo añade en ::after una banda coloreada superpuesta que, al convivir
+        // con nuestro border-left, creaba un doble borde feo ("color encima").
+        &::after {
+            display: none !important;
+        }
 
         &:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .22) !important;
             border-color: #cbd5e1 !important;
             border-left-color: $formal-dark !important;
+        }
+
+        // Sin color asignado explícito (índice 0 o sin color)
+        &.o_kanban_color_0,
+        &.oe_kanban_color_0 {
+            border-left-color: $formal-action !important;
+            &:hover {
+                border-left-color: $formal-dark !important;
+            }
+        }
+
+        // Cambio limpio y nítido de color de etiqueta:
+        // El color seleccionado en la tarjeta sustituye directamente al borde izquierdo,
+        // con esquinas redondeadas naturales y sin ninguna capa extra superpuesta.
+        @each $idx, $col in $kanban-tag-colors {
+            &.o_kanban_color_#{$idx},
+            &.oe_kanban_color_#{$idx} {
+                border-left-color: $col !important;
+
+                &:hover {
+                    border-left-color: darken($col, 8%) !important;
+                }
+            }
         }
 
         > div[name="stock_picking"] { padding: 0 !important; }
@@ -862,10 +1003,27 @@ button[name="get_action_picking_tree_ready"],
         box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
         transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease !important;
 
+        // Ocultar ::after nativo superpuesto
+        &::after {
+            display: none !important;
+        }
+
         &:hover {
             transform: translateY(-2px);
             border-color: #cbd5e1 !important;
             box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .2) !important;
+        }
+
+        // Color limpio en kanban general si la tarjeta tiene color asignado
+        @each $idx, $col in $kanban-tag-colors {
+            &.o_kanban_color_#{$idx},
+            &.oe_kanban_color_#{$idx} {
+                border-left: 4px solid $col !important;
+
+                &:hover {
+                    border-left-color: darken($col, 8%) !important;
+                }
+            }
         }
     }
 }
