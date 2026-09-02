@@ -3,8 +3,6 @@
     <!-- ==========================================================
          Pantalla de inicio tras el login
          ==========================================================
-         Sin esto, Odoo abre el primer menu por secuencia (Discuss /
-         "Conversaciones"), que no interesa en una floristeria.
          Fijamos "Inventario > Resumen" como pantalla de inicio para
          el administrador y para la plantilla de usuarios nuevos. -->
     <function model="res.users" name="write">
@@ -14,13 +12,50 @@
     </function>
 
     <!-- ==========================================================
-         Ocultar la app "Conversaciones" (Discuss)
-         ==========================================================
-         El modulo 'mail' es una dependencia obligatoria de casi todo
-         Odoo y no se puede desinstalar, pero si podemos quitar su
-         entrada del menu principal. El chat interno (mensajes en
-         fichas de productos, albaranes, etc.) sigue funcionando. -->
+         Ocultar aplicaciones y paneles técnicos que confunden
+         ========================================================== -->
+    <!-- 1. Conversaciones (chat interno) -->
     <record id="mail.menu_root_discuss" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
+
+    <!-- 2. Tableros / Informes complejos (Spreadsheet Dashboard) -->
+    <record id="spreadsheet_dashboard.spreadsheet_dashboard_menu_root" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- 3. Catálogo de Apps (para no desconfigurar o instalar módulos por error) -->
+    <record id="base.menu_management" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- ==========================================================
+         Ocultar submenús innecesarios en Inventario
+         Deja únicamente: Resumen, Recepciones, Ajustes y Productos
+         ========================================================== -->
+    <!-- Informes complejos de valoración y analíticas -->
+    <record id="stock.menu_warehouse_report" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- Configuración técnica de inventario (rutas, almacenes, UoM) -->
+    <record id="stock.menu_stock_config_settings" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- Reglas complejas de reabastecimiento automático -->
+    <record id="stock.menu_stock_procurement" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- Transferencias entre múltiples almacenes (solo hay 1 tienda física) -->
+    <record id="stock.menu_stock_transfers" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- Desechos avanzados -->
+    <record id="stock.menu_stock_scrap" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
 </odoo>

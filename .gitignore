@@ -1,25 +1,21 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyo
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.pyre/
-.coverage
-htmlcov/
+# ============================================================
+# Entre Ramblas · Clavel & Azahar — .gitignore
+# Excluye datos locales, temporales, cachés y fuentes de Odoo
+# ============================================================
 
-# Entornos virtuales
-.venv/
-venv/
-env/
-ENV/
+# Odoo Core (fuente de Odoo clonado localmente, no debe subirse al repo de addons)
+EntreRamblas/odoo/
+odoo/
 
-# Odoo: datos locales, filestore, sesiones y logs
+# Odoo: datos locales, filestore, sesiones, logs y runtime
 EntreRamblas/.odoo_data/
-EntreRamblas/filestore/
-EntreRamblas/sessions/
+.odoo_data/
+**/.odoo_data/
+**/filestore/
+**/sessions/
+*.log
+*.err
+*.pid
 EntreRamblas/*.log
 EntreRamblas/*.err
 EntreRamblas/odoo-server.log
@@ -28,26 +24,55 @@ EntreRamblas/odoo-init.log
 EntreRamblas/odoo-pos-init.log
 EntreRamblas/pip-install.log
 
-# Configuración local y secretos
+# Python: archivos compilados, cachés y bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.coverage
+htmlcov/
+
+# Entornos virtuales de Python
+.venv/
+venv/
+env/
+ENV/
+EntreRamblas/.venv/
+EntreRamblas/venv/
+EntreRamblas/env/
+
+# Configuración local, credenciales y secretos
 *.local
 *.secret
 .env
 .env.*
 !.env.example
 
-# PostgreSQL local
+# Backups y volcados de bases de datos
 *.pgsql
 *.dump
 *.backup
+*.sql
+*.tar
+*.gz
 
-# Windows
+# Archivos de sistema operativo (Windows / macOS / Linux)
 Thumbs.db
 Thumbs.db:encryptable
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
+.DS_Store
+.AppleDouble
+.LSOverride
 
-# VS Code e IDEs
+# Editores e IDEs
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -55,14 +80,14 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 .idea/
 *.iml
+*.sublime-project
+*.sublime-workspace
 
-# Temporales y archivos de edición
+# Archivos temporales y de bloqueo
 *.tmp
 *.temp
 *.swp
 *.swo
 *~
-.DS_Store
-
-# Descargas o clones temporales
 *-source-temp/
+scratch/

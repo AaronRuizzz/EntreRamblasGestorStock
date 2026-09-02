@@ -9,6 +9,7 @@
         "data/branding.xml",
         "data/ux_defaults.xml",
         "views/stock_picking_views.xml",
+        "views/product_views.xml",
         "views/login_templates.xml",
     ],
     "assets": {

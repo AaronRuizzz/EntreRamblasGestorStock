@@ -1,27 +1,618 @@
 // ============================================================
-//  Retoque de color del backend  ·  tonos calmados de floristeria
+//  Entre Ramblas · Clavel & Azahar — Gestor de Stock Adaptado
+//  Diseño Formal, Clásico y Sobrio para Gestión Empresarial Adulta
 //  Bundle: web.assets_backend
-//  (retoque ligero; el tema completo se puede ampliar mas adelante)
 // ============================================================
 
-$mgs-green:      #2f4a37;
-$mgs-green-dark: #1c3b28;
+// Paleta clásica sobria (Navy, Slate, Gris Perla y Carbón)
+$formal-dark:         #0f172a; // Pizarra oscura / Navy corporativo
+$formal-primary:      #1e293b; // Azul pizarra sobrio
+$formal-secondary:    #334155; // Pizarra medio
+$formal-action:       #1e3a5f; // Azul marino institucional
+$formal-bg:           #f8fafc; // Fondo perla formal
+$formal-card:         #ffffff; // Blanco puro
+$formal-border:       #cbd5e1; // Borde gris claro formal
+$formal-border-dark:  #94a3b8; // Borde de énfasis
+$formal-text:         #0f172a; // Negro carbón de máxima lectura
+$formal-text-muted:   #475569; // Gris medio formal
+$formal-radius:       6px;     // Esquinas moderadas y rectas
 
+// ------------------------------------------------------------
+// 1. SUPRESIÓN COMPLETA DEL CHATTER (Panel Lateral Distractor)
+// ------------------------------------------------------------
+.o-mail-Chatter,
+.o-mail-ChatterContainer,
+.o_Chatter,
+.o_ChatterContainer,
+.o_form_sheet_bg_chatter,
+.o-mail-Form-chatter {
+    display: none !important;
+}
+
+// ------------------------------------------------------------
+// 2. ESTRUCTURA FORMAL DE LA HOJA (CARD CENTRADA Y SOBRIA)
+// ------------------------------------------------------------
+.o_form_view {
+    .o_form_sheet_bg {
+        max-width: 100% !important;
+        background-color: #f1f5f9 !important;
+        padding: 24px 16px !important;
+    }
+
+    .o_form_sheet {
+        max-width: 960px !important;
+        margin: 0 auto !important;
+        padding: 36px 44px !important;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06) !important;
+        border-radius: $formal-radius !important;
+        border: 1px solid #e2e8f0 !important;
+        background-color: $formal-card !important;
+    }
+
+    // Cabecera de estado alineada y sobria
+    header.o_form_statusbar,
+    .o_form_statusbar {
+        max-width: 960px !important;
+        margin: 0 auto 16px auto !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+}
+
+// ------------------------------------------------------------
+// 3. BARRA SUPERIOR (NAVBAR) AZUL MARINO CORPORATIVO SOBRIO
+// ------------------------------------------------------------
 .o_main_navbar {
-    background-color: $mgs-green-dark !important;
+    --NavBar-entry-backgroundColor: transparent;
+    --NavBar-entry-backgroundColor--hover: rgba(255, 255, 255, 0.1);
+    --NavBar-entry-backgroundColor--active: #334155;
+    --NavBar-entry-color: #e2e8f0;
+    --NavBar-entry-color--active: #ffffff;
+    --NavBar-brand-color: #ffffff;
+
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+    height: 54px !important;
+    font-size: 15px !important;
+    border-bottom: 1px solid #334155 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    padding: 0 16px !important;
+    display: flex !important;
+    align-items: center !important;
+
+    // Ocultar campana de chat, actividades y selector redundante de empresa
+    .o-mail-MessagingMenu,
+    .o-mail-ActivityMenu,
+    .o_mail_systray_item,
+    .o_switch_company_menu,
+    .o_menu_systray .o-mail-MessagingMenu,
+    .o_menu_systray .o-mail-ActivityMenu,
+    .o_menu_systray .o_mail_systray_item,
+    .o_menu_systray .o_switch_company_menu {
+        display: none !important;
+    }
+
+    // Botón del Lanzador de Apps (9 puntos)
+    .o_navbar_apps_menu {
+        margin-right: 10px !important;
+
+        button.dropdown-toggle,
+        button {
+            border: 1px solid #475569 !important;
+            background: rgba(255, 255, 255, 0.06) !important;
+            border-radius: $formal-radius !important;
+            color: #ffffff !important;
+            padding: 6px 12px !important;
+            min-height: 36px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.15s ease !important;
+
+            i, .oi {
+                font-size: 17px !important;
+            }
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.15) !important;
+                border-color: #64748b !important;
+            }
+        }
+    }
+
+    // Título de la Aplicación ("Inventario")
+    .o_menu_brand {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        letter-spacing: 0.3px !important;
+        padding: 6px 12px !important;
+        margin-right: 12px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+
+        &::after {
+            content: "|";
+            margin-left: 14px;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 300;
+        }
+    }
+
+    // Secciones de Menú ("Información general", "Operaciones", "Productos")
+    .o_menu_sections {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+
+        .o_nav_entry,
+        .dropdown-toggle {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: #cbd5e1 !important;
+            border-radius: $formal-radius !important;
+            padding: 6px 14px !important;
+            min-height: 36px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            border: 1px solid transparent !important;
+            background: transparent !important;
+            transition: all 0.15s ease !important;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.08) !important;
+                color: #ffffff !important;
+            }
+
+            // Estado activo formal (pizarra sobrio)
+            &.active,
+            &.focus,
+            &[aria-expanded="true"],
+            &:active {
+                background-color: #334155 !important;
+                border: 1px solid #475569 !important;
+                color: #ffffff !important;
+                font-weight: 700 !important;
+            }
+        }
+
+        .dropdown.show .dropdown-toggle {
+            background-color: #334155 !important;
+            border: 1px solid #475569 !important;
+            color: #ffffff !important;
+        }
+    }
+
+    // Avatar de usuario en esquina derecha
+    .o_menu_systray {
+        align-items: center !important;
+
+        .o_user_menu {
+            .dropdown-toggle {
+                border-radius: 50% !important;
+                padding: 2px !important;
+                display: flex !important;
+                align-items: center !important;
+
+                .o_user_avatar {
+                    height: 34px !important;
+                    width: 34px !important;
+                    border-radius: 50% !important;
+                    border: 2px solid #64748b !important;
+                }
+
+                &:hover .o_user_avatar {
+                    border-color: #cbd5e1 !important;
+                }
+            }
+        }
+    }
 }
 
+// Desplegables de navegación
+.o_main_navbar .dropdown-menu {
+    border-radius: $formal-radius !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1) !important;
+    padding: 6px !important;
+    background-color: #ffffff !important;
+
+    .dropdown-item {
+        border-radius: 4px !important;
+        padding: 8px 16px !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        color: #334155 !important;
+
+        &:hover, &:focus {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        &.active {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+        }
+    }
+}
+
+// ------------------------------------------------------------
+// 4. TÍTULO DEL PRODUCTO (ELEGANTE, LIMPIO Y SIN BORDES)
+// ------------------------------------------------------------
+.oe_title {
+    margin-bottom: 24px !important;
+
+    label {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        color: #64748b !important;
+        margin-bottom: 4px !important;
+    }
+
+    h1 {
+        margin: 0 !important;
+
+        input, textarea, .o_field_text {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 2px 0 !important;
+            font-size: 28px !important;
+            font-weight: 700 !important;
+            color: $formal-text !important;
+            line-height: 1.2 !important;
+            min-height: auto !important;
+            width: 100% !important;
+
+            &:focus {
+                border-bottom: 2px solid $formal-primary !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                outline: none !important;
+            }
+        }
+    }
+}
+
+// Imagen del producto sobria
+.oe_avatar {
+    border-radius: $formal-radius !important;
+    border: 1px solid #cbd5e1 !important;
+    overflow: hidden !important;
+    background: #f8fafc !important;
+}
+
+// ------------------------------------------------------------
+// 5. CAJA DE STOCK REAL (DISEÑO INSTITUCIONAL SOBRIO)
+// ------------------------------------------------------------
+.o-form-buttonbox,
+.oe_button_box {
+    // Ocultar botones estadísticos secundarios
+    .oe_stat_button:not(:first-child),
+    > button:not(:first-child),
+    > div:not(:first-child) {
+        display: none !important;
+    }
+
+    // Tarjeta sobria de Stock real
+    .oe_stat_button:first-child,
+    > button:first-child {
+        min-width: 170px !important;
+        height: auto !important;
+        background: #f8fafc !important;
+        border: 1.5px solid #cbd5e1 !important;
+        border-radius: $formal-radius !important;
+        padding: 8px 16px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        transition: all 0.15s ease !important;
+
+        &:hover {
+            background: #f1f5f9 !important;
+            border-color: #94a3b8 !important;
+        }
+
+        .o_field_widget.o_stat_info {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+        }
+
+        .o_stat_value {
+            font-size: 24px !important;
+            font-weight: 800 !important;
+            color: $formal-text !important;
+            line-height: 1.1 !important;
+        }
+
+        .o_stat_text {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.6px !important;
+            color: #475569 !important;
+            margin-top: 2px !important;
+        }
+    }
+}
+
+// ------------------------------------------------------------
+// 6. SISTEMA DE BOTONES CLÁSICO & FORMAL (ADULTO / EMPRESARIAL)
+// ------------------------------------------------------------
+
+.btn {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-radius: $formal-radius !important;
+    min-height: 38px !important;
+    padding: 8px 18px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.15s ease !important;
+    cursor: pointer !important;
+}
+
+// Botón Principal ("Nuevo", "Guardar")
 .btn-primary,
-.btn-primary:focus {
-    background-color: $mgs-green;
-    border-color: $mgs-green;
-}
-.btn-primary:hover {
-    background-color: darken($mgs-green, 6%);
-    border-color: darken($mgs-green, 6%);
+.o_control_panel .btn-primary,
+.o_control_panel .o_form_button_create,
+.o_control_panel .o_list_button_add,
+.o_form_button_save {
+    background-color: $formal-primary !important;
+    border: 1px solid $formal-dark !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15) !important;
+
+    &:hover {
+        background-color: $formal-secondary !important;
+        border-color: $formal-primary !important;
+        color: #ffffff !important;
+    }
 }
 
-.o_form_view .o_horizontal_separator,
-.o_control_panel .o_breadcrumb .active {
-    color: $mgs-green-dark;
+// Botón Secundario ("Descartar", "Cancelar")
+.btn-secondary,
+.o_form_button_cancel {
+    background-color: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+
+    &:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+        color: #0f172a !important;
+    }
+}
+
+// Botón de Acción ("Actualizar la cantidad")
+.o_form_view .o_statusbar_buttons > button:first-child,
+.o_form_view header button:first-child,
+button[name="action_update_quantity_on_hand"] {
+    background-color: $formal-action !important;
+    border: 1px solid #172554 !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-radius: $formal-radius !important;
+    padding: 8px 18px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+
+    &:hover {
+        background-color: #172554 !important;
+        color: #ffffff !important;
+    }
+}
+
+// Ocultar botones secundarios de cabecera no deseados
+.o_form_view .o_statusbar_buttons > button:not(:first-child),
+.o_form_view header button:not(:first-child) {
+    display: none !important;
+}
+
+// Botones de las tarjetas de operaciones ("Abierto")
+button[name="get_action_picking_tree_ready"],
+.o_kanban_record .btn.btn-primary,
+.o_kanban_renderer .oe_kanban_action_button,
+.o_kanban_renderer .o_kanban_card .btn-primary {
+    background-color: $formal-primary !important;
+    border: 1px solid $formal-dark !important;
+    color: #ffffff !important;
+    border-radius: $formal-radius !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 6px 14px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+
+    &:hover {
+        background-color: $formal-secondary !important;
+        color: #ffffff !important;
+    }
+}
+
+// Paginación (< y >)
+.o_pager {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+
+    button {
+        min-height: 34px !important;
+        min-width: 34px !important;
+        padding: 4px 10px !important;
+        border-radius: $formal-radius !important;
+        border: 1px solid #cbd5e1 !important;
+        background-color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #334155 !important;
+
+        &:hover:not(:disabled) {
+            background-color: #f1f5f9 !important;
+            border-color: #94a3b8 !important;
+            color: #0f172a !important;
+        }
+    }
+}
+
+// ------------------------------------------------------------
+// 7. FORMULARIO: CAMPOS LIMPIOS, SOBRIOS Y DE FONDO BLANCO
+// ------------------------------------------------------------
+
+// Separadores de grupo
+.o_inner_group {
+    .o_horizontal_separator {
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        color: $formal-text !important;
+        border-bottom: 1.5px solid #e2e8f0 !important;
+        padding-bottom: 6px !important;
+        margin-top: 10px !important;
+        margin-bottom: 18px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+    }
+}
+
+// Etiquetas de campo perfectamente alineadas
+.o_inner_group .o_wrap_label {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 42px !important;
+    padding-right: 14px !important;
+
+    label.o_form_label {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+        margin: 0 !important;
+    }
+}
+
+// Contenedor de widget alineado
+.o_inner_group .o_field_widget {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 42px !important;
+}
+
+// Entradas de texto: fondo blanco limpio, borde sobrio y sin estridencias
+.o_field_widget {
+    input.o_input,
+    select.o_input {
+        border: 1.5px solid $formal-border !important;
+        border-radius: $formal-radius !important;
+        padding: 7px 12px !important;
+        font-size: 14px !important;
+        min-height: 38px !important;
+        background-color: #ffffff !important;
+        color: $formal-text !important;
+        width: 100% !important;
+        box-shadow: none !important;
+
+        &:focus {
+            border-color: $formal-primary !important;
+            box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
+            outline: none !important;
+        }
+    }
+
+    .o_field_many2one_selection,
+    .o-autocomplete {
+        width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+
+        input.o-autocomplete--input {
+            border: 1.5px solid $formal-border !important;
+            border-radius: $formal-radius !important;
+            padding: 7px 12px !important;
+            font-size: 14px !important;
+            min-height: 38px !important;
+            background-color: #ffffff !important;
+            color: $formal-text !important;
+            width: 100% !important;
+
+            &:focus {
+                border-color: $formal-primary !important;
+                box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
+            }
+        }
+    }
+}
+
+// Campo Precio de Venta: sobrio, fondo blanco, número nítido en negro carbón
+.o_field_monetary {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+
+    input.o_input {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: $formal-text !important;
+        background-color: #ffffff !important;
+        border: 1.5px solid $formal-border !important;
+        border-radius: $formal-radius !important;
+        padding: 6px 12px !important;
+        max-width: 150px !important;
+
+        &:focus {
+            border-color: $formal-primary !important;
+            box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
+        }
+    }
+
+    span {
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+    }
+}
+
+// Campo Código de Barras: fondo blanco clásico, sin colores chillones
+.o_field_widget[name="barcode"] input.o_input {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    color: $formal-text !important;
+    background-color: #ffffff !important;
+    border: 1.5px solid $formal-border !important;
+    border-radius: $formal-radius !important;
+    padding: 7px 12px !important;
+
+    &:focus {
+        border-color: $formal-primary !important;
+        box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
+    }
+}
+
+// ------------------------------------------------------------
+// 8. PESTAÑAS (NOTEBOOK) OCULTAS PARA SIMPLICIDAD
+// ------------------------------------------------------------
+.o_notebook {
+    margin-top: 10px !important;
+
+    .o_notebook_headers {
+        display: none !important;
+    }
+
+    .tab-content {
+        border: none !important;
+        padding: 0 !important;
+    }
 }

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Ficha de producto simplificada para Floristería
+         Adaptada para uso directo, limpio y sin elementos distractores
+         ============================================================ -->
+    <record id="product_template_only_form_view_simplified" model="ir.ui.view">
+        <field name="name">product.template.form.simplified.floristeria</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="priority" eval="90"/>
+        <field name="arch" type="xml">
+
+            <!-- 1. Ocultar estrella de favoritos y checks técnicos de la cabecera -->
+            <xpath expr="//field[@name='is_favorite']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//div[@name='options']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 2. Ocultar selector de tipo de producto en cabecera -->
+            <xpath expr="//field[@name='type']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 3. Ocultar botón 'Imprimir etiquetas' de la cabecera -->
+            <xpath expr="//header//button[@name='action_open_label_layout']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 4. Reestructurar Información General en dos columnas limpias y equilibradas -->
+            <xpath expr="//group[@name='group_general']" position="replace">
+                <group name="group_general_floristeria" string="Precios y Categoría">
+                    <label for="list_price" string="Precio de Venta (€)"/>
+                    <div name="list_price_uom" class="d-flex align-items-center gap-2">
+                        <field name="list_price" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                    </div>
+                    <field name="categ_id" string="Categoría"/>
+                    <!-- Campos técnicos necesarios para lógica interna en modo invisible -->
+                    <field name="type" invisible="1"/>
+                    <field name="is_storable" invisible="1"/>
+                    <field name="sale_ok" invisible="1"/>
+                    <field name="active" invisible="1"/>
+                </group>
+            </xpath>
+
+            <xpath expr="//group[@name='group_standard_price']" position="replace">
+                <group name="group_stock_floristeria" string="Código y Referencia">
+                    <field name="barcode" string="Código de barras" placeholder="Escanear con pistola Honeywell..."/>
+                    <field name="default_code" string="Referencia interna"/>
+                    <!-- Campos técnicos en modo invisible -->
+                    <field name="standard_price" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="cost_currency_id" invisible="1"/>
+                    <field name="product_variant_id" invisible="1"/>
+                </group>
+            </xpath>
+
+            <!-- 5. Ocultar notas internas si no se usan para evitar recuadros vacíos -->
+            <xpath expr="//group[@name='internal_notes']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 6. Ocultar pestañas técnicas (Ventas, Compra, Inventario) para ir directo al grano -->
+            <xpath expr="//page[@name='sales']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//page[@name='purchase']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//page[@name='inventory']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
