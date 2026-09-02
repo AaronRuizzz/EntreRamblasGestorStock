@@ -7,6 +7,7 @@
     "depends": ["stock", "barcodes", "web", "point_of_sale"],
     "data": [
         "data/branding.xml",
+        "data/ux_defaults.xml",
         "views/stock_picking_views.xml",
         "views/login_templates.xml",
     ],
