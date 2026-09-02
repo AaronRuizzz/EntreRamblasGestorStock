@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Logo y favicon de la empresa (aparecen en el backend, informes PDF y
+         pestana del navegador). Se cargan desde los ficheros del modulo para
+         que viajen con el en el despliegue. -->
+    <record id="base.main_company" model="res.company">
+        <field name="name">Entre Ramblas · Clavel &amp; Azahar</field>
+        <field name="logo" type="base64" file="mi_gestor_stock/static/src/img/logo.png"/>
+        <field name="favicon" type="base64" file="mi_gestor_stock/static/src/img/favicon.png"/>
+    </record>
+
+    <!-- Sin registro publico de cuentas ("Don't have an account?"):
+         solo el administrador crea usuarios. -->
+    <function model="ir.config_parameter" name="set_param"
+              eval="('auth_signup.allow_uninvited', 'False')"/>
+    <function model="ir.config_parameter" name="set_param"
+              eval="('auth_signup.invitation_scope', 'b2b')"/>
+</odoo>

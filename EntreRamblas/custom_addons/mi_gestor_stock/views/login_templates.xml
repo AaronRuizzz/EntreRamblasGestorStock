@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Personalizacion de la pantalla de inicio de sesion.
+         Hereda las plantillas QWeb del modulo `web` sin tocarlas.
+         Originales: odoo/addons/web/views/webclient_templates.xml
+           - web.login_layout  (tarjeta, logo, pie)
+           - web.login         (formulario email / password)
+         ============================================================ -->
+
+    <template id="mgs_login_layout" inherit_id="web.login_layout">
+        <!-- Fondo a pantalla completa: clase en el <body> -->
+        <xpath expr="//t[@t-set='body_classname']" position="replace">
+            <t t-set="body_classname" t-value="'bg-100 o_mgs_login_body'"/>
+        </xpath>
+        <!-- Centrado vertical -->
+        <xpath expr="//div[hasclass('container')]" position="attributes">
+            <attribute name="class" add="o_mgs_login_bg" separator=" "/>
+        </xpath>
+        <!-- Clase propia en la tarjeta (usa t-attf-class) -->
+        <xpath expr="//div[hasclass('card-body')]/parent::div" position="attributes">
+            <attribute name="t-attf-class" add="o_mgs_login_card" separator=" "/>
+        </xpath>
+        <!-- Nuestro logo en lugar de "Your logo" -->
+        <xpath expr="//div[hasclass('border-bottom')]/img" position="attributes">
+            <attribute name="t-attf-src">/mi_gestor_stock/static/src/img/login-logo.svg</attribute>
+            <attribute name="style">width:100%; max-width:290px; height:auto</attribute>
+        </xpath>
+    </template>
+
+    <template id="mgs_login" inherit_id="web.login">
+        <xpath expr="//form" position="before">
+            <!-- Titulo de la pestana del navegador -->
+            <t t-set="title">Gestión de stock</t>
+            <!-- Favicon de la pagina de login -->
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.svg</t>
+            <!-- Oculta el pie con "Manage Databases" y "Powered by Odoo" -->
+            <t t-set="disable_footer" t-value="True"/>
+
+            <div class="o_mgs_login_title text-center mb-3">
+                <small class="text-muted">Gestor de stock y punto de venta</small>
+            </div>
+        </xpath>
+        <!-- Pie propio, discreto -->
+        <xpath expr="//form" position="after">
+            <div class="o_mgs_login_foot text-center small mt-4 pt-3">
+                Entre Ramblas · Clavel &amp; Azahar
+            </div>
+        </xpath>
+    </template>
+
+</odoo>

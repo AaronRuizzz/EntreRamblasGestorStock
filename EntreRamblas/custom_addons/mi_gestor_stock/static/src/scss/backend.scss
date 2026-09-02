@@ -1,0 +1,27 @@
+// ============================================================
+//  Retoque de color del backend  ·  tonos calmados de floristeria
+//  Bundle: web.assets_backend
+//  (retoque ligero; el tema completo se puede ampliar mas adelante)
+// ============================================================
+
+$mgs-green:      #2f4a37;
+$mgs-green-dark: #1c3b28;
+
+.o_main_navbar {
+    background-color: $mgs-green-dark !important;
+}
+
+.btn-primary,
+.btn-primary:focus {
+    background-color: $mgs-green;
+    border-color: $mgs-green;
+}
+.btn-primary:hover {
+    background-color: darken($mgs-green, 6%);
+    border-color: darken($mgs-green, 6%);
+}
+
+.o_form_view .o_horizontal_separator,
+.o_control_panel .o_breadcrumb .active {
+    color: $mgs-green-dark;
+}

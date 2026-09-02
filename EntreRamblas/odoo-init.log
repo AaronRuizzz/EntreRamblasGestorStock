@@ -1,0 +1,728 @@
+﻿.\venv\Scripts\python.exe : 2026-09-02 10:31:14,791 2824 INFO ? odoo: Odoo version 18.0 
+En línea: 1 Carácter: 346
++ ... reRamblas"; .\venv\Scripts\python.exe .\odoo\odoo-bin -c odoo.conf -d ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-09-02 10:3...o version 18.0 :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-09-02 10:31:14,791 2824 INFO ? odoo: Using configuration file at C:\Users\Usuario\Desktop\EntreRamblas\odoo.conf 
+2026-09-02 10:31:14,791 2824 INFO ? odoo: addons paths: 
+['C:\\Users\\Usuario\\Desktop\\EntreRamblas\\odoo\\odoo\\addons', 
+'c:\\users\\usuario\\desktop\\entreramblas\\.odoo_data\\addons\\18.0', 
+'c:\\users\\usuario\\desktop\\entreramblas\\odoo\\addons', 'c:\\users\\usuario\\desktop\\entreramblas\\custom_addons', 
+'c:\\users\\usuario\\desktop\\entreramblas\\custom_addons\\stock-logistics-barcode', 
+'c:\\users\\usuario\\desktop\\entreramblas\\odoo\\odoo\\addons'] 
+2026-09-02 10:31:14,791 2824 INFO ? odoo: database: odoo@localhost:5432 
+2026-09-02 10:31:15,400 2824 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf 
+version of the reports. 
+2026-09-02 10:31:15,403 2824 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate 
+images from html. 
+2026-09-02 10:31:15,756 2824 INFO mi_base_stock odoo.modules.loading: init db 
+2026-09-02 10:31:16,872 2824 INFO mi_base_stock odoo.modules.loading: loading 1 modules... 
+2026-09-02 10:31:16,872 2824 INFO mi_base_stock odoo.modules.loading: Loading module base (1/1) 
+2026-09-02 10:31:16,894 2824 INFO mi_base_stock odoo.modules.registry: module base: creating or updating database 
+tables 
+2026-09-02 10:31:17,218 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.module.module.menus_by_module 
+2026-09-02 10:31:17,218 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.module.module.reports_by_module 
+2026-09-02 10:31:17,218 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.module.module.views_by_module 
+2026-09-02 10:31:17,339 2824 INFO mi_base_stock odoo.models: Prepare computation of res.partner.user_id 
+2026-09-02 10:31:17,339 2824 INFO mi_base_stock odoo.models: Prepare computation of res.partner.commercial_partner_id 
+2026-09-02 10:31:17,339 2824 INFO mi_base_stock odoo.models: Prepare computation of res.partner.complete_name 
+2026-09-02 10:31:17,339 2824 INFO mi_base_stock odoo.models: Prepare computation of res.partner.company_registry 
+2026-09-02 10:31:17,339 2824 INFO mi_base_stock odoo.models: Prepare computation of 
+res.partner.commercial_company_name 
+2026-09-02 10:31:17,339 2824 INFO mi_base_stock odoo.models: Prepare computation of res.partner.partner_share 
+2026-09-02 10:31:17,373 2824 INFO mi_base_stock odoo.models: Prepare computation of res.currency.decimal_places 
+2026-09-02 10:31:17,397 2824 INFO mi_base_stock odoo.models: Prepare computation of res.company.uses_default_logo 
+2026-09-02 10:31:17,397 2824 INFO mi_base_stock odoo.models: Prepare computation of res.company.logo_web 
+2026-09-02 10:31:17,397 2824 INFO mi_base_stock odoo.models: Computing parent_path for table res_company... 
+2026-09-02 10:31:17,426 2824 INFO mi_base_stock odoo.models: Prepare computation of res.users.signature 
+2026-09-02 10:31:17,426 2824 INFO mi_base_stock odoo.models: Prepare computation of res.users.share 
+2026-09-02 10:31:18,689 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res_bank.xml 
+2026-09-02 10:31:18,694 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res.lang.csv 
+2026-09-02 10:31:18,726 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res_lang_data.xml 
+2026-09-02 10:31:18,758 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res_partner_data.xml 
+2026-09-02 10:31:18,800 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res_currency_data.xml 
+2026-09-02 10:31:19,132 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res_company_data.xml 
+2026-09-02 10:31:19,138 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res_users_data.xml 
+2026-09-02 10:31:20,175 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/report_paperformat_data.xml 
+2026-09-02 10:31:20,182 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res_country_data.xml 
+2026-09-02 10:31:20,454 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/ir_demo_data.xml 
+2026-09-02 10:31:20,465 2824 INFO mi_base_stock odoo.modules.loading: loading base/security/base_groups.xml 
+2026-09-02 10:31:20,639 2824 INFO mi_base_stock odoo.modules.loading: loading base/security/base_security.xml 
+2026-09-02 10:31:20,745 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/base_menus.xml 
+2026-09-02 10:31:20,804 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/decimal_precision_views.xml 
+2026-09-02 10:31:20,819 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_config_views.xml 
+2026-09-02 10:31:20,825 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/res.country.state.csv 
+2026-09-02 10:31:21,264 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_actions_views.xml 
+2026-09-02 10:31:21,368 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_asset_views.xml 
+2026-09-02 10:31:21,381 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_config_parameter_views.xml 
+2026-09-02 10:31:21,394 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_cron_views.xml 
+2026-09-02 10:31:21,414 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_cron_trigger_views.xml 
+2026-09-02 10:31:21,426 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_filters_views.xml 
+2026-09-02 10:31:21,437 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_mail_server_views.xml 
+2026-09-02 10:31:21,452 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_model_views.xml 
+2026-09-02 10:31:21,544 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_attachment_views.xml 
+2026-09-02 10:31:21,558 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_rule_views.xml 
+2026-09-02 10:31:21,572 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_sequence_views.xml 
+2026-09-02 10:31:21,585 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_ui_menu_views.xml 
+2026-09-02 10:31:21,597 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_ui_view_views.xml 
+2026-09-02 10:31:21,629 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_default_views.xml 
+2026-09-02 10:31:21,641 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/ir_config_parameter_data.xml 
+2026-09-02 10:31:21,644 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/ir_cron_data.xml 
+2026-09-02 10:31:21,654 2824 INFO mi_base_stock odoo.modules.loading: loading base/report/ir_model_report.xml 
+2026-09-02 10:31:21,658 2824 INFO mi_base_stock odoo.modules.loading: loading base/report/ir_model_templates.xml 
+2026-09-02 10:31:21,664 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_logging_views.xml 
+2026-09-02 10:31:21,677 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_qweb_widget_templates.xml 
+2026-09-02 10:31:21,684 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_module_views.xml 
+2026-09-02 10:31:21,717 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/ir_module_category_data.xml 
+2026-09-02 10:31:21,757 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/ir_module_module.xml 
+2026-09-02 10:31:21,811 2824 INFO mi_base_stock odoo.modules.loading: loading base/report/ir_module_reports.xml 
+2026-09-02 10:31:21,815 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base/report/ir_module_report_templates.xml 
+2026-09-02 10:31:21,819 2824 INFO mi_base_stock odoo.modules.loading: loading base/wizard/base_module_update_views.xml 
+2026-09-02 10:31:21,830 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base/wizard/base_language_install_views.xml 
+2026-09-02 10:31:21,837 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base/wizard/base_import_language_views.xml 
+2026-09-02 10:31:21,846 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base/wizard/base_module_upgrade_views.xml 
+2026-09-02 10:31:21,859 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base/wizard/base_module_uninstall_views.xml 
+2026-09-02 10:31:21,866 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base/wizard/base_export_language_views.xml 
+2026-09-02 10:31:21,874 2824 INFO mi_base_stock odoo.modules.loading: loading base/wizard/base_partner_merge_views.xml 
+2026-09-02 10:31:21,884 2824 INFO mi_base_stock odoo.modules.loading: loading base/data/ir_demo_failure_data.xml 
+2026-09-02 10:31:21,895 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/ir_profile_views.xml 
+2026-09-02 10:31:21,912 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_company_views.xml 
+2026-09-02 10:31:21,928 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_lang_views.xml 
+2026-09-02 10:31:21,942 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_partner_views.xml 
+2026-09-02 10:31:22,008 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_bank_views.xml 
+2026-09-02 10:31:22,032 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_country_views.xml 
+2026-09-02 10:31:22,058 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_currency_views.xml 
+2026-09-02 10:31:22,081 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_users_views.xml 
+2026-09-02 10:31:22,155 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_device_views.xml 
+2026-09-02 10:31:22,169 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base/views/res_users_identitycheck_views.xml 
+2026-09-02 10:31:22,174 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/res_config_settings_views.xml 
+2026-09-02 10:31:22,181 2824 INFO mi_base_stock odoo.modules.loading: loading base/views/report_paperformat_views.xml 
+2026-09-02 10:31:22,199 2824 INFO mi_base_stock odoo.modules.loading: loading base/security/ir.model.access.csv 
+2026-09-02 10:31:22,352 2824 INFO mi_base_stock odoo.modules.loading: Module base loaded in 5.48s, 8244 queries (+8244 
+other) 
+2026-09-02 10:31:22,352 2824 INFO mi_base_stock odoo.modules.loading: 1 modules loaded in 5.48s, 8244 queries (+8244 
+extra) 
+2026-09-02 10:31:22,366 2824 INFO mi_base_stock odoo.modules.loading: updating modules list 
+2026-09-02 10:31:22,368 2824 INFO mi_base_stock odoo.addons.base.models.ir_module: ALLOW access to module.update_list 
+on [] to user __system__ #1 via n/a 
+2026-09-02 10:31:22,864 2824 INFO mi_base_stock odoo.addons.base.models.ir_module: ALLOW access to 
+module.button_install on ['Inventory', 'Barcode', 'Mi Gestor de Stock Personalizado'] to user __system__ #1 via n/a 
+2026-09-02 10:31:22,944 2824 INFO mi_base_stock odoo.modules.loading: loading 37 modules... 
+2026-09-02 10:31:22,944 2824 INFO mi_base_stock odoo.modules.loading: Loading module uom (2/37) 
+2026-09-02 10:31:22,971 2824 INFO mi_base_stock odoo.modules.registry: module uom: creating or updating database 
+tables 
+2026-09-02 10:31:23,029 2824 INFO mi_base_stock odoo.modules.loading: loading uom/data/uom_data.xml 
+2026-09-02 10:31:23,078 2824 INFO mi_base_stock odoo.modules.loading: loading uom/security/uom_security.xml 
+2026-09-02 10:31:23,096 2824 INFO mi_base_stock odoo.modules.loading: loading uom/security/ir.model.access.csv 
+2026-09-02 10:31:23,104 2824 INFO mi_base_stock odoo.modules.loading: loading uom/views/uom_uom_views.xml 
+2026-09-02 10:31:23,139 2824 INFO mi_base_stock odoo.modules.loading: Module uom loaded in 0.20s, 305 queries (+305 
+other) 
+2026-09-02 10:31:23,139 2824 INFO mi_base_stock odoo.modules.loading: Loading module web (3/37) 
+2026-09-02 10:31:23,163 2824 INFO mi_base_stock odoo.modules.registry: module web: creating or updating database 
+tables 
+2026-09-02 10:31:23,568 2824 INFO mi_base_stock odoo.modules.loading: loading web/security/ir.model.access.csv 
+2026-09-02 10:31:23,575 2824 INFO mi_base_stock odoo.modules.loading: loading web/views/webclient_templates.xml 
+2026-09-02 10:31:23,606 2824 INFO mi_base_stock odoo.modules.loading: loading web/views/report_templates.xml 
+2026-09-02 10:31:23,664 2824 INFO mi_base_stock odoo.modules.loading: loading web/views/base_document_layout_views.xml 
+2026-09-02 10:31:23,674 2824 INFO mi_base_stock odoo.modules.loading: loading web/views/partner_view.xml 
+2026-09-02 10:31:23,677 2824 INFO mi_base_stock odoo.modules.loading: loading web/views/speedscope_template.xml 
+2026-09-02 10:31:23,682 2824 INFO mi_base_stock odoo.modules.loading: loading web/views/neutralize_views.xml 
+2026-09-02 10:31:23,685 2824 INFO mi_base_stock odoo.modules.loading: loading web/data/ir_attachment.xml 
+2026-09-02 10:31:23,689 2824 INFO mi_base_stock odoo.modules.loading: loading web/data/report_layout.xml 
+2026-09-02 10:31:23,724 2824 INFO mi_base_stock odoo.modules.loading: Module web loaded in 0.58s, 1126 queries (+1126 
+other) 
+2026-09-02 10:31:23,724 2824 INFO mi_base_stock odoo.modules.loading: Loading module auth_totp (4/37) 
+2026-09-02 10:31:23,779 2824 INFO mi_base_stock odoo.modules.registry: module auth_totp: creating or updating database 
+tables 
+2026-09-02 10:31:23,830 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp/security/security.xml 
+2026-09-02 10:31:23,850 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp/security/ir.model.access.csv 
+2026-09-02 10:31:23,856 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp/data/ir_action_data.xml 
+2026-09-02 10:31:23,863 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp/views/res_users_views.xml 
+2026-09-02 10:31:23,885 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp/views/templates.xml 
+2026-09-02 10:31:23,889 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_totp/wizard/auth_totp_wizard_views.xml 
+2026-09-02 10:31:23,904 2824 INFO mi_base_stock odoo.modules.loading: Module auth_totp loaded in 0.18s, 188 queries 
+(+188 other) 
+2026-09-02 10:31:23,904 2824 INFO mi_base_stock odoo.modules.loading: Loading module barcodes (5/37) 
+2026-09-02 10:31:23,941 2824 INFO mi_base_stock odoo.modules.registry: module barcodes: creating or updating database 
+tables 
+2026-09-02 10:31:23,999 2824 INFO mi_base_stock odoo.modules.loading: loading barcodes/data/barcodes_data.xml 
+2026-09-02 10:31:24,005 2824 INFO mi_base_stock odoo.modules.loading: loading barcodes/views/barcodes_view.xml 
+2026-09-02 10:31:24,021 2824 INFO mi_base_stock odoo.modules.loading: loading barcodes/security/ir.model.access.csv 
+2026-09-02 10:31:24,039 2824 INFO mi_base_stock odoo.modules.loading: Module barcodes loaded in 0.13s, 149 queries 
+(+149 other) 
+2026-09-02 10:31:24,039 2824 INFO mi_base_stock odoo.modules.loading: Loading module base_import (6/37) 
+2026-09-02 10:31:24,265 2824 INFO mi_base_stock odoo.modules.registry: module base_import: creating or updating 
+database tables 
+2026-09-02 10:31:24,700 2824 INFO mi_base_stock odoo.modules.loading: loading base_import/security/ir.model.access.csv 
+2026-09-02 10:31:24,712 2824 INFO mi_base_stock odoo.modules.loading: Module base_import loaded in 0.67s, 916 queries 
+(+916 other) 
+2026-09-02 10:31:24,712 2824 INFO mi_base_stock odoo.modules.loading: Loading module base_import_module (7/37) 
+2026-09-02 10:31:24,748 2824 INFO mi_base_stock odoo.modules.registry: module base_import_module: creating or updating 
+database tables 
+2026-09-02 10:31:24,807 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_import_module/security/ir.model.access.csv 
+2026-09-02 10:31:24,812 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_import_module/views/base_import_module_view.xml 
+2026-09-02 10:31:24,826 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_import_module/views/ir_module_views.xml 
+2026-09-02 10:31:24,861 2824 INFO mi_base_stock odoo.modules.loading: Module base_import_module loaded in 0.15s, 164 
+queries (+164 other) 
+2026-09-02 10:31:24,861 2824 INFO mi_base_stock odoo.modules.loading: Loading module base_setup (8/37) 
+2026-09-02 10:31:24,904 2824 INFO mi_base_stock odoo.modules.registry: module base_setup: creating or updating 
+database tables 
+2026-09-02 10:31:24,944 2824 INFO mi_base_stock odoo.modules.loading: loading base_setup/data/base_setup_data.xml 
+2026-09-02 10:31:24,950 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_setup/views/res_config_settings_views.xml 
+2026-09-02 10:31:24,971 2824 INFO mi_base_stock odoo.modules.loading: loading base_setup/views/res_partner_views.xml 
+2026-09-02 10:31:24,984 2824 INFO mi_base_stock odoo.modules.loading: Module base_setup loaded in 0.12s, 154 queries 
+(+154 other) 
+2026-09-02 10:31:24,984 2824 INFO mi_base_stock odoo.modules.loading: Loading module bus (9/37) 
+2026-09-02 10:31:25,065 2824 INFO mi_base_stock odoo.modules.registry: module bus: creating or updating database 
+tables 
+2026-09-02 10:31:25,161 2824 INFO mi_base_stock odoo.modules.loading: loading bus/security/ir.model.access.csv 
+2026-09-02 10:31:25,174 2824 INFO mi_base_stock odoo.modules.loading: Module bus loaded in 0.19s, 168 queries (+168 
+other) 
+2026-09-02 10:31:25,174 2824 INFO mi_base_stock odoo.modules.loading: Loading module http_routing (10/37) 
+2026-09-02 10:31:25,212 2824 INFO mi_base_stock odoo.modules.registry: module http_routing: creating or updating 
+database tables 
+2026-09-02 10:31:25,230 2824 INFO mi_base_stock odoo.modules.loading: loading 
+http_routing/views/http_routing_template.xml 
+2026-09-02 10:31:25,247 2824 INFO mi_base_stock odoo.modules.loading: loading http_routing/views/res_lang_views.xml 
+2026-09-02 10:31:25,268 2824 INFO mi_base_stock odoo.modules.loading: Module http_routing loaded in 0.09s, 100 queries 
+(+100 other) 
+2026-09-02 10:31:25,268 2824 INFO mi_base_stock odoo.modules.loading: Loading module resource (11/37) 
+2026-09-02 10:31:25,353 2824 INFO mi_base_stock odoo.modules.registry: module resource: creating or updating database 
+tables 
+2026-09-02 10:31:25,473 2824 INFO mi_base_stock odoo.modules.loading: loading resource/data/resource_data.xml 
+2026-09-02 10:31:25,487 2824 INFO mi_base_stock odoo.modules.loading: loading resource/security/ir.model.access.csv 
+2026-09-02 10:31:25,496 2824 INFO mi_base_stock odoo.modules.loading: loading resource/security/resource_security.xml 
+2026-09-02 10:31:25,512 2824 INFO mi_base_stock odoo.modules.loading: loading 
+resource/views/resource_resource_views.xml 
+2026-09-02 10:31:25,531 2824 INFO mi_base_stock odoo.modules.loading: loading 
+resource/views/resource_calendar_leaves_views.xml 
+2026-09-02 10:31:25,548 2824 INFO mi_base_stock odoo.modules.loading: loading 
+resource/views/resource_calendar_attendance_views.xml 
+2026-09-02 10:31:25,555 2824 INFO mi_base_stock odoo.modules.loading: loading 
+resource/views/resource_calendar_views.xml 
+2026-09-02 10:31:25,567 2824 INFO mi_base_stock odoo.modules.loading: loading resource/views/menuitems.xml 
+2026-09-02 10:31:25,586 2824 INFO mi_base_stock odoo.modules.loading: Module resource loaded in 0.32s, 406 queries 
+(+406 other) 
+2026-09-02 10:31:25,587 2824 INFO mi_base_stock odoo.modules.loading: Loading module web_tour (12/37) 
+2026-09-02 10:31:25,621 2824 INFO mi_base_stock odoo.modules.registry: module web_tour: creating or updating database 
+tables 
+2026-09-02 10:31:25,625 2824 INFO mi_base_stock odoo.models: Prepare computation of res.users.tour_enabled 
+2026-09-02 10:31:25,692 2824 INFO mi_base_stock odoo.modules.loading: loading web_tour/security/ir.model.access.csv 
+2026-09-02 10:31:25,700 2824 INFO mi_base_stock odoo.modules.loading: loading web_tour/views/tour_views.xml 
+2026-09-02 10:31:25,718 2824 INFO mi_base_stock odoo.modules.loading: loading web_tour/views/res_users_views.xml 
+2026-09-02 10:31:25,735 2824 INFO mi_base_stock odoo.modules.loading: Module web_tour loaded in 0.15s, 188 queries 
+(+188 other) 
+2026-09-02 10:31:25,735 2824 INFO mi_base_stock odoo.modules.loading: Loading module barcodes_gs1_nomenclature (13/37) 
+2026-09-02 10:31:25,771 2824 INFO mi_base_stock odoo.modules.registry: module barcodes_gs1_nomenclature: creating or 
+updating database tables 
+2026-09-02 10:31:25,805 2824 INFO mi_base_stock odoo.modules.loading: loading 
+barcodes_gs1_nomenclature/data/barcodes_gs1_rules.xml 
+2026-09-02 10:31:25,838 2824 INFO mi_base_stock odoo.modules.loading: loading 
+barcodes_gs1_nomenclature/views/barcodes_view.xml 
+2026-09-02 10:31:25,863 2824 INFO mi_base_stock odoo.modules.loading: Module barcodes_gs1_nomenclature loaded in 
+0.13s, 195 queries (+195 other) 
+2026-09-02 10:31:25,863 2824 INFO mi_base_stock odoo.modules.loading: Loading module html_editor (14/37) 
+2026-09-02 10:31:26,348 2824 INFO mi_base_stock odoo.modules.registry: module html_editor: creating or updating 
+database tables 
+2026-09-02 10:31:26,379 2824 INFO mi_base_stock odoo.modules.loading: Module html_editor loaded in 0.52s, 46 queries 
+(+46 other) 
+2026-09-02 10:31:26,379 2824 INFO mi_base_stock odoo.modules.loading: Loading module iap (15/37) 
+2026-09-02 10:31:26,402 2824 INFO mi_base_stock odoo.modules.registry: module iap: creating or updating database 
+tables 
+2026-09-02 10:31:26,471 2824 INFO mi_base_stock odoo.modules.loading: loading iap/data/services.xml 
+2026-09-02 10:31:26,475 2824 INFO mi_base_stock odoo.modules.loading: loading iap/security/ir.model.access.csv 
+2026-09-02 10:31:26,484 2824 INFO mi_base_stock odoo.modules.loading: loading iap/security/ir_rule.xml 
+2026-09-02 10:31:26,489 2824 INFO mi_base_stock odoo.modules.loading: loading iap/views/iap_views.xml 
+2026-09-02 10:31:26,507 2824 INFO mi_base_stock odoo.modules.loading: loading iap/views/res_config_settings.xml 
+2026-09-02 10:31:26,524 2824 INFO mi_base_stock odoo.modules.loading: Module iap loaded in 0.14s, 183 queries (+183 
+other) 
+2026-09-02 10:31:26,524 2824 INFO mi_base_stock odoo.modules.loading: Loading module mail (16/37) 
+2026-09-02 10:31:26,568 2824 INFO mi_base_stock odoo.modules.registry: module mail: creating or updating database 
+tables 
+2026-09-02 10:31:26,834 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.partner_ids 
+2026-09-02 10:31:26,834 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.template_id 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.activity_type_id 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of 
+ir.actions.server.activity_date_deadline_range 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.activity_user_id 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.mail_post_method 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.activity_summary 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of 
+ir.actions.server.activity_date_deadline_range_type 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of 
+ir.actions.server.activity_user_type 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of 
+ir.actions.server.activity_user_field_name 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.activity_note 
+2026-09-02 10:31:26,835 2824 INFO mi_base_stock odoo.models: Prepare computation of 
+ir.actions.server.mail_post_autofollow 
+2026-09-02 10:31:26,861 2824 INFO mi_base_stock odoo.models: Prepare computation of res.company.email_primary_color 
+2026-09-02 10:31:26,861 2824 INFO mi_base_stock odoo.models: Prepare computation of res.company.email_secondary_color 
+2026-09-02 10:31:26,870 2824 INFO mi_base_stock odoo.models: Prepare computation of res.users.notification_type 
+2026-09-02 10:31:26,932 2824 INFO mi_base_stock odoo.models: Prepare computation of res.partner.email_normalized 
+<string>:38: (ERROR/3) Unexpected indentation.
+<string>:43: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+2026-09-02 10:31:28,296 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/mail_groups.xml 
+2026-09-02 10:31:28,358 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/wizard/mail_activity_schedule_views.xml 
+2026-09-02 10:31:28,366 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/wizard/mail_blacklist_remove_views.xml 
+2026-09-02 10:31:28,373 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/wizard/mail_compose_message_views.xml 
+2026-09-02 10:31:28,387 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/wizard/mail_resend_message_views.xml 
+2026-09-02 10:31:28,397 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/wizard/mail_resend_partner_views.xml 
+2026-09-02 10:31:28,405 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/wizard/mail_template_preview_views.xml 
+2026-09-02 10:31:28,412 2824 INFO mi_base_stock odoo.modules.loading: loading mail/wizard/mail_wizard_invite_views.xml 
+2026-09-02 10:31:28,418 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/wizard/mail_template_reset_views.xml 
+2026-09-02 10:31:28,424 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/fetchmail_views.xml 
+2026-09-02 10:31:28,436 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/mail_message_subtype_views.xml 
+2026-09-02 10:31:28,448 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_tracking_value_views.xml 
+2026-09-02 10:31:28,458 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_notification_views.xml 
+2026-09-02 10:31:28,467 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_message_views.xml 
+2026-09-02 10:31:28,490 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/mail_message_schedule_views.xml 
+2026-09-02 10:31:28,501 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_mail_views.xml 
+2026-09-02 10:31:28,516 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_followers_views.xml 
+2026-09-02 10:31:28,527 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_ice_server_views.xml 
+2026-09-02 10:31:28,535 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/discuss_channel_member_views.xml 
+2026-09-02 10:31:28,544 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/discuss_channel_rtc_session_views.xml 
+2026-09-02 10:31:28,555 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_link_preview_views.xml 
+2026-09-02 10:31:28,564 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/discuss/discuss_gif_favorite_views.xml 
+2026-09-02 10:31:28,573 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/discuss_channel_views.xml 
+2026-09-02 10:31:28,591 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/mail_canned_response_views.xml 
+2026-09-02 10:31:28,604 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_activity_views.xml 
+2026-09-02 10:31:28,850 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_activity_plan_views.xml 
+2026-09-02 10:31:28,877 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/mail_activity_plan_template_views.xml 
+2026-09-02 10:31:28,886 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/res_config_settings_views.xml 
+2026-09-02 10:31:28,902 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/ir_config_parameter_data.xml 
+2026-09-02 10:31:28,908 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/res_partner_data.xml 
+2026-09-02 10:31:28,954 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/mail_message_subtype_data.xml 
+2026-09-02 10:31:28,964 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/mail_templates_chatter.xml 
+2026-09-02 10:31:28,974 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/data/mail_templates_email_layouts.xml 
+2026-09-02 10:31:28,988 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/mail_templates_mailgateway.xml 
+2026-09-02 10:31:28,998 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/discuss_channel_data.xml 
+2026-09-02 10:31:29,027 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/mail_activity_data.xml 
+2026-09-02 10:31:29,038 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/data/security_notifications_templates.xml 
+2026-09-02 10:31:29,042 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/ir_cron_data.xml 
+2026-09-02 10:31:29,074 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/ir_actions_client.xml 
+2026-09-02 10:31:29,079 2824 INFO mi_base_stock odoo.modules.loading: loading mail/security/mail_security.xml 
+2026-09-02 10:31:29,176 2824 INFO mi_base_stock odoo.modules.loading: loading mail/security/ir.model.access.csv 
+2026-09-02 10:31:29,223 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/discuss_public_templates.xml 
+2026-09-02 10:31:29,228 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_alias_domain_views.xml 
+2026-09-02 10:31:29,240 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_alias_views.xml 
+2026-09-02 10:31:29,255 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/mail_gateway_allowed_views.xml 
+2026-09-02 10:31:29,262 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_guest_views.xml 
+2026-09-02 10:31:29,272 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/mail_message_reaction_views.xml 
+2026-09-02 10:31:29,281 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_templates_public.xml 
+2026-09-02 10:31:29,287 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/res_users_views.xml 
+2026-09-02 10:31:29,303 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/res_users_settings_views.xml 
+2026-09-02 10:31:29,313 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_template_views.xml 
+2026-09-02 10:31:29,330 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/ir_actions_server_views.xml 
+2026-09-02 10:31:29,339 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/ir_model_views.xml 
+2026-09-02 10:31:29,360 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/res_partner_views.xml 
+2026-09-02 10:31:29,394 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_blacklist_views.xml 
+2026-09-02 10:31:29,407 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/mail_menus.xml 
+2026-09-02 10:31:29,496 2824 INFO mi_base_stock odoo.modules.loading: loading mail/views/res_company_views.xml 
+2026-09-02 10:31:29,502 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mail/views/mail_scheduled_message_views.xml 
+2026-09-02 10:31:29,508 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/mail_canned_response_data.xml 
+2026-09-02 10:31:29,514 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/mail_templates_invite.xml 
+2026-09-02 10:31:29,520 2824 INFO mi_base_stock odoo.modules.loading: loading mail/data/web_tour_tour.xml 
+2026-09-02 10:31:29,597 2824 INFO mi_base_stock odoo.modules.loading: Module mail loaded in 3.07s, 4527 queries (+4528 
+other) 
+2026-09-02 10:31:29,597 2824 INFO mi_base_stock odoo.modules.loading: Loading module web_editor (17/37) 
+2026-09-02 10:31:29,715 2824 INFO mi_base_stock odoo.modules.registry: module web_editor: creating or updating 
+database tables 
+2026-09-02 10:31:30,531 2824 INFO mi_base_stock odoo.modules.loading: loading web_editor/security/ir.model.access.csv 
+2026-09-02 10:31:30,547 2824 INFO mi_base_stock odoo.modules.loading: loading web_editor/data/editor_assets.xml 
+2026-09-02 10:31:30,553 2824 INFO mi_base_stock odoo.modules.loading: loading web_editor/views/editor.xml 
+2026-09-02 10:31:30,566 2824 INFO mi_base_stock odoo.modules.loading: loading web_editor/views/snippets.xml 
+2026-09-02 10:31:30,606 2824 INFO mi_base_stock odoo.modules.loading: Module web_editor loaded in 1.01s, 1445 queries 
+(+1445 other) 
+2026-09-02 10:31:30,606 2824 INFO mi_base_stock odoo.modules.loading: Loading module auth_signup (18/37) 
+2026-09-02 10:31:30,670 2824 INFO mi_base_stock odoo.modules.registry: module auth_signup: creating or updating 
+database tables 
+2026-09-02 10:31:30,737 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_signup/data/ir_config_parameter_data.xml 
+2026-09-02 10:31:30,742 2824 INFO mi_base_stock odoo.modules.loading: loading auth_signup/data/ir_cron_data.xml 
+2026-09-02 10:31:30,752 2824 INFO mi_base_stock odoo.modules.loading: loading auth_signup/data/mail_template_data.xml 
+2026-09-02 10:31:30,766 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_signup/views/res_config_settings_views.xml 
+2026-09-02 10:31:30,775 2824 INFO mi_base_stock odoo.modules.loading: loading auth_signup/views/res_users_views.xml 
+2026-09-02 10:31:30,797 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_signup/views/auth_signup_login_templates.xml 
+2026-09-02 10:31:30,812 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_signup/views/auth_signup_templates_email.xml 
+2026-09-02 10:31:30,821 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_signup/views/webclient_templates.xml 
+2026-09-02 10:31:30,837 2824 INFO mi_base_stock odoo.modules.loading: Module auth_signup loaded in 0.23s, 207 queries 
+(+207 other) 
+2026-09-02 10:31:30,837 2824 INFO mi_base_stock odoo.modules.loading: Loading module auth_totp_mail (19/37) 
+2026-09-02 10:31:30,885 2824 INFO mi_base_stock odoo.modules.registry: module auth_totp_mail: creating or updating 
+database tables 
+2026-09-02 10:31:30,915 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp_mail/data/ir_action_data.xml 
+2026-09-02 10:31:30,931 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_totp_mail/data/mail_template_data.xml 
+2026-09-02 10:31:30,938 2824 INFO mi_base_stock odoo.modules.loading: loading 
+auth_totp_mail/data/security_notifications_template.xml 
+2026-09-02 10:31:30,945 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp_mail/views/res_users_views.xml 
+2026-09-02 10:31:30,976 2824 INFO mi_base_stock odoo.modules.loading: Module auth_totp_mail loaded in 0.14s, 121 
+queries (+121 other) 
+2026-09-02 10:31:30,976 2824 INFO mi_base_stock odoo.modules.loading: Loading module base_install_request (20/37) 
+2026-09-02 10:31:31,032 2824 INFO mi_base_stock odoo.modules.registry: module base_install_request: creating or 
+updating database tables 
+2026-09-02 10:31:31,097 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_install_request/security/ir.model.access.csv 
+2026-09-02 10:31:31,109 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_install_request/wizard/base_module_install_request_views.xml 
+2026-09-02 10:31:31,124 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_install_request/data/mail_template_data.xml 
+2026-09-02 10:31:31,131 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_install_request/data/mail_templates_module_install.xml 
+2026-09-02 10:31:31,135 2824 INFO mi_base_stock odoo.modules.loading: loading 
+base_install_request/views/ir_module_module_views.xml 
+2026-09-02 10:31:31,157 2824 INFO mi_base_stock odoo.modules.loading: Module base_install_request loaded in 0.18s, 153 
+queries (+153 other) 
+2026-09-02 10:31:31,157 2824 INFO mi_base_stock odoo.modules.loading: Loading module google_gmail (21/37) 
+2026-09-02 10:31:31,218 2824 INFO mi_base_stock odoo.modules.registry: module google_gmail: creating or updating 
+database tables 
+2026-09-02 10:31:31,264 2824 INFO mi_base_stock odoo.modules.loading: loading 
+google_gmail/views/fetchmail_server_views.xml 
+2026-09-02 10:31:31,280 2824 INFO mi_base_stock odoo.modules.loading: loading 
+google_gmail/views/ir_mail_server_views.xml 
+2026-09-02 10:31:31,289 2824 INFO mi_base_stock odoo.modules.loading: loading 
+google_gmail/views/res_config_settings_views.xml 
+2026-09-02 10:31:31,312 2824 INFO mi_base_stock odoo.modules.loading: Module google_gmail loaded in 0.15s, 124 queries 
+(+124 other) 
+2026-09-02 10:31:31,312 2824 INFO mi_base_stock odoo.modules.loading: Loading module iap_mail (22/37) 
+2026-09-02 10:31:31,357 2824 INFO mi_base_stock odoo.modules.registry: module iap_mail: creating or updating database 
+tables 
+2026-09-02 10:31:31,452 2824 INFO mi_base_stock odoo.modules.loading: loading iap_mail/data/mail_templates.xml 
+2026-09-02 10:31:31,466 2824 INFO mi_base_stock odoo.modules.loading: loading iap_mail/views/iap_views.xml 
+2026-09-02 10:31:31,479 2824 INFO mi_base_stock odoo.modules.loading: Module iap_mail loaded in 0.17s, 70 queries (+70 
+other) 
+2026-09-02 10:31:31,479 2824 INFO mi_base_stock odoo.modules.loading: Loading module mail_bot (23/37) 
+2026-09-02 10:31:31,537 2824 INFO mi_base_stock odoo.modules.registry: module mail_bot: creating or updating database 
+tables 
+2026-09-02 10:31:31,581 2824 INFO mi_base_stock odoo.modules.loading: loading mail_bot/views/res_users_views.xml 
+2026-09-02 10:31:31,602 2824 INFO mi_base_stock odoo.modules.loading: loading mail_bot/data/mailbot_data.xml 
+2026-09-02 10:31:31,614 2824 INFO mi_base_stock odoo.modules.loading: Module mail_bot loaded in 0.13s, 127 queries 
+(+127 other) 
+2026-09-02 10:31:31,614 2824 INFO mi_base_stock odoo.modules.loading: Loading module phone_validation (24/37) 
+2026-09-02 10:31:31,702 2824 INFO mi_base_stock odoo.modules.registry: module phone_validation: creating or updating 
+database tables 
+2026-09-02 10:31:32,549 2824 INFO mi_base_stock odoo.modules.loading: loading 
+phone_validation/security/ir.model.access.csv 
+2026-09-02 10:31:32,557 2824 INFO mi_base_stock odoo.modules.loading: loading 
+phone_validation/views/phone_blacklist_views.xml 
+2026-09-02 10:31:32,577 2824 INFO mi_base_stock odoo.modules.loading: loading 
+phone_validation/wizard/phone_blacklist_remove_view.xml 
+2026-09-02 10:31:32,591 2824 INFO mi_base_stock odoo.modules.loading: Module phone_validation loaded in 0.98s, 1483 
+queries (+1483 other) 
+2026-09-02 10:31:32,591 2824 INFO mi_base_stock odoo.modules.loading: Loading module privacy_lookup (25/37) 
+2026-09-02 10:31:32,650 2824 INFO mi_base_stock odoo.modules.registry: module privacy_lookup: creating or updating 
+database tables 
+2026-09-02 10:31:32,758 2824 INFO mi_base_stock odoo.modules.loading: loading 
+privacy_lookup/wizard/privacy_lookup_wizard_views.xml 
+2026-09-02 10:31:32,785 2824 INFO mi_base_stock odoo.modules.loading: loading 
+privacy_lookup/views/privacy_log_views.xml 
+2026-09-02 10:31:32,801 2824 INFO mi_base_stock odoo.modules.loading: loading 
+privacy_lookup/security/ir.model.access.csv 
+2026-09-02 10:31:32,812 2824 INFO mi_base_stock odoo.modules.loading: loading 
+privacy_lookup/data/ir_actions_server_data.xml 
+2026-09-02 10:31:32,832 2824 INFO mi_base_stock odoo.modules.loading: Module privacy_lookup loaded in 0.24s, 247 
+queries (+247 other) 
+2026-09-02 10:31:32,832 2824 INFO mi_base_stock odoo.modules.loading: Loading module product (26/37) 
+2026-09-02 10:31:33,025 2824 INFO mi_base_stock odoo.modules.registry: module product: creating or updating database 
+tables 
+2026-09-02 10:31:33,709 2824 INFO mi_base_stock odoo.modules.loading: loading product/data/product_data.xml 
+2026-09-02 10:31:33,738 2824 INFO mi_base_stock odoo.modules.loading: loading product/security/product_security.xml 
+2026-09-02 10:31:33,874 2824 INFO mi_base_stock odoo.modules.loading: loading product/security/ir.model.access.csv 
+2026-09-02 10:31:33,897 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/wizard/product_label_layout_views.xml 
+2026-09-02 10:31:33,915 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/wizard/update_product_attribute_value_views.xml 
+2026-09-02 10:31:33,921 2824 INFO mi_base_stock odoo.modules.loading: loading product/views/product_tag_views.xml 
+2026-09-02 10:31:33,932 2824 INFO mi_base_stock odoo.modules.loading: loading product/views/product_views.xml 
+2026-09-02 10:31:34,014 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/res_config_settings_views.xml 
+2026-09-02 10:31:34,031 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/product_attribute_views.xml 
+2026-09-02 10:31:34,061 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/product_attribute_value_views.xml 
+2026-09-02 10:31:34,064 2824 INFO mi_base_stock odoo.modules.loading: loading product/views/product_category_views.xml 
+2026-09-02 10:31:34,076 2824 INFO mi_base_stock odoo.modules.loading: loading product/views/product_combo_views.xml 
+2026-09-02 10:31:34,086 2824 INFO mi_base_stock odoo.modules.loading: loading product/views/product_document_views.xml 
+2026-09-02 10:31:34,101 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/product_packaging_views.xml 
+2026-09-02 10:31:34,121 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/product_pricelist_item_views.xml 
+2026-09-02 10:31:34,138 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/product_pricelist_views.xml 
+2026-09-02 10:31:34,156 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/product_supplierinfo_views.xml 
+2026-09-02 10:31:34,174 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/product_template_attribute_line_views.xml 
+2026-09-02 10:31:34,179 2824 INFO mi_base_stock odoo.modules.loading: loading product/views/product_template_views.xml 
+2026-09-02 10:31:34,203 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/views/res_country_group_views.xml 
+2026-09-02 10:31:34,210 2824 INFO mi_base_stock odoo.modules.loading: loading product/views/res_partner_views.xml 
+2026-09-02 10:31:34,218 2824 INFO mi_base_stock odoo.modules.loading: loading product/report/product_reports.xml 
+2026-09-02 10:31:34,234 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/report/product_product_templates.xml 
+2026-09-02 10:31:34,254 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/report/product_template_templates.xml 
+2026-09-02 10:31:34,266 2824 INFO mi_base_stock odoo.modules.loading: loading product/report/product_packaging.xml 
+2026-09-02 10:31:34,270 2824 INFO mi_base_stock odoo.modules.loading: loading 
+product/report/product_pricelist_report_templates.xml 
+2026-09-02 10:31:34,314 2824 INFO mi_base_stock odoo.modules.loading: Module product loaded in 1.48s, 1763 queries 
+(+1763 other) 
+2026-09-02 10:31:34,314 2824 INFO mi_base_stock odoo.modules.loading: Loading module resource_mail (27/37) 
+2026-09-02 10:31:34,369 2824 INFO mi_base_stock odoo.modules.registry: module resource_mail: creating or updating 
+database tables 
+2026-09-02 10:31:34,484 2824 INFO mi_base_stock odoo.modules.loading: Module resource_mail loaded in 0.17s, 35 queries 
+(+35 other) 
+2026-09-02 10:31:34,484 2824 INFO mi_base_stock odoo.modules.loading: Loading module web_unsplash (28/37) 
+2026-09-02 10:31:34,546 2824 INFO mi_base_stock odoo.modules.registry: module web_unsplash: creating or updating 
+database tables 
+2026-09-02 10:31:34,599 2824 INFO mi_base_stock odoo.modules.loading: loading 
+web_unsplash/views/res_config_settings_view.xml 
+2026-09-02 10:31:34,631 2824 INFO mi_base_stock odoo.modules.loading: Module web_unsplash loaded in 0.15s, 100 queries 
+(+100 other) 
+2026-09-02 10:31:34,631 2824 INFO mi_base_stock odoo.modules.loading: Loading module partner_autocomplete (29/37) 
+2026-09-02 10:31:34,697 2824 INFO mi_base_stock odoo.modules.registry: module partner_autocomplete: creating or 
+updating database tables 
+2026-09-02 10:31:34,813 2824 INFO mi_base_stock odoo.modules.loading: loading 
+partner_autocomplete/security/ir.model.access.csv 
+2026-09-02 10:31:34,820 2824 INFO mi_base_stock odoo.modules.loading: loading 
+partner_autocomplete/views/res_partner_views.xml 
+2026-09-02 10:31:34,836 2824 INFO mi_base_stock odoo.modules.loading: loading 
+partner_autocomplete/views/res_company_views.xml 
+2026-09-02 10:31:34,844 2824 INFO mi_base_stock odoo.modules.loading: loading 
+partner_autocomplete/views/res_config_settings_views.xml 
+2026-09-02 10:31:34,848 2824 INFO mi_base_stock odoo.modules.loading: loading partner_autocomplete/data/cron.xml 
+2026-09-02 10:31:34,862 2824 INFO mi_base_stock odoo.modules.loading: loading 
+partner_autocomplete/data/iap_service_data.xml 
+2026-09-02 10:31:34,894 2824 INFO mi_base_stock odoo.modules.loading: Module partner_autocomplete loaded in 0.26s, 207 
+queries (+207 other) 
+2026-09-02 10:31:34,896 2824 INFO mi_base_stock odoo.modules.loading: Loading module portal (30/37) 
+2026-09-02 10:31:35,007 2824 INFO mi_base_stock odoo.modules.registry: module portal: creating or updating database 
+tables 
+2026-09-02 10:31:35,237 2824 INFO mi_base_stock odoo.modules.loading: loading portal/security/ir.model.access.csv 
+2026-09-02 10:31:35,244 2824 INFO mi_base_stock odoo.modules.loading: loading portal/data/mail_template_data.xml 
+2026-09-02 10:31:35,254 2824 INFO mi_base_stock odoo.modules.loading: loading portal/data/mail_templates.xml 
+2026-09-02 10:31:35,260 2824 INFO mi_base_stock odoo.modules.loading: loading portal/views/mail_templates_public.xml 
+2026-09-02 10:31:35,264 2824 INFO mi_base_stock odoo.modules.loading: loading portal/views/portal_templates.xml 
+2026-09-02 10:31:35,337 2824 INFO mi_base_stock odoo.modules.loading: loading 
+portal/views/res_config_settings_views.xml 
+2026-09-02 10:31:35,350 2824 INFO mi_base_stock odoo.modules.loading: loading portal/wizard/portal_share_views.xml 
+2026-09-02 10:31:35,359 2824 INFO mi_base_stock odoo.modules.loading: loading portal/wizard/portal_wizard_views.xml 
+2026-09-02 10:31:35,383 2824 INFO mi_base_stock odoo.modules.loading: Module portal loaded in 0.49s, 516 queries (+516 
+other) 
+2026-09-02 10:31:35,383 2824 INFO mi_base_stock odoo.modules.loading: Loading module sms (31/37) 
+2026-09-02 10:31:35,529 2824 INFO mi_base_stock odoo.modules.registry: module sms: creating or updating database 
+tables 
+2026-09-02 10:31:35,536 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.sms_template_id 
+2026-09-02 10:31:35,537 2824 INFO mi_base_stock odoo.models: Prepare computation of ir.actions.server.sms_method 
+2026-09-02 10:31:35,554 2824 INFO mi_base_stock odoo.models: Prepare computation of res.partner.phone_sanitized 
+2026-09-02 10:31:36,760 2824 INFO mi_base_stock odoo.modules.loading: loading sms/data/iap_service_data.xml 
+2026-09-02 10:31:36,764 2824 INFO mi_base_stock odoo.modules.loading: loading sms/data/ir_cron_data.xml 
+2026-09-02 10:31:36,771 2824 INFO mi_base_stock odoo.modules.loading: loading sms/wizard/sms_account_code_views.xml 
+2026-09-02 10:31:36,779 2824 INFO mi_base_stock odoo.modules.loading: loading sms/wizard/sms_account_phone_views.xml 
+2026-09-02 10:31:36,785 2824 INFO mi_base_stock odoo.modules.loading: loading sms/wizard/sms_account_sender_views.xml 
+2026-09-02 10:31:36,790 2824 INFO mi_base_stock odoo.modules.loading: loading sms/wizard/sms_composer_views.xml 
+2026-09-02 10:31:36,799 2824 INFO mi_base_stock odoo.modules.loading: loading 
+sms/wizard/sms_template_preview_views.xml 
+2026-09-02 10:31:36,806 2824 INFO mi_base_stock odoo.modules.loading: loading sms/wizard/sms_resend_views.xml 
+2026-09-02 10:31:36,817 2824 INFO mi_base_stock odoo.modules.loading: loading sms/wizard/sms_template_reset_views.xml 
+2026-09-02 10:31:36,824 2824 INFO mi_base_stock odoo.modules.loading: loading sms/views/ir_actions_server_views.xml 
+2026-09-02 10:31:36,835 2824 INFO mi_base_stock odoo.modules.loading: loading sms/views/mail_notification_views.xml 
+2026-09-02 10:31:36,847 2824 INFO mi_base_stock odoo.modules.loading: loading sms/views/res_config_settings_views.xml 
+2026-09-02 10:31:36,857 2824 INFO mi_base_stock odoo.modules.loading: loading sms/views/res_partner_views.xml 
+2026-09-02 10:31:36,883 2824 INFO mi_base_stock odoo.modules.loading: loading sms/views/iap_account_views.xml 
+2026-09-02 10:31:36,894 2824 INFO mi_base_stock odoo.modules.loading: loading sms/views/sms_sms_views.xml 
+2026-09-02 10:31:36,917 2824 INFO mi_base_stock odoo.modules.loading: loading sms/views/sms_template_views.xml 
+2026-09-02 10:31:36,934 2824 INFO mi_base_stock odoo.modules.loading: loading sms/security/ir.model.access.csv 
+2026-09-02 10:31:36,954 2824 INFO mi_base_stock odoo.modules.loading: loading sms/security/sms_security.xml 
+2026-09-02 10:31:36,976 2824 INFO mi_base_stock odoo.modules.loading: Module sms loaded in 1.59s, 2159 queries (+2159 
+other) 
+2026-09-02 10:31:36,977 2824 INFO mi_base_stock odoo.modules.loading: Loading module snailmail (32/37) 
+2026-09-02 10:31:37,075 2824 INFO mi_base_stock odoo.modules.registry: module snailmail: creating or updating database 
+tables 
+2026-09-02 10:31:37,433 2824 INFO mi_base_stock odoo.modules.loading: loading snailmail/data/iap_service_data.xml 
+2026-09-02 10:31:37,438 2824 INFO mi_base_stock odoo.modules.loading: loading snailmail/data/snailmail_data.xml 
+2026-09-02 10:31:37,446 2824 INFO mi_base_stock odoo.modules.loading: loading snailmail/views/report_assets.xml 
+2026-09-02 10:31:37,456 2824 INFO mi_base_stock odoo.modules.loading: loading snailmail/views/snailmail_views.xml 
+2026-09-02 10:31:37,474 2824 INFO mi_base_stock odoo.modules.loading: loading 
+snailmail/wizard/snailmail_letter_format_error_views.xml 
+2026-09-02 10:31:37,484 2824 INFO mi_base_stock odoo.modules.loading: loading 
+snailmail/wizard/snailmail_letter_missing_required_fields_views.xml 
+2026-09-02 10:31:37,494 2824 INFO mi_base_stock odoo.modules.loading: loading snailmail/security/ir.model.access.csv 
+2026-09-02 10:31:37,519 2824 INFO mi_base_stock odoo.modules.loading: Module snailmail loaded in 0.54s, 461 queries 
+(+461 other) 
+2026-09-02 10:31:37,519 2824 INFO mi_base_stock odoo.modules.loading: Loading module auth_totp_portal (33/37) 
+2026-09-02 10:31:37,576 2824 INFO mi_base_stock odoo.modules.registry: module auth_totp_portal: creating or updating 
+database tables 
+2026-09-02 10:31:37,604 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp_portal/security/security.xml 
+2026-09-02 10:31:37,621 2824 INFO mi_base_stock odoo.modules.loading: loading auth_totp_portal/views/templates.xml 
+2026-09-02 10:31:37,638 2824 INFO mi_base_stock odoo.modules.loading: Module auth_totp_portal loaded in 0.12s, 66 
+queries (+66 other) 
+2026-09-02 10:31:37,638 2824 INFO mi_base_stock odoo.modules.loading: Loading module digest (34/37) 
+2026-09-02 10:31:37,714 2824 INFO mi_base_stock odoo.modules.registry: module digest: creating or updating database 
+tables 
+2026-09-02 10:31:37,818 2824 INFO mi_base_stock odoo.modules.loading: loading digest/security/ir.model.access.csv 
+2026-09-02 10:31:37,827 2824 INFO mi_base_stock odoo.modules.loading: loading digest/data/digest_data.xml 
+2026-09-02 10:31:37,844 2824 INFO mi_base_stock odoo.modules.loading: loading digest/data/digest_tips_data.xml 
+2026-09-02 10:31:37,859 2824 INFO mi_base_stock odoo.modules.loading: loading digest/data/ir_cron_data.xml 
+2026-09-02 10:31:37,866 2824 INFO mi_base_stock odoo.modules.loading: loading digest/data/res_config_settings_data.xml 
+2026-09-02 10:31:37,871 2824 INFO mi_base_stock odoo.modules.loading: loading digest/views/digest_views.xml 
+2026-09-02 10:31:37,911 2824 INFO mi_base_stock odoo.modules.loading: loading digest/views/digest_templates.xml 
+2026-09-02 10:31:37,916 2824 INFO mi_base_stock odoo.modules.loading: loading 
+digest/views/res_config_settings_views.xml 
+2026-09-02 10:31:37,943 2824 INFO mi_base_stock odoo.modules.loading: Module digest loaded in 0.30s, 305 queries (+305 
+other) 
+2026-09-02 10:31:37,943 2824 INFO mi_base_stock odoo.modules.loading: Loading module stock (35/37) 
+2026-09-02 10:31:38,327 2824 INFO mi_base_stock odoo.modules.registry: module stock: creating or updating database 
+tables 
+2026-09-02 10:31:39,889 2824 INFO mi_base_stock odoo.modules.loading: loading stock/security/stock_security.xml 
+2026-09-02 10:31:40,233 2824 INFO mi_base_stock odoo.modules.loading: loading stock/security/ir.model.access.csv 
+2026-09-02 10:31:40,296 2824 INFO mi_base_stock odoo.modules.loading: loading stock/data/digest_data.xml 
+2026-09-02 10:31:40,303 2824 INFO mi_base_stock odoo.modules.loading: loading stock/data/mail_templates.xml 
+2026-09-02 10:31:40,311 2824 INFO mi_base_stock odoo.modules.loading: loading stock/data/default_barcode_patterns.xml 
+2026-09-02 10:31:40,319 2824 INFO mi_base_stock odoo.modules.loading: loading stock/data/stock_data.xml 
+2026-09-02 10:31:40,474 2824 INFO mi_base_stock odoo.modules.loading: loading stock/data/stock_sequence_data.xml 
+2026-09-02 10:31:40,492 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/data/stock_traceability_report_data.xml 
+2026-09-02 10:31:40,497 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_stock_quantity.xml 
+2026-09-02 10:31:40,506 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_stock_reception.xml 
+2026-09-02 10:31:40,522 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/stock_report_views.xml 
+2026-09-02 10:31:40,550 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_package_barcode.xml 
+2026-09-02 10:31:40,562 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_lot_barcode.xml 
+2026-09-02 10:31:40,567 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_location_barcode.xml 
+2026-09-02 10:31:40,572 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/report/report_stockpicking_operations.xml 
+2026-09-02 10:31:40,583 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_deliveryslip.xml 
+2026-09-02 10:31:40,603 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_stockinventory.xml 
+2026-09-02 10:31:40,608 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_stock_rule.xml 
+2026-09-02 10:31:40,622 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/stock_lot_customer.xml 
+2026-09-02 10:31:40,637 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/package_templates.xml 
+2026-09-02 10:31:40,641 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/picking_templates.xml 
+2026-09-02 10:31:40,651 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/product_templates.xml 
+2026-09-02 10:31:40,656 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/product_packaging.xml 
+2026-09-02 10:31:40,660 2824 INFO mi_base_stock odoo.modules.loading: loading stock/report/report_return_slip.xml 
+2026-09-02 10:31:40,666 2824 INFO mi_base_stock odoo.modules.loading: loading stock/data/mail_template_data.xml 
+2026-09-02 10:31:40,674 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_menu_views.xml 
+2026-09-02 10:31:40,719 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_change_product_qty_views.xml 
+2026-09-02 10:31:40,724 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_picking_return_views.xml 
+2026-09-02 10:31:40,736 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_inventory_conflict.xml 
+2026-09-02 10:31:40,743 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_backorder_confirmation_views.xml 
+2026-09-02 10:31:40,750 2824 INFO mi_base_stock odoo.modules.loading: loading stock/wizard/stock_quantity_history.xml 
+2026-09-02 10:31:40,756 2824 INFO mi_base_stock odoo.modules.loading: loading stock/wizard/stock_request_count.xml 
+2026-09-02 10:31:40,764 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_replenishment_info.xml 
+2026-09-02 10:31:40,781 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_rules_report_views.xml 
+2026-09-02 10:31:40,790 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_warn_insufficient_qty_views.xml 
+2026-09-02 10:31:40,802 2824 INFO mi_base_stock odoo.modules.loading: loading stock/wizard/product_replenish_views.xml 
+2026-09-02 10:31:40,810 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/product_label_layout_views.xml 
+2026-09-02 10:31:40,817 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_track_confirmation_views.xml 
+2026-09-02 10:31:40,824 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_orderpoint_snooze_views.xml 
+2026-09-02 10:31:40,831 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_package_destination_views.xml 
+2026-09-02 10:31:40,842 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/wizard/stock_inventory_adjustment_name.xml 
+2026-09-02 10:31:40,847 2824 INFO mi_base_stock odoo.modules.loading: loading stock/wizard/stock_inventory_warning.xml 
+2026-09-02 10:31:40,854 2824 INFO mi_base_stock odoo.modules.loading: loading stock/wizard/stock_label_type.xml 
+2026-09-02 10:31:40,862 2824 INFO mi_base_stock odoo.modules.loading: loading stock/wizard/stock_lot_label_layout.xml 
+2026-09-02 10:31:40,868 2824 INFO mi_base_stock odoo.modules.loading: loading stock/wizard/stock_quant_relocate.xml 
+2026-09-02 10:31:40,873 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/res_partner_views.xml 
+2026-09-02 10:31:40,884 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/product_strategy_views.xml 
+2026-09-02 10:31:40,913 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_lot_views.xml 
+2026-09-02 10:31:40,943 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_scrap_views.xml 
+2026-09-02 10:31:40,972 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_quant_views.xml 
+2026-09-02 10:31:41,121 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_warehouse_views.xml 
+2026-09-02 10:31:41,139 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_move_line_views.xml 
+2026-09-02 10:31:41,176 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_move_views.xml 
+2026-09-02 10:31:41,228 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_picking_views.xml 
+2026-09-02 10:31:41,317 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_picking_type_views.xml 
+2026-09-02 10:31:41,348 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/product_views.xml 
+2026-09-02 10:31:41,477 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_location_views.xml 
+2026-09-02 10:31:41,524 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_orderpoint_views.xml 
+2026-09-02 10:31:41,554 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/views/stock_storage_category_views.xml 
+2026-09-02 10:31:41,581 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/views/res_config_settings_views.xml 
+2026-09-02 10:31:41,604 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/views/report_stock_traceability.xml 
+2026-09-02 10:31:41,612 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_template.xml 
+2026-09-02 10:31:41,618 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_rule_views.xml 
+2026-09-02 10:31:41,643 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock/views/stock_package_level_views.xml 
+2026-09-02 10:31:41,654 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_package_type_view.xml 
+2026-09-02 10:31:41,674 2824 INFO mi_base_stock odoo.modules.loading: loading stock/views/stock_forecasted.xml 
+2026-09-02 10:31:41,742 2824 INFO mi_base_stock odoo.modules.loading: Module stock loaded in 3.80s, 5196 queries 
+(+5196 other) 
+2026-09-02 10:31:41,742 2824 INFO mi_base_stock odoo.modules.loading: Loading module mi_gestor_stock (36/37) 
+2026-09-02 10:31:41,813 2824 INFO mi_base_stock odoo.modules.loading: loading 
+mi_gestor_stock/views/stock_picking_views.xml 
+2026-09-02 10:31:41,856 2824 INFO mi_base_stock odoo.modules.loading: Module mi_gestor_stock loaded in 0.11s, 36 
+queries (+36 other) 
+2026-09-02 10:31:41,856 2824 INFO mi_base_stock odoo.modules.loading: Loading module stock_sms (37/37) 
+2026-09-02 10:31:41,932 2824 INFO mi_base_stock odoo.modules.registry: module stock_sms: creating or updating database 
+tables 
+2026-09-02 10:31:42,030 2824 INFO mi_base_stock odoo.modules.loading: loading stock_sms/data/sms_data.xml 
+2026-09-02 10:31:42,036 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock_sms/views/res_config_settings_views.xml 
+2026-09-02 10:31:42,054 2824 INFO mi_base_stock odoo.modules.loading: loading 
+stock_sms/wizard/confirm_stock_sms_views.xml 
+2026-09-02 10:31:42,064 2824 INFO mi_base_stock odoo.modules.loading: loading stock_sms/security/ir.model.access.csv 
+2026-09-02 10:31:42,074 2824 INFO mi_base_stock odoo.modules.loading: loading stock_sms/security/sms_security.xml 
+2026-09-02 10:31:42,097 2824 INFO mi_base_stock odoo.modules.loading: Module stock_sms loaded in 0.24s, 180 queries 
+(+180 other) 
+2026-09-02 10:31:42,097 2824 INFO mi_base_stock odoo.modules.loading: 37 modules loaded in 19.15s, 23816 queries 
+(+23817 extra) 
+2026-09-02 10:31:42,533 2824 INFO mi_base_stock odoo.modules.loading: Modules loaded. 
+2026-09-02 10:31:42,536 2824 INFO mi_base_stock odoo.modules.registry: Registry changed, signaling through the 
+database 
+2026-09-02 10:31:42,536 2824 INFO mi_base_stock odoo.modules.registry: Registry loaded in 26.791s 
+2026-09-02 10:31:42,537 2824 INFO mi_base_stock odoo.service.server: Initiating shutdown 
+2026-09-02 10:31:42,537 2824 INFO mi_base_stock odoo.service.server: Hit CTRL-C again or send a second signal to force 
+the shutdown. 
+2026-09-02 10:31:42,537 2824 INFO mi_base_stock odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 
+1 connections  

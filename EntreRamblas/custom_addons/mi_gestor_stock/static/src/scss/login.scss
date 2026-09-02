@@ -1,0 +1,78 @@
+// ============================================================
+//  Pantalla de inicio de sesion  ·  Entre Ramblas
+//  Bundle: web.assets_frontend (la pagina de login es publica)
+//  Paleta calmada de floristeria: verde, crema y oro suave.
+// ============================================================
+
+$mgs-green:      #2f4a37;   // verde principal (botones)
+$mgs-green-dark: #14351f;   // titulos
+$mgs-sage:       #8a9a7b;   // foco de campos
+$mgs-cream:      #fffef9;   // fondo de la tarjeta
+$mgs-line:       #e3e0d3;   // bordes suaves
+
+// Fondo a pantalla completa (suave, sin brillos)
+body.o_mgs_login_body,
+body.o_mgs_login_body #wrapwrap {
+    background: linear-gradient(160deg, #f2efe6 0%, #e9ede2 55%, #e2e8dc 100%);
+    background-attachment: fixed;
+}
+
+.o_mgs_login_bg {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+}
+
+.o_mgs_login_card {
+    max-width: 400px !important;           // la plantilla trae 300px inline
+    border-radius: 14px !important;
+    background-color: $mgs-cream !important;
+    border: 1px solid $mgs-line;
+    box-shadow: 0 18px 40px rgba(20, 53, 31, 0.14);
+
+    .card-body { padding: 2.25rem 2rem; }
+
+    // Zona del logo: quita la linea inferior y aprieta el espacio
+    .border-bottom {
+        border-bottom: 0 !important;
+        margin-bottom: .25rem !important;
+        padding-bottom: 0 !important;
+    }
+
+    .o_mgs_login_title small { letter-spacing: .04em; }
+
+    label { color: $mgs-green-dark; font-weight: 600; }
+
+    .form-control {
+        border-radius: 9px;
+        border-color: #d8d5c6;
+        padding: .6rem .85rem;
+        &:focus {
+            border-color: $mgs-sage;
+            box-shadow: 0 0 0 .2rem rgba(138, 154, 123, .25);
+        }
+    }
+
+    // Enlaces (Reset Password, etc.)
+    a { color: #6f7d63; }
+    a:hover { color: $mgs-green-dark; }
+
+    .btn-primary {
+        border-radius: 9px;
+        padding: .65rem 1rem;
+        font-weight: 600;
+        letter-spacing: .02em;
+        background-color: $mgs-green;
+        border-color: $mgs-green;
+        &:hover, &:focus {
+            background-color: darken($mgs-green, 6%);
+            border-color: darken($mgs-green, 6%);
+        }
+    }
+
+    .o_mgs_login_foot {
+        color: #9aa48c;
+        border-top: 1px solid $mgs-line;
+        letter-spacing: .06em;
+    }
+}
