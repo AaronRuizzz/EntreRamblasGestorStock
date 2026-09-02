@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Gestor de Stock — única app visible del sistema.
+         4 flujos: Recepción · Stock (Productos/Alertas) · Compra ·
+         Informes (Ventas/Más vendidos).
+         ============================================================ -->
+    <menuitem id="menu_mgs_root" name="Gestor de Stock" sequence="1"
+              web_icon="mi_gestor_stock,static/description/icon.png"/>
+
+    <menuitem id="menu_mgs_reception" name="Recepción" parent="menu_mgs_root"
+              action="action_mgs_reception" sequence="10"/>
+
+    <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="20"/>
+    <menuitem id="menu_mgs_stock_products" name="Productos" parent="menu_mgs_stock"
+              action="action_mgs_products" sequence="10"/>
+    <menuitem id="menu_mgs_stock_alerts" name="Alertas" parent="menu_mgs_stock"
+              action="action_mgs_stock_alerts" sequence="20"/>
+
+    <menuitem id="menu_mgs_pos" name="Compra" parent="menu_mgs_root"
+              action="point_of_sale.action_pos_config_kanban" sequence="30"/>
+
+    <menuitem id="menu_mgs_reports" name="Informes" parent="menu_mgs_root" sequence="40"/>
+    <menuitem id="menu_mgs_reports_sales" name="Ventas y balance" parent="menu_mgs_reports"
+              action="action_mgs_report_sales" sequence="10"/>
+    <menuitem id="menu_mgs_reports_top" name="Productos más vendidos" parent="menu_mgs_reports"
+              action="action_mgs_report_top_products" sequence="20"/>
+</odoo>

@@ -1,1029 +1,175 @@
 // ============================================================
-//  Entre Ramblas · Clavel & Azahar — Gestor de Stock Adaptado
-//  Diseño Formal, Clásico y Sobrio para Gestión Empresarial Adulta
+//  Entre Ramblas · Clavel & Azahar — Gestor de Stock
 //  Bundle: web.assets_backend
+//
+//  Regla de oro: nada de display:none sobre botones, pestañas o
+//  smart buttons por selector global. Lo que sobra se oculta en el
+//  ARCH de la vista (invisible="1"), no aquí. Ámbito acotado siempre
+//  que sea posible; !important solo donde el bundle base de Odoo
+//  gana por especificidad y no hay otra forma razonable de vencerlo.
 // ============================================================
 
-// Paleta clásica sobria (Navy, Slate, Gris Perla y Carbón)
-$formal-dark:         #0f172a; // Pizarra oscura / Navy corporativo
-$formal-primary:      #1e293b; // Azul pizarra sobrio
-$formal-secondary:    #334155; // Pizarra medio
-$formal-action:       #1e3a5f; // Azul marino institucional
-$formal-bg:           #f8fafc; // Fondo perla formal
-$formal-card:         #ffffff; // Blanco puro
-$formal-border:       #cbd5e1; // Borde gris claro formal
-$formal-border-dark:  #94a3b8; // Borde de énfasis
-$formal-text:         #0f172a; // Negro carbón de máxima lectura
-$formal-text-muted:   #475569; // Gris medio formal
-$formal-radius:       6px;     // Esquinas moderadas y rectas
+// ---- 1. Paleta ----------------------------------------------
+$mgs-navy:   #0f172a; // pizarra oscura / navy corporativo
+$mgs-slate:  #1e293b; // azul pizarra sobrio (navbar)
+$mgs-mid:    #334155; // pizarra medio (hover)
+$mgs-blue:   #1e3a5f; // azul marino institucional (acento, botón primario)
+$mgs-bg:     #f8fafc; // fondo perla
+$mgs-card:   #ffffff;
+$mgs-border: #e2e8f0;
+$mgs-border-dark: #cbd5e1;
+$mgs-text:   #0f172a;
+$mgs-muted:  #64748b;
+$mgs-danger: #b91c1c;
+$mgs-radius: 8px;
 
-// Paleta oficial de colores de etiquetas Kanban en Odoo (11 colores estándar)
-$kanban-tag-colors: (
-    1: #ee2d2d,  // Rojo
-    2: #dc8534,  // Naranja
-    3: #e8bb1d,  // Amarillo
-    4: #5794dd,  // Azul claro
-    5: #9f628f,  // Púrpura / Morado
-    6: #db8865,  // Salmón / Coral
-    7: #41a9a2,  // Verde azulado / Teal
-    8: #304be0,  // Azul eléctrico
-    9: #ee2f8a,  // Rosa / Magenta
-    10: #61c36e, // Verde
-    11: #9872e6  // Violeta
-);
-
-// ------------------------------------------------------------
-// 1. SUPRESIÓN COMPLETA DEL CHATTER (Panel Lateral Distractor)
-// ------------------------------------------------------------
-.o-mail-Chatter,
-.o-mail-ChatterContainer,
-.o_Chatter,
-.o_ChatterContainer,
-.o_form_sheet_bg_chatter,
-.o-mail-Form-chatter {
-    display: none !important;
-}
-
-// ------------------------------------------------------------
-// 2. ESTRUCTURA FORMAL DE LA HOJA (CARD CENTRADA Y SOBRIA)
-// ------------------------------------------------------------
-.o_form_view {
-    .o_form_sheet_bg {
-        max-width: 100% !important;
-        background-color: #f1f5f9 !important;
-        padding: 24px 16px !important;
-    }
-
-    .o_form_sheet {
-        max-width: 960px !important;
-        margin: 0 auto !important;
-        padding: 36px 44px !important;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06) !important;
-        border-radius: $formal-radius !important;
-        border: 1px solid #e2e8f0 !important;
-        background-color: $formal-card !important;
-    }
-
-    // Cabecera de estado alineada y sobria
-    header.o_form_statusbar,
-    .o_form_statusbar {
-        max-width: 960px !important;
-        margin: 0 auto 16px auto !important;
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-    }
-}
-
-// ------------------------------------------------------------
-// 3. BARRA SUPERIOR (NAVBAR) AZUL MARINO CORPORATIVO SOBRIO
-// ------------------------------------------------------------
+// ---- 2. Navbar -------------------------------------------------
 .o_main_navbar {
-    --NavBar-entry-backgroundColor: transparent;
-    --NavBar-entry-backgroundColor--hover: rgba(255, 255, 255, 0.1);
-    --NavBar-entry-backgroundColor--active: #334155;
-    --NavBar-entry-color: #e2e8f0;
-    --NavBar-entry-color--active: #ffffff;
-    --NavBar-brand-color: #ffffff;
+    background: linear-gradient(180deg, $mgs-navy 0%, $mgs-slate 100%);
+    border-bottom: 1px solid $mgs-mid;
 
-    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
-    height: 54px !important;
-    font-size: 15px !important;
-    border-bottom: 1px solid #334155 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-    padding: 0 16px !important;
-    display: flex !important;
-    align-items: center !important;
-
-    // Ocultar campana de chat, actividades y selector redundante de empresa
-    .o-mail-MessagingMenu,
-    .o-mail-ActivityMenu,
-    .o_mail_systray_item,
-    .o_switch_company_menu,
-    .o_menu_systray .o-mail-MessagingMenu,
-    .o_menu_systray .o-mail-ActivityMenu,
-    .o_menu_systray .o_mail_systray_item,
-    .o_menu_systray .o_switch_company_menu {
-        display: none !important;
-    }
-
-    // Botón del Lanzador de Apps (9 puntos)
-    .o_navbar_apps_menu {
-        margin-right: 10px !important;
-
-        button.dropdown-toggle,
-        button {
-            border: 1px solid #475569 !important;
-            background: rgba(255, 255, 255, 0.06) !important;
-            border-radius: $formal-radius !important;
-            color: #ffffff !important;
-            padding: 6px 12px !important;
-            min-height: 36px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            transition: all 0.15s ease !important;
-
-            i, .oi {
-                font-size: 17px !important;
-            }
-
-            &:hover {
-                background: rgba(255, 255, 255, 0.15) !important;
-                border-color: #64748b !important;
-            }
-        }
-    }
-
-    // Título de la Aplicación ("Inventario")
     .o_menu_brand {
-        font-size: 16px !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        letter-spacing: 0.3px !important;
-        padding: 6px 12px !important;
-        margin-right: 12px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-
-        &::after {
-            content: "|";
-            margin-left: 14px;
-            color: #475569;
-            font-size: 14px;
-            font-weight: 300;
-        }
+        font-weight: 700;
+        color: #fff;
     }
 
-    // Secciones de Menú ("Información general", "Operaciones", "Productos")
-    .o_menu_sections {
-        display: flex !important;
-        align-items: center !important;
-        gap: 4px !important;
-
-        .o_nav_entry,
-        .dropdown-toggle {
-            font-size: 14px !important;
-            font-weight: 600 !important;
-            color: #cbd5e1 !important;
-            border-radius: $formal-radius !important;
-            padding: 6px 14px !important;
-            min-height: 36px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            border: 1px solid transparent !important;
-            background: transparent !important;
-            transition: all 0.15s ease !important;
-
-            &:hover {
-                background: rgba(255, 255, 255, 0.08) !important;
-                color: #ffffff !important;
-            }
-
-            // Estado activo formal (pizarra sobrio)
-            &.active,
-            &.focus,
-            &[aria-expanded="true"],
-            &:active {
-                background-color: #334155 !important;
-                border: 1px solid #475569 !important;
-                color: #ffffff !important;
-                font-weight: 700 !important;
-            }
-        }
-
-        .dropdown.show .dropdown-toggle {
-            background-color: #334155 !important;
-            border: 1px solid #475569 !important;
-            color: #ffffff !important;
-        }
-    }
-
-    // Avatar de usuario en esquina derecha
-    .o_menu_systray {
-        align-items: center !important;
-
-        .o_user_menu {
-            .dropdown-toggle {
-                border-radius: 50% !important;
-                padding: 2px !important;
-                display: flex !important;
-                align-items: center !important;
-
-                .o_user_avatar {
-                    height: 34px !important;
-                    width: 34px !important;
-                    border-radius: 50% !important;
-                    border: 2px solid #64748b !important;
-                }
-
-                &:hover .o_user_avatar {
-                    border-color: #cbd5e1 !important;
-                }
-            }
-        }
-    }
-}
-
-// Desplegables de navegación
-.o_main_navbar .dropdown-menu {
-    border-radius: $formal-radius !important;
-    border: 1px solid #cbd5e1 !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1) !important;
-    padding: 6px !important;
-    background-color: #ffffff !important;
-
-    .dropdown-item {
-        border-radius: 4px !important;
-        padding: 8px 16px !important;
-        font-size: 14px !important;
-        font-weight: 500 !important;
-        color: #334155 !important;
-
-        &:hover, &:focus {
-            background-color: #f1f5f9 !important;
-            color: #0f172a !important;
-        }
-
-        &.active {
-            background-color: #1e293b !important;
-            color: #ffffff !important;
-        }
-    }
-}
-
-// ------------------------------------------------------------
-// 4. TÍTULO DEL PRODUCTO (ELEGANTE, LIMPIO Y SIN BORDES)
-// ------------------------------------------------------------
-.oe_title {
-    margin-bottom: 24px !important;
-
-    label {
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.8px !important;
-        color: #64748b !important;
-        margin-bottom: 4px !important;
-    }
-
-    h1 {
-        margin: 0 !important;
-
-        input, textarea, .o_field_text {
-            border: none !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            padding: 2px 0 !important;
-            font-size: 28px !important;
-            font-weight: 700 !important;
-            color: $formal-text !important;
-            line-height: 1.2 !important;
-            min-height: auto !important;
-            width: 100% !important;
-
-            &:focus {
-                border-bottom: 2px solid $formal-primary !important;
-                border-radius: 0 !important;
-                box-shadow: none !important;
-                outline: none !important;
-            }
-        }
-    }
-}
-
-// Imagen del producto sobria
-.oe_avatar {
-    border-radius: $formal-radius !important;
-    border: 1px solid #cbd5e1 !important;
-    overflow: hidden !important;
-    background: #f8fafc !important;
-}
-
-// ------------------------------------------------------------
-// 5. CAJA DE STOCK REAL (DISEÑO INSTITUCIONAL SOBRIO)
-// ------------------------------------------------------------
-.o-form-buttonbox,
-.oe_button_box {
-    // Ocultar botones estadísticos secundarios
-    .oe_stat_button:not(:first-child),
-    > button:not(:first-child),
-    > div:not(:first-child) {
-        display: none !important;
-    }
-
-    // Tarjeta sobria de Stock real
-    .oe_stat_button:first-child,
-    > button:first-child {
-        min-width: 170px !important;
-        height: auto !important;
-        background: #f8fafc !important;
-        border: 1.5px solid #cbd5e1 !important;
-        border-radius: $formal-radius !important;
-        padding: 8px 16px !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-        transition: all 0.15s ease !important;
+    .o_menu_sections .o_nav_entry,
+    .o_menu_sections .dropdown-toggle {
+        color: #cbd5e1;
+        font-weight: 600;
+        border-radius: $mgs-radius;
 
         &:hover {
-            background: #f1f5f9 !important;
-            border-color: #94a3b8 !important;
+            background: rgba(255, 255, 255, .08);
+            color: #fff;
         }
+        &.active, &[aria-expanded="true"] {
+            background-color: $mgs-mid;
+            color: #fff;
+        }
+    }
 
-        .o_field_widget.o_stat_info {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-        }
-
-        .o_stat_value {
-            font-size: 24px !important;
-            font-weight: 800 !important;
-            color: $formal-text !important;
-            line-height: 1.1 !important;
-        }
-
-        .o_stat_text {
-            font-size: 12px !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.6px !important;
-            color: #475569 !important;
-            margin-top: 2px !important;
-        }
+    .o_user_avatar {
+        border-radius: 50%;
+        border: 2px solid #64748b;
     }
 }
 
-// ------------------------------------------------------------
-// 6. SISTEMA DE BOTONES CLÁSICO & FORMAL (ADULTO / EMPRESARIAL)
-// ------------------------------------------------------------
-
-.btn {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    border-radius: $formal-radius !important;
-    min-height: 38px !important;
-    padding: 8px 18px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    transition: all 0.15s ease !important;
-    cursor: pointer !important;
+// ---- 3. Hoja de formulario --------------------------------------
+.o_form_view .o_form_sheet_bg {
+    background-color: $mgs-bg;
+}
+.o_form_view .o_form_sheet {
+    max-width: 1100px;
+    margin: 0 auto;
+    border-radius: $mgs-radius;
+    border: 1px solid $mgs-border;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
 }
 
-// Botón Principal ("Nuevo", "Guardar")
-.btn-primary,
+.oe_title h1 input {
+    font-weight: 700;
+    color: $mgs-text;
+}
+
+// ---- 4. Botones (ámbito acotado, nunca `.btn` a secas) -----------
+.o_form_view .o_statusbar_buttons .btn-primary,
 .o_control_panel .btn-primary,
-.o_control_panel .o_form_button_create,
-.o_control_panel .o_list_button_add,
-.o_form_button_save {
-    background-color: $formal-primary !important;
-    border: 1px solid $formal-dark !important;
-    color: #ffffff !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15) !important;
+.btn-primary {
+    background-color: $mgs-blue;
+    border-color: $mgs-navy;
 
-    &:hover {
-        background-color: $formal-secondary !important;
-        border-color: $formal-primary !important;
-        color: #ffffff !important;
-    }
+    &:hover { background-color: $mgs-mid; border-color: $mgs-blue; }
 }
 
-// Botón Secundario ("Descartar", "Cancelar")
-.btn-secondary,
-.o_form_button_cancel {
-    background-color: #ffffff !important;
-    border: 1.5px solid #cbd5e1 !important;
-    color: #334155 !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-
-    &:hover {
-        background-color: #f1f5f9 !important;
-        border-color: #94a3b8 !important;
-        color: #0f172a !important;
-    }
-}
-
-// Botón de Acción ("Actualizar la cantidad")
-.o_form_view .o_statusbar_buttons > button:first-child,
-.o_form_view header button:first-child,
-button[name="action_update_quantity_on_hand"] {
-    background-color: $formal-action !important;
-    border: 1px solid #172554 !important;
-    color: #ffffff !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    border-radius: $formal-radius !important;
-    padding: 8px 18px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-
-    &:hover {
-        background-color: #172554 !important;
-        color: #ffffff !important;
-    }
-}
-
-// Ocultar botones secundarios de cabecera no deseados
-.o_form_view .o_statusbar_buttons > button:not(:first-child),
-.o_form_view header button:not(:first-child) {
-    display: none !important;
-}
-
-// Botones de las tarjetas de operaciones ("Abierto")
-button[name="get_action_picking_tree_ready"],
-.o_kanban_record .btn.btn-primary,
-.o_kanban_renderer .oe_kanban_action_button,
-.o_kanban_renderer .o_kanban_card .btn-primary {
-    background-color: $formal-primary !important;
-    border: 1px solid $formal-dark !important;
-    color: #ffffff !important;
-    border-radius: $formal-radius !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    padding: 6px 14px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-
-    &:hover {
-        background-color: $formal-secondary !important;
-        color: #ffffff !important;
-    }
-}
-
-// Paginación (< y >)
-.o_pager {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-
-    button {
-        min-height: 34px !important;
-        min-width: 34px !important;
-        padding: 4px 10px !important;
-        border-radius: $formal-radius !important;
-        border: 1px solid #cbd5e1 !important;
-        background-color: #ffffff !important;
-        font-size: 14px !important;
-        font-weight: 700 !important;
-        color: #334155 !important;
-
-        &:hover:not(:disabled) {
-            background-color: #f1f5f9 !important;
-            border-color: #94a3b8 !important;
-            color: #0f172a !important;
-        }
-    }
-}
-
-// ------------------------------------------------------------
-// 7. FORMULARIO: CAMPOS LIMPIOS, SOBRIOS Y DE FONDO BLANCO
-// ------------------------------------------------------------
-
-// Separadores de grupo
-.o_inner_group {
-    width: 100% !important;
-
-    .o_cell {
-        min-width: 0 !important;
-        width: 100% !important;
-    }
-
-    .o_horizontal_separator {
-        font-size: 15px !important;
-        font-weight: 700 !important;
-        color: $formal-text !important;
-        border-bottom: 1.5px solid #e2e8f0 !important;
-        padding-bottom: 6px !important;
-        margin-top: 10px !important;
-        margin-bottom: 18px !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-    }
-}
-
-// Etiquetas de campo perfectamente alineadas
-.o_inner_group .o_wrap_label {
-    display: flex !important;
-    align-items: center !important;
-    min-height: 42px !important;
-    padding-right: 14px !important;
-
-    label.o_form_label {
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        color: #334155 !important;
-        margin: 0 !important;
-    }
-}
-
-// Contenedor de widget alineado y responsivo al 100%
-.o_inner_group .o_field_widget {
-    display: flex !important;
-    align-items: center !important;
-    min-height: 42px !important;
-    width: 100% !important;
-    min-width: 0 !important;
-}
-
-// Entradas de texto y selectores: fondo blanco limpio, adaptables y responsive
-.o_field_widget {
-    width: 100% !important;
-    min-width: 0 !important;
-
-    input.o_input,
-    select.o_input {
-        border: 1.5px solid $formal-border !important;
-        border-radius: $formal-radius !important;
-        padding: 7px 12px !important;
-        font-size: 14px !important;
-        min-height: 38px !important;
-        background-color: #ffffff !important;
-        color: $formal-text !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        box-shadow: none !important;
-
-        &:focus {
-            border-color: $formal-primary !important;
-            box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
-            outline: none !important;
-        }
-    }
-
-    // Selectores y desplegables (Many2One, Autocomplete, comboboxes):
-    // Se adaptan automáticamente al ancho disponible y permiten lectura completa sin recortes
-    .o_field_many2one,
-    .o_field_many2one_selection {
-        display: flex !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        align-items: center !important;
-        gap: 6px !important;
-        background: transparent !important;
-        border: none !important;
-
-        .o-autocomplete {
-            flex: 1 1 auto !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            position: relative !important;
-
-            input.o-autocomplete--input {
-                border: 1.5px solid $formal-border !important;
-                border-radius: $formal-radius !important;
-                padding: 7px 12px !important;
-                padding-right: 28px !important;
-                font-size: 14px !important;
-                min-height: 38px !important;
-                background-color: #ffffff !important;
-                color: $formal-text !important;
-                width: 100% !important;
-                min-width: 0 !important;
-                text-overflow: ellipsis;
-
-                &:focus {
-                    border-color: $formal-primary !important;
-                    box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
-                }
-            }
-
-            // Desplegable flotante de opciones (responsive y sin cortes)
-            .o-autocomplete--dropdown-menu {
-                min-width: 100% !important;
-                width: max-content !important;
-                max-width: 520px !important;
-                border-radius: $formal-radius !important;
-                border: 1px solid #cbd5e1 !important;
-                box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18) !important;
-                z-index: 1050 !important;
-
-                li,
-                .dropdown-item,
-                .ui-menu-item a {
-                    padding: 8px 14px !important;
-                    font-size: 14px !important;
-                    white-space: normal !important;
-                    word-break: break-word !important;
-                }
-            }
-        }
-
-        .o_external_button {
-            flex: 0 0 auto !important;
-            color: $formal-action !important;
-            font-size: 14px !important;
-        }
-    }
-}
-
-// Adaptabilidad de la tarjeta del formulario (sheet) y columnas
-.o_form_view {
-    .o_form_sheet {
-        max-width: 1160px !important;
-        width: 100% !important;
-    }
-
-    .o_group {
-        width: 100% !important;
-
-        > .o_inner_group {
-            min-width: 280px !important;
-        }
-    }
-}
-
-// Responsive para móviles y tablets
-@media (max-width: 991.98px) {
-    .o_form_view .o_group.row {
-        flex-direction: column !important;
-
-        > .o_inner_group {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin-bottom: 16px !important;
-        }
-    }
-}
-
-@media (max-width: 575.98px) {
-    .o_inner_group {
-        grid-template-columns: 1fr !important;
-        gap: 6px !important;
-
-        .o_wrap_label {
-            min-height: auto !important;
-            padding-right: 0 !important;
-            padding-bottom: 2px !important;
-        }
-    }
-}
-
-// Campo Precio de Venta: sobrio, fondo blanco, número nítido en negro carbón
-.o_field_monetary {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-
-    input.o_input {
-        font-size: 18px !important;
-        font-weight: 700 !important;
-        color: $formal-text !important;
-        background-color: #ffffff !important;
-        border: 1.5px solid $formal-border !important;
-        border-radius: $formal-radius !important;
-        padding: 6px 12px !important;
-        max-width: 150px !important;
-
-        &:focus {
-            border-color: $formal-primary !important;
-            box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
-        }
-    }
-
-    span {
-        font-size: 16px !important;
-        font-weight: 600 !important;
-        color: #475569 !important;
-    }
-}
-
-// Campo Código de Barras: fondo blanco clásico, sin colores chillones
-.o_field_widget[name="barcode"] input.o_input {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.5px !important;
-    color: $formal-text !important;
-    background-color: #ffffff !important;
-    border: 1.5px solid $formal-border !important;
-    border-radius: $formal-radius !important;
-    padding: 7px 12px !important;
-
-    &:focus {
-        border-color: $formal-primary !important;
-        box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.12) !important;
-    }
-}
-
-// ------------------------------------------------------------
-// 8. PESTAÑAS (NOTEBOOK) OCULTAS PARA SIMPLICIDAD
-// ------------------------------------------------------------
-.o_notebook {
-    margin-top: 10px !important;
-
-    .o_notebook_headers {
-        display: none !important;
-    }
-
-    .tab-content {
-        border: none !important;
-        padding: 0 !important;
-    }
-}
-
-// ============================================================
-// 9. PANTALLA DE INICIO — "Resumen de inventario"
-// ------------------------------------------------------------
-// Es lo primero que se ve al entrar (ver data/ux_defaults.xml).
-// De serie Odoo pinta tarjetas enormes con una grafica de barras
-// vacia; aqui se reestructura como un panel compacto en rejilla.
-// DOM real: .o_stock_dashboard_kanban_view > .o_content >
-//   .o_kanban_renderer > article.o_kanban_record
-//     > div[name=stock_picking] > a.oe_kanban_action > span.fs-4
-//                               > .row > .col-6 > button.btn-primary
-//                               > div[name=kanban_dashboard_graph]
-// ============================================================
-
-.o_stock_dashboard_kanban_view {
-
-    .o_content {
-        background-color: $formal-bg !important;
-        padding: 20px !important;
-    }
-
-    // ---- Rejilla ordenada en lugar del flex-wrap desigual ----
-    // `auto-fit` + tope de 340px: las tarjetas quedan del mismo tamano
-    // y alineadas a la izquierda, sin estirarse a media pantalla.
-    .o_kanban_renderer.o_kanban_ungrouped {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 340px)) !important;
-        gap: 16px !important;
-        align-content: start !important;
-        justify-content: start !important;
-        padding: 0 !important;
-    }
-
-    // ---- Tarjeta ----
-    article.o_kanban_record {
-        // anula el dimensionado flex de Odoo (tarjetas de anchos dispares)
-        flex: none !important;
-        width: auto !important;
-        min-width: 0 !important;
-        max-width: none !important;
-        margin: 0 !important;
-
-        position: relative;
-        display: block !important;
-        min-height: 0 !important;
-        padding: 18px 18px 16px !important;
-        background: $formal-card !important;
-        border: 1px solid #e2e8f0 !important;
-        border-left: 4px solid $formal-action !important;
-        border-radius: $formal-radius !important;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
-        transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease !important;
-
-        // Ocultar SIEMPRE el pseudo-elemento ::after nativo de Odoo.
-        // Odoo añade en ::after una banda coloreada superpuesta que, al convivir
-        // con nuestro border-left, creaba un doble borde feo ("color encima").
-        &::after {
-            display: none !important;
-        }
-
-        &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .22) !important;
-            border-color: #cbd5e1 !important;
-            border-left-color: $formal-dark !important;
-        }
-
-        // Sin color asignado explícito (índice 0 o sin color)
-        &.o_kanban_color_0,
-        &.oe_kanban_color_0 {
-            border-left-color: $formal-action !important;
-            &:hover {
-                border-left-color: $formal-dark !important;
-            }
-        }
-
-        // Cambio limpio y nítido de color de etiqueta:
-        // El color seleccionado en la tarjeta sustituye directamente al borde izquierdo,
-        // con esquinas redondeadas naturales y sin ninguna capa extra superpuesta.
-        @each $idx, $col in $kanban-tag-colors {
-            &.o_kanban_color_#{$idx},
-            &.oe_kanban_color_#{$idx} {
-                border-left-color: $col !important;
-
-                &:hover {
-                    border-left-color: darken($col, 8%) !important;
-                }
-            }
-        }
-
-        > div[name="stock_picking"] { padding: 0 !important; }
-
-        // Titulo ("Recepciones", "Ordenes de entrega"...)
-        a.oe_kanban_action span.fs-4 {
-            font-size: 17px !important;
-            font-weight: 700 !important;
-            color: $formal-text !important;
-            letter-spacing: .2px;
-        }
-        a.oe_kanban_action:hover span.fs-4 { color: $formal-action !important; }
-
-        // La fila del boton: la columna de la derecha viene vacia,
-        // asi que el boton ocupa el ancho completo.
-        .row {
-            margin: 14px 0 0 !important;
-            > .col-6 { flex: 0 0 100% !important; max-width: 100% !important; padding: 0 !important; }
-            > .col-6.stock-overview-links:empty { display: none !important; }
-        }
-
-        button.btn-primary {
-            width: 100% !important;
-            justify-content: center !important;
-        }
-
-        // Grafica de barras del panel: sin datos reales solo aporta
-        // ruido gris. Para recuperarla, borra este bloque.
-        div[name="kanban_dashboard_graph"] { display: none !important; }
-
-        // Menu "..." de la esquina, mas discreto
-        .o_dropdown_kanban .btn {
-            color: #94a3b8 !important;
-            &:hover { color: $formal-text !important; }
-        }
-    }
-}
-
-// ============================================================
-// 10. BARRA DE CONTROL (titulo + buscador + paginador)
-// ============================================================
+// ---- 5. Barra de control (título + buscador) ---------------------
 .o_control_panel {
-    background-color: $formal-card !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    padding: 10px 20px 12px !important;
+    background-color: $mgs-card;
+    border-bottom: 1px solid $mgs-border;
 
     .o_breadcrumb .o_last_breadcrumb_item {
-        font-size: 20px !important;
-        font-weight: 700 !important;
-        color: $formal-text !important;
+        font-weight: 700;
+        color: $mgs-text;
     }
-
-    // El buscador se estiraba a lo ancho de la pantalla
-    .o_cp_searchview { max-width: 520px !important; }
-
-    .o_searchview {
-        border: 1.5px solid $formal-border !important;
-        border-radius: $formal-radius !important;
-        background: #fff !important;
-        padding: 3px 8px !important;
-        &:focus-within {
-            border-color: $formal-primary !important;
-            box-shadow: 0 0 0 2px rgba(30, 41, 59, .12) !important;
-        }
+    .o_searchview:focus-within {
+        border-color: $mgs-blue;
+        box-shadow: 0 0 0 2px rgba(30, 58, 95, .12);
     }
-    .o_searchview_icon { color: #94a3b8 !important; }
-
-    // IMPORTANTE: dentro del buscador hay varios `.btn` (la lupa, la
-    // etiqueta de la faceta y la "x" de quitar). La regla global de §6
-    // (`.btn { min-height:38px; padding:8px 18px }`) los inflaba y por eso
-    // las etiquetas salian como ladrillos enormes. Aqui se deshace.
-    .o_searchview .btn,
-    .o_searchview button {
-        min-height: 0 !important;
-        padding: 0 !important;
-        gap: 0 !important;
-        font-size: 12px !important;
-        border-radius: 0 !important;
+    .o_searchview_facet_label {
+        background-color: $mgs-blue;
     }
-
-    .o_searchview_input {
-        min-height: 26px !important;
-        font-size: 13px !important;
-        padding: 0 4px !important;
-    }
-
-    // --- Facetas (los "chips" de filtro) ---
-    .o_searchview_facet {
-        max-width: 100% !important;
-        border-radius: 4px !important;
-        overflow: hidden !important;
-        background-color: #e2e8f0 !important;
-        line-height: 1.5 !important;
-
-        // Lado izquierdo: icono del tipo de filtro, en azul marino
-        .o_searchview_facet_label {
-            background-color: $formal-primary !important;
-            color: #fff !important;
-            padding: 0 6px !important;
-            border-radius: 4px 0 0 4px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            i { font-size: 11px !important; }
-        }
-
-        // Lado derecho: el valor. Antes tambien iba en azul marino y la
-        // faceta entera quedaba como un bloque negro ilegible.
-        .o_facet_values {
-            background-color: #e2e8f0 !important;
-            color: $formal-text !important;
-            padding: 1px 2px 1px 7px !important;
-            border-radius: 0 4px 4px 0 !important;
-            gap: 2px !important;
-        }
-
-        .o_facet_value {
-            font-size: 12px !important;
-            font-weight: 600 !important;
-            color: $formal-text !important;
-            max-width: 240px !important;
-        }
-
-        // La "x": pequena y discreta, no un boton de 52px
-        .o_facet_remove {
-            color: #94a3b8 !important;
-            font-size: 11px !important;
-            padding: 0 5px !important;
-            align-self: stretch !important;  // zona de click de alto completo
-            &:hover { color: #b91c1c !important; }
-        }
-    }
-
-    .o_pager_counter { font-size: 13px !important; color: $formal-text-muted !important; }
 }
 
-// ============================================================
-// 11. VISTA DE LISTA (Productos, albaranes...)
-// ============================================================
+// ---- 6. Listas -----------------------------------------------------
 .o_list_view {
     thead th {
-        background-color: #f1f5f9 !important;
-        color: $formal-text-muted !important;
-        font-size: 12px !important;
-        font-weight: 700 !important;
-        text-transform: uppercase !important;
-        letter-spacing: .5px !important;
-        border-bottom: 1.5px solid $formal-border !important;
-        padding: 10px 12px !important;
+        background-color: #f1f5f9;
+        color: $mgs-muted;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        font-size: 12px;
     }
-
-    tbody tr.o_data_row {
-        border-bottom: 1px solid #eef2f7 !important;
-        > td { padding: 10px 12px !important; font-size: 14px !important; }
-        &:hover > td { background-color: #f1f5f9 !important; }
+    tbody tr.o_data_row:hover > td {
+        background-color: #f1f5f9;
     }
-}
-
-// Estado vacio ("No hay nada por aqui"): centrado y sobrio
-.o_view_nocontent {
-    .o_nocontent_help {
-        color: $formal-text-muted !important;
-        max-width: 520px !important;
-        margin: 40px auto !important;
-        text-align: center !important;
+    // Filas de producto bajo mínimo (decoration-danger en la vista):
+    // un fondo tenue además del texto rojo nativo de Bootstrap, para
+    // que la alerta se distinga de un vistazo en la lista de Stock.
+    tbody tr.text-danger > td {
+        background-color: #fef2f2;
     }
 }
 
-// ============================================================
-// 12. TARJETAS KANBAN NORMALES (Productos, contactos...)
-//     Mismo lenguaje visual que el panel de inicio.
-// ============================================================
-.o_kanban_view:not(.o_stock_dashboard_kanban_view) {
+// ---- 7. Kanban de productos ----------------------------------------
+.o_kanban_view article.o_kanban_record {
+    border: 1px solid $mgs-border;
+    border-radius: $mgs-radius;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    transition: box-shadow .15s ease, transform .15s ease;
 
-    .o_content { background-color: $formal-bg !important; padding: 16px !important; }
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .2);
+        border-color: $mgs-border-dark;
+    }
+}
 
-    .o_kanban_renderer.o_kanban_ungrouped {
-        gap: 12px !important;
-        padding: 0 !important;
+// ---- 8. Pantalla de Recepción ---------------------------------------
+.mgs-scan-box {
+    margin-bottom: 20px;
+
+    .mgs-scan-input input {
+        font-size: 22px;
+        font-weight: 600;
+        padding: 14px 16px;
+        border: 2px solid $mgs-blue;
+        border-radius: $mgs-radius;
+
+        &:focus {
+            border-color: $mgs-navy;
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, .15);
+        }
     }
 
-    article.o_kanban_record {
-        margin: 0 !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: $formal-radius !important;
-        background: $formal-card !important;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
-        transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease !important;
-
-        // Ocultar ::after nativo superpuesto
-        &::after {
-            display: none !important;
-        }
-
-        &:hover {
-            transform: translateY(-2px);
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .2) !important;
-        }
-
-        // Color limpio en kanban general si la tarjeta tiene color asignado
-        @each $idx, $col in $kanban-tag-colors {
-            &.o_kanban_color_#{$idx},
-            &.oe_kanban_color_#{$idx} {
-                border-left: 4px solid $col !important;
-
-                &:hover {
-                    border-left-color: darken($col, 8%) !important;
-                }
-            }
-        }
+    .mgs-scan-feedback {
+        display: block;
+        margin-top: 8px;
+        padding: 8px 12px;
+        border-radius: $mgs-radius;
+        background-color: #eff6ff;
+        color: $mgs-blue;
+        font-weight: 600;
     }
+}
+
+// ---- 9. Systray: reloj de actividades (contador de alertas nativo) --
+// No se oculta mail.activity_menu (ver static/src/js/title.js): es el
+// contador que avisa de los productos bajo mínimo (ver models/product_template
+// _mgs_cron_stock_alerts). El icono del reloj es un <button> sin clase propia
+// dentro de .o_menu_systray (la clase o-mail-ActivityMenu va en el panel
+// desplegable, no en el botón), así que el selector va sobre el contenedor.
+.o_main_navbar .o_menu_systray button {
+    color: #cbd5e1;
+    &:hover { color: #fff; }
 }

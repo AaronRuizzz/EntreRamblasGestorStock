@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mgs_reception_form" model="ir.ui.view">
+        <field name="name">mgs.reception.form</field>
+        <field name="model">mgs.reception</field>
+        <field name="arch" type="xml">
+            <form string="Recepción">
+                <!-- Engancha el lector: barcodes.barcode_events_mixin recibe
+                     aquí cualquier escaneo hecho en toda la pantalla, tenga
+                     o no el foco puesto en un campo. No marcar invisible. -->
+                <field name="_barcode_scanned" widget="barcode_handler"/>
+                <header>
+                    <button name="action_confirm" string="Guardar en almacén" type="object"
+                            class="btn-primary" invisible="not line_ids"/>
+                    <button name="action_clear" string="Vaciar" type="object"
+                            invisible="not line_ids"/>
+                </header>
+                <sheet>
+                    <div class="mgs-scan-box">
+                        <field name="manual_barcode" nolabel="1" class="mgs-scan-input"
+                               placeholder="Escanea el código de barras o tecléalo…"/>
+                        <field name="scan_message" readonly="1" nolabel="1"
+                               class="mgs-scan-feedback" invisible="not scan_message"/>
+                    </div>
+
+                    <group string="Producto nuevo" invisible="not unknown_barcode">
+                        <field name="unknown_barcode" string="Código escaneado" readonly="1"/>
+                        <field name="pending_name" placeholder="Nombre del producto"/>
+                        <field name="pending_price"/>
+                        <button name="action_create_missing_product" string="Crear producto"
+                                type="object" class="btn-primary"/>
+                        <button name="action_discard_pending" string="Descartar" type="object"/>
+                    </group>
+
+                    <field name="line_ids">
+                        <list editable="bottom">
+                            <field name="product_id" readonly="1"/>
+                            <field name="barcode" readonly="1" optional="show"/>
+                            <field name="qty_available" readonly="1" string="Stock actual"/>
+                            <field name="quantity"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mgs_reception" model="ir.actions.act_window">
+        <field name="name">Recepción</field>
+        <field name="res_model">mgs.reception</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_mgs_reception_form"/>
+        <field name="target">current</field>
+    </record>
+</odoo>
