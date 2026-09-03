@@ -1,3 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_mgs_reception_user,mgs.reception user,model_mgs_reception,base.group_user,1,1,1,1
 access_mgs_reception_line_user,mgs.reception.line user,model_mgs_reception_line,base.group_user,1,1,1,1
+access_mgs_stock_alert_user,mgs.stock.alert user,model_mgs_stock_alert,base.group_user,1,1,1,1
+access_mgs_stock_alert_notice_user,mgs.stock.alert.notice user,model_mgs_stock_alert_notice,base.group_user,1,1,1,1
+access_mgs_monthly_report_user,mgs.monthly.report user,model_mgs_monthly_report,base.group_user,1,1,1,1

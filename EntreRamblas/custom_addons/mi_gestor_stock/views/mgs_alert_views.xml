@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Se define antes que la lista: el botón de cabecera la referencia con
+         %(action_mgs_alert_new)d, que se resuelve al cargar el XML. -->
+    <record id="action_mgs_alert_new" model="ir.actions.act_window">
+        <field name="name">Nuevo aviso de stock</field>
+        <field name="res_model">mgs.stock.alert</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_mgs_alert_list" model="ir.ui.view">
+        <field name="name">mgs.stock.alert.list</field>
+        <field name="model">mgs.stock.alert</field>
+        <field name="arch" type="xml">
+            <!-- create="false" + botón propio en la cabecera: el "Nuevo" genérico
+                 de Odoo no dice QUÉ se crea. Este dice "Nuevo aviso de stock" y
+                 abre un diálogo con los campos, que además cambian según el tipo
+                 de aviso (por eso tampoco es una lista editable en línea). -->
+            <list string="Avisos" create="false" decoration-danger="is_triggered">
+                <header>
+                    <button name="%(action_mgs_alert_new)d" type="action"
+                            string="Nuevo aviso de stock" display="always"
+                            class="btn-primary"/>
+                </header>
+                <field name="product_id" options="{'no_create': True}"/>
+                <field name="alert_type" string="Tipo"/>
+                <field name="min_qty" string="Avisar con"/>
+                <field name="interval_type" string="Frecuencia" optional="show"/>
+                <field name="qty_available" string="Stock actual"/>
+                <field name="is_triggered" string="Saltando ahora"/>
+                <field name="active" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mgs_alert_form" model="ir.ui.view">
+        <field name="name">mgs.stock.alert.form</field>
+        <field name="model">mgs.stock.alert</field>
+        <field name="arch" type="xml">
+            <form string="Aviso de stock">
+                <sheet>
+                    <group>
+                        <group string="Producto">
+                            <field name="product_id" options="{'no_create': True}"/>
+                            <field name="qty_available" readonly="1"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Cuándo avisar">
+                            <field name="alert_type" widget="radio"/>
+                            <field name="min_qty" invisible="alert_type != 'threshold'"/>
+                            <field name="interval_type" invisible="alert_type != 'periodic'"/>
+                            <field name="interval_number"
+                                   invisible="alert_type != 'periodic' or interval_type != 'days'"/>
+                            <field name="last_run" invisible="alert_type != 'periodic'"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not is_triggered">
+                        Este aviso está saltando ahora mismo.
+                        <field name="is_triggered" invisible="1"/>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mgs_alert_search" model="ir.ui.view">
+        <field name="name">mgs.stock.alert.search</field>
+        <field name="model">mgs.stock.alert</field>
+        <field name="arch" type="xml">
+            <search string="Avisos">
+                <field name="product_id"/>
+                <filter string="Por cantidad" name="threshold"
+                        domain="[('alert_type','=','threshold')]"/>
+                <filter string="Periódicos" name="periodic"
+                        domain="[('alert_type','=','periodic')]"/>
+                <separator/>
+                <filter string="Archivados" name="inactive" domain="[('active','=',False)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Producto" name="group_product"
+                            context="{'group_by':'product_id'}"/>
+                    <filter string="Tipo" name="group_type"
+                            context="{'group_by':'alert_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mgs_alerts" model="ir.actions.act_window">
+        <field name="name">Alertas</field>
+        <field name="res_model">mgs.stock.alert</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mgs_alert_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Configura tu primer aviso</p>
+            <p>
+                Elige un producto y decide cuándo quieres que te avise: cuando baje de
+                una cantidad (por ejemplo, «rosas: avísame con 10 o menos») o cada
+                cierto tiempo (por ejemplo, «cuánto clavel tengo, cada mes»).
+                Los avisos aparecen en el panel de Stock.
+            </p>
+        </field>
+    </record>
+</odoo>

@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Aviso diario de stock bajo mínimo. Deja una actividad ("Stock bajo
-         mínimo") en cada producto afectado; el reloj de actividades de la
-         barra superior (mail.activity_menu, nativo) muestra el contador. -->
+    <!-- Genera los avisos PERIÓDICOS configurados en Stock > Alertas
+         ("avísame cada semana / cada mes / cada X días cuánto stock tengo").
+         Los avisos por cantidad NO pasan por aquí: se calculan en vivo al
+         abrir el panel, así desaparecen solos al reponer el producto. -->
     <record id="ir_cron_mgs_stock_alerts" model="ir.cron">
-        <field name="name">Gestor de stock: avisos de stock mínimo</field>
-        <field name="model_id" ref="product.model_product_template"/>
+        <field name="name">Gestor de stock: avisos periódicos de stock</field>
+        <field name="model_id" ref="model_mgs_stock_alert"/>
         <field name="state">code</field>
-        <field name="code">model._mgs_cron_stock_alerts()</field>
-        <field name="interval_number">1</field>
-        <field name="interval_type">days</field>
+        <field name="code">model._mgs_cron_run_alerts()</field>
+        <field name="interval_number">6</field>
+        <field name="interval_type">hours</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="active" eval="True"/>
     </record>

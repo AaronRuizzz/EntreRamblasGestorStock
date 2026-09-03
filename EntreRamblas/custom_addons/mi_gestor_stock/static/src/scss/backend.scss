@@ -28,30 +28,100 @@ $mgs-radius: 8px;
     background: linear-gradient(180deg, $mgs-navy 0%, $mgs-slate 100%);
     border-bottom: 1px solid $mgs-mid;
 
+    // Nombre de la app, separado del grupo de secciones por un filete sutil
+    // para que se lea como "marca" y no como una pestaña más.
     .o_menu_brand {
+        position: relative;
         font-weight: 700;
+        font-size: 15px;
+        letter-spacing: .2px;
         color: #fff;
+        padding-right: 18px;
+        margin-right: 10px;
+
+        &::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1px;
+            height: 22px;
+            background: rgba(255, 255, 255, .18);
+        }
     }
 
-    .o_menu_sections .o_nav_entry,
-    .o_menu_sections .dropdown-toggle {
-        color: #cbd5e1;
-        font-weight: 600;
-        border-radius: $mgs-radius;
+    // Las secciones (Recepción · Stock · Informes) como un grupo de pestañas
+    // uniformes: una hoja suelta y un desplegable deben verse IGUAL.
+    .o_menu_sections {
+        gap: 6px;
+        align-items: center;
 
-        &:hover {
-            background: rgba(255, 255, 255, .08);
-            color: #fff;
-        }
-        &.active, &[aria-expanded="true"] {
-            background-color: $mgs-mid;
-            color: #fff;
+        .o_nav_entry,
+        .dropdown-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 34px;
+            padding: 0 14px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+            white-space: nowrap;
+            transition: background-color .12s ease, color .12s ease;
+
+            &:hover,
+            &:focus {
+                background: rgba(255, 255, 255, .12);
+                color: #fff;
+            }
+
+            // Sección abierta o activa: pastilla sólida, bien legible.
+            &.active,
+            &[aria-expanded="true"] {
+                background: rgba(255, 255, 255, .18);
+                color: #fff;
+            }
         }
     }
 
     .o_user_avatar {
         border-radius: 50%;
         border: 2px solid #64748b;
+    }
+}
+
+// Desplegables de las secciones: mismo lenguaje que el resto de la app.
+.o_main_navbar .dropdown-menu {
+    border: 1px solid $mgs-border;
+    border-radius: $mgs-radius;
+    box-shadow: 0 10px 28px -10px rgba(15, 23, 42, .35);
+    padding: 6px;
+    margin-top: 6px;
+
+    .dropdown-item {
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-weight: 500;
+        color: $mgs-text;
+
+        &:hover,
+        &:focus {
+            background-color: #f1f5f9;
+        }
+    }
+}
+
+// ---- 2bis. Formularios de trabajo (js_class="mgs_clean_form") ---------
+// Pantallas de flujo, no fichas: los botones genéricos de Odoo (guardar en
+// forma de nube, descartar, rueda de ajustes) no aportan nada y confunden,
+// porque la acción de verdad está en los botones de la cabecera. El ámbito
+// es SOLO estas pantallas — nunca un `display:none` global.
+.o_mgs_clean_form {
+    .o_form_status_indicator,
+    .o_cp_action_menus {
+        display: none;
     }
 }
 
@@ -136,39 +206,342 @@ $mgs-radius: 8px;
 }
 
 // ---- 8. Pantalla de Recepción ---------------------------------------
-.mgs-scan-box {
-    margin-bottom: 20px;
+.mgs-mode-switch {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid $mgs-border;
 
-    .mgs-scan-input input {
-        font-size: 22px;
-        font-weight: 600;
-        padding: 14px 16px;
-        border: 2px solid $mgs-blue;
-        border-radius: $mgs-radius;
-
-        &:focus {
-            border-color: $mgs-navy;
-            box-shadow: 0 0 0 3px rgba(30, 58, 95, .15);
-        }
-    }
-
-    .mgs-scan-feedback {
-        display: block;
-        margin-top: 8px;
-        padding: 8px 12px;
-        border-radius: $mgs-radius;
-        background-color: #eff6ff;
-        color: $mgs-blue;
+    .o_radio_item {
+        margin-right: 24px;
+        font-size: 15px;
         font-weight: 600;
     }
 }
 
-// ---- 9. Systray: reloj de actividades (contador de alertas nativo) --
-// No se oculta mail.activity_menu (ver static/src/js/title.js): es el
-// contador que avisa de los productos bajo mínimo (ver models/product_template
-// _mgs_cron_stock_alerts). El icono del reloj es un <button> sin clase propia
-// dentro de .o_menu_systray (la clase o-mail-ActivityMenu va en el panel
-// desplegable, no en el botón), así que el selector va sobre el contenedor.
+.mgs-scan-box {
+    margin-bottom: 20px;
+
+    .mgs-scan-hint {
+        margin-top: 8px;
+        color: $mgs-muted;
+        font-size: 13px;
+    }
+}
+
+// El campo de escaneo, tanto en modo existente como en el alta de nuevo.
+.mgs-scan-input input {
+    font-size: 22px;
+    font-weight: 600;
+    padding: 14px 16px;
+    border: 2px solid $mgs-blue;
+    border-radius: $mgs-radius;
+
+    &:focus {
+        border-color: $mgs-navy;
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, .15);
+    }
+}
+
+.mgs-scan-feedback {
+    display: block;
+    margin: 12px 0;
+    padding: 8px 12px;
+    border-radius: $mgs-radius;
+    background-color: #eff6ff;
+    color: $mgs-blue;
+    font-weight: 600;
+}
+
+.mgs-new-box {
+    margin-bottom: 20px;
+
+    .mgs-new-actions {
+        margin-top: 8px;
+    }
+}
+
+// ---- 8bis. Página de inicio (componente OWL propio) -------------------
+.mgs-home {
+    height: 100%;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: linear-gradient(160deg, #eef2f7 0%, #e2e8f0 100%);
+
+    .mgs-home-card {
+        width: 100%;
+        max-width: 620px;
+        background: $mgs-card;
+        border: 1px solid $mgs-border;
+        border-top: 4px solid $mgs-blue;
+        border-radius: 14px;
+        box-shadow: 0 18px 40px -22px rgba(15, 23, 42, .45);
+        padding: 40px 36px 34px;
+        text-align: center;
+    }
+
+    .mgs-home-logo {
+        width: 58%;
+        max-width: 210px;   // el compilador SASS de Odoo rechaza min(); ancho + tope
+        height: auto;
+        margin-bottom: 18px;
+    }
+
+    .mgs-home-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: $mgs-navy;
+        margin: 0;
+    }
+
+    .mgs-home-sub {
+        color: $mgs-muted;
+        font-size: 14px;
+        margin: 4px 0 26px;
+    }
+
+    // Aviso discreto, solo si hay algo pendiente
+    .mgs-home-alerts {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 24px;
+        padding: 9px 16px;
+        border-radius: 999px;
+        background: #fef2f2;
+        color: $mgs-danger;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover { background: #fee2e2; }
+    }
+
+    .mgs-home-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+
+        @media (max-width: 575.98px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .mgs-home-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 22px 12px;
+        border: 1px solid $mgs-border;
+        border-radius: 10px;
+        background: #f8fafc;
+        color: $mgs-text;
+        transition: background-color .12s ease, border-color .12s ease,
+                    transform .12s ease, box-shadow .12s ease;
+
+        i {
+            font-size: 26px;
+            color: $mgs-blue;
+            margin-bottom: 4px;
+        }
+
+        .mgs-home-tile-name { font-weight: 700; font-size: 15px; }
+        .mgs-home-tile-hint { font-size: 12px; color: $mgs-muted; }
+
+        &:hover {
+            background: #fff;
+            border-color: $mgs-blue;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px -14px rgba(15, 23, 42, .45);
+        }
+    }
+}
+
+// ---- 9. Panel de Stock (componente OWL propio) -----------------------
+.mgs-dashboard {
+    padding: 24px 28px 40px;
+    background-color: $mgs-bg;
+    height: 100%;
+    overflow: auto;
+
+    .mgs-dash-loading {
+        color: $mgs-muted;
+        padding: 40px;
+        text-align: center;
+    }
+
+    .mgs-dash-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .mgs-dash-heading {
+        font-size: 26px;
+        font-weight: 700;
+        color: $mgs-text;
+        margin: 0;
+    }
+
+    .mgs-dash-head-actions .btn {
+        margin-left: 8px;
+    }
+
+    .mgs-dash-section {
+        margin-bottom: 28px;
+    }
+
+    .mgs-dash-title {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .6px;
+        color: $mgs-muted;
+        margin-bottom: 10px;
+    }
+
+    .mgs-dash-empty {
+        color: $mgs-muted;
+        background: $mgs-card;
+        border: 1px dashed $mgs-border-dark;
+        border-radius: $mgs-radius;
+        padding: 24px;
+        text-align: center;
+    }
+
+    // --- Avisos ---
+    .mgs-alert-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .mgs-alert-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: $mgs-card;
+        border: 1px solid $mgs-border;
+        border-left: 4px solid $mgs-blue;
+        border-radius: $mgs-radius;
+        padding: 12px 14px;
+
+        &.is-threshold { border-left-color: $mgs-danger; }
+        &.is-expired   { border-left-color: $mgs-danger; cursor: pointer; }
+        &.is-expiring  { border-left-color: #d97706; cursor: pointer; }
+
+        .mgs-alert-icon { color: $mgs-muted; }
+        .mgs-alert-msg { flex: 1 1 auto; color: $mgs-text; }
+
+        .mgs-alert-open,
+        .mgs-alert-x {
+            border: none;
+            background: transparent;
+            color: $mgs-muted;
+            font-weight: 600;
+
+            &:hover { color: $mgs-text; }
+        }
+
+        .mgs-alert-x { font-size: 20px; line-height: 1; }
+    }
+
+    // --- Stock más bajo ---
+    .mgs-lowstock-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 240px));
+        gap: 14px;
+    }
+
+    .mgs-lowstock-card {
+        background: $mgs-card;
+        border: 1px solid $mgs-border;
+        border-radius: $mgs-radius;
+        padding: 18px;
+        cursor: pointer;
+        transition: box-shadow .15s ease, transform .15s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .2);
+        }
+
+        .mgs-lowstock-qty {
+            font-size: 32px;
+            font-weight: 700;
+            color: $mgs-danger;
+            line-height: 1;
+        }
+        .mgs-lowstock-uom { font-size: 12px; color: $mgs-muted; }
+        .mgs-lowstock-name {
+            margin-top: 10px;
+            font-weight: 600;
+            color: $mgs-text;
+        }
+        .mgs-lowstock-categ { font-size: 12px; color: $mgs-muted; }
+    }
+
+    // --- Productos por categoría ---
+    .mgs-categ {
+        background: $mgs-card;
+        border: 1px solid $mgs-border;
+        border-radius: $mgs-radius;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+
+    .mgs-categ-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        cursor: pointer;
+        font-weight: 600;
+        color: $mgs-text;
+
+        &:hover { background: #f1f5f9; }
+
+        .mgs-categ-count { color: $mgs-muted; font-weight: 400; }
+    }
+
+    .mgs-categ-table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th {
+            background: #f8fafc;
+            color: $mgs-muted;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            padding: 8px 14px;
+            border-top: 1px solid $mgs-border;
+        }
+
+        td {
+            padding: 10px 14px;
+            border-top: 1px solid $mgs-border;
+        }
+
+        tbody tr {
+            cursor: pointer;
+            &:hover { background: #f1f5f9; }
+            &.is-low td { color: $mgs-danger; }
+        }
+
+        .mgs-expired { color: $mgs-danger; font-weight: 600; }
+    }
+}
+
+// ---- 10. Systray: reloj de actividades -------------------------------
+// El icono del reloj es un <button> sin clase propia dentro de
+// .o_menu_systray (la clase o-mail-ActivityMenu va en el panel desplegable,
+// no en el botón), así que el selector va sobre el contenedor.
 .o_main_navbar .o_menu_systray button {
     color: #cbd5e1;
     &:hover { color: #fff; }

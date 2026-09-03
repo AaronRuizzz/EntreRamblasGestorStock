@@ -1,7 +1,7 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
     "version": "18.0.1.0.0",
-    "summary": "Recepción, stock, compra e informes para la floristería Entre Ramblas",
+    "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
     # Todas las apps del proyecto se declaran aqui como dependencia: asi
@@ -11,7 +11,7 @@
         "stock",            # Inventario
         "barcodes",         # Motor de codigos de barras
         "web",
-        "point_of_sale",    # TPV
+        "point_of_sale",    # TPV (sigue registrando las ventas; no esta en el menu)
         "contacts",         # Directorio de clientes/proveedores
         "l10n_es",          # Localizacion fiscal espanola (IVA, plan PYMEs, NIF)
     ],
@@ -20,13 +20,15 @@
         "data/branding.xml",
         "data/cron_alerts.xml",
         "views/mgs_reception_views.xml",
+        "views/mgs_alert_views.xml",
+        "views/mgs_dashboard_views.xml",
         "views/product_views.xml",
         "views/pos_report_views.xml",
+        "report/mgs_monthly_report.xml",
         "views/mgs_menus.xml",
         "views/login_templates.xml",
         # ux_defaults va el ultimo: reapunta la salida del TPV a menu_mgs_root
-        # y fija la pantalla de inicio a action_mgs_products, ambas definidas
-        # en mgs_menus.xml.
+        # y fija la pantalla de inicio al panel de Stock, ambas definidas antes.
         "data/ux_defaults.xml",
     ],
     "assets": {
@@ -38,6 +40,11 @@
         "web.assets_backend": [
             "mi_gestor_stock/static/src/scss/backend.scss",
             "mi_gestor_stock/static/src/js/title.js",
+            "mi_gestor_stock/static/src/js/clean_form.js",
+            "mi_gestor_stock/static/src/js/home.js",
+            "mi_gestor_stock/static/src/js/home.xml",
+            "mi_gestor_stock/static/src/js/stock_dashboard.js",
+            "mi_gestor_stock/static/src/js/stock_dashboard.xml",
         ],
         "web.assets_frontend": [
             "mi_gestor_stock/static/src/scss/login.scss",

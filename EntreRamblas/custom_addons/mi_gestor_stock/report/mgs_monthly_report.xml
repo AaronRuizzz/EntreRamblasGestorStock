@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============ Asistente: elegir el periodo ============ -->
+    <record id="view_mgs_monthly_report_form" model="ir.ui.view">
+        <field name="name">mgs.monthly.report.form</field>
+        <field name="model">mgs.monthly.report</field>
+        <field name="arch" type="xml">
+            <form string="Informe mensual">
+                <p class="text-muted">
+                    Genera un PDF con lo vendido, el stock que queda y el balance
+                    entre ventas y reposición del periodo elegido.
+                </p>
+                <group>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                </group>
+                <footer>
+                    <button name="action_print" type="object" string="Generar PDF"
+                            class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mgs_monthly_report" model="ir.actions.act_window">
+        <field name="name">Informe mensual (PDF)</field>
+        <field name="res_model">mgs.monthly.report</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_mgs_monthly_report_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <!-- ============ Acción de informe ============ -->
+    <record id="action_report_mgs_monthly" model="ir.actions.report">
+        <field name="name">Informe mensual</field>
+        <field name="model">mgs.monthly.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">mi_gestor_stock.report_mgs_monthly_document</field>
+        <field name="report_file">mi_gestor_stock.report_mgs_monthly_document</field>
+        <field name="print_report_name">'Informe %s a %s' % (object.date_from, object.date_to)</field>
+    </record>
+
+    <!-- ============ Plantilla del PDF ============ -->
+    <template id="report_mgs_monthly_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <t t-set="d" t-value="doc.mgs_get_report_data()"/>
+                    <div class="page">
+                        <h2>Informe de stock y ventas</h2>
+                        <p>
+                            Del <strong t-esc="d['date_from']"/>
+                            al <strong t-esc="d['date_to']"/>
+                        </p>
+
+                        <h3 class="mt-4">Resumen</h3>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>Ingresos por ventas</td>
+                                    <td class="text-end">
+                                        <span t-esc="d['total_revenue']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Coste de lo vendido</td>
+                                    <td class="text-end">
+                                        <span t-esc="d['total_cost_sold']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                                <tr class="fw-bold">
+                                    <td>Beneficio bruto</td>
+                                    <td class="text-end">
+                                        <span t-esc="d['gross_profit']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Gasto en reposición (mercancía recibida)</td>
+                                    <td class="text-end">
+                                        <span t-esc="d['purchases']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                                <tr class="fw-bold">
+                                    <td>Balance del periodo (ventas − reposición)</td>
+                                    <td class="text-end">
+                                        <span t-esc="d['balance']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Valor del stock restante (a coste)</td>
+                                    <td class="text-end">
+                                        <span t-esc="d['stock_value']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h3 class="mt-4">Productos vendidos</h3>
+                        <table class="table table-sm" t-if="d['sold_rows']">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Unidades</th>
+                                    <th class="text-end">Ingresos</th>
+                                    <th class="text-end">Coste</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="d['sold_rows']" t-as="row">
+                                    <td t-esc="row['name']"/>
+                                    <td class="text-end" t-esc="row['qty']"/>
+                                    <td class="text-end">
+                                        <span t-esc="row['revenue']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-esc="row['cost']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td>Total</td>
+                                    <td class="text-end" t-esc="d['total_qty_sold']"/>
+                                    <td class="text-end">
+                                        <span t-esc="d['total_revenue']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-esc="d['total_cost_sold']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <p t-else="" class="text-muted">No hubo ventas en este periodo.</p>
+
+                        <h3 class="mt-4">Stock restante</h3>
+                        <table class="table table-sm" t-if="d['stock_rows']">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Existencias</th>
+                                    <th class="text-end">Valor a coste</th>
+                                    <th>Caduca</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="d['stock_rows']" t-as="row">
+                                    <td t-esc="row['name']"/>
+                                    <td class="text-end">
+                                        <t t-esc="row['qty']"/> <t t-esc="row['uom']"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-esc="row['value']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                    <td t-esc="row['expiry'] or ''"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-else="" class="text-muted">No queda stock registrado.</p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

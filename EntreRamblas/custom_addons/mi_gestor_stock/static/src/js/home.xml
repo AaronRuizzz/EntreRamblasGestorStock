@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+  <t t-name="mi_gestor_stock.Home">
+    <div class="mgs-home">
+      <div class="mgs-home-card">
+
+        <img class="mgs-home-logo" alt="Entre Ramblas · Clavel &amp; Azahar"
+             src="/mi_gestor_stock/static/src/img/logo-emblema.png"/>
+
+        <h1 class="mgs-home-title">Gestor de Stock</h1>
+        <p class="mgs-home-sub">Entre Ramblas · Clavel &amp; Azahar</p>
+
+        <div t-if="state.loaded and state.alerts" class="mgs-home-alerts"
+             t-on-click="() => this.open('mi_gestor_stock.action_mgs_stock_dashboard')">
+          <i class="fa fa-exclamation-triangle" role="img"/>
+          <span>
+            <t t-esc="state.alerts"/>
+            <t t-if="state.alerts === 1"> aviso de stock pendiente</t>
+            <t t-else=""> avisos de stock pendientes</t>
+          </span>
+        </div>
+
+        <div class="mgs-home-grid">
+          <button class="mgs-home-tile"
+                  t-on-click="() => this.open('mi_gestor_stock.action_mgs_reception')">
+            <i class="fa fa-barcode" role="img"/>
+            <span class="mgs-home-tile-name">Recepción</span>
+            <span class="mgs-home-tile-hint">Escanear mercancía que llega</span>
+          </button>
+
+          <button class="mgs-home-tile"
+                  t-on-click="() => this.open('mi_gestor_stock.action_mgs_stock_dashboard')">
+            <i class="fa fa-cubes" role="img"/>
+            <span class="mgs-home-tile-name">Stock</span>
+            <span class="mgs-home-tile-hint">
+              <t t-if="state.products"><t t-esc="state.products"/> productos</t>
+              <t t-else="">Existencias y avisos</t>
+            </span>
+          </button>
+
+          <button class="mgs-home-tile"
+                  t-on-click="() => this.open('mi_gestor_stock.action_mgs_report_sales')">
+            <i class="fa fa-line-chart" role="img"/>
+            <span class="mgs-home-tile-name">Informes</span>
+            <span class="mgs-home-tile-hint">Ventas, balance y PDF</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </t>
+
+</templates>

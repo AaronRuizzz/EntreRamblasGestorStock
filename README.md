@@ -5,7 +5,55 @@
 
 ---
 
-## 0. Cambios recientes (2026-09-03)
+## 0. Cambios recientes (2026-09-03, tarde)
+
+- **Recepción con dos modos.** «Producto existente» (escaneas y se reutiliza toda
+  su información, refrescando fecha de recepción y caducidad) y «Producto nuevo»
+  (rellenas nombre, categoría, precio, coste y caducidad, y le asignas el código
+  escaneándolo). Ya no se puede elegir un producto a mano de una lista.
+- **Caducidad**: `mgs_reception_date` y `mgs_expiry_date` en el producto, que se
+  actualizan en cada entrada de mercancía.
+- **Avisos configurables** (modelo `mgs.stock.alert`, menú Stock → Alertas): por
+  cantidad («rosas: avísame con 10 o menos», se evalúa en vivo) o periódicos
+  («cuánto clavel tengo, cada semana/mes/X días», los genera un `ir.cron`).
+  Aparecen como tarjetas en el panel de Stock.
+- **Panel de Stock** (`static/src/js/stock_dashboard.js`, componente OWL propio y
+  ahora pantalla de inicio): avisos activos, caducidades próximas, los 3 productos
+  con menos stock y el listado agrupado por categorías.
+- **«Compra» fuera del menú.** El TPV sigue instalado y registrando cada venta
+  (descuenta stock, ticket, cajón); simplemente se abre aparte a pantalla completa
+  en `/pos/ui`. Los informes siguen alimentándose de él.
+- **Informe mensual en PDF** (Informes → Informe mensual): ventas del periodo,
+  coste de lo vendido, beneficio bruto, gasto en reposición, balance y valor del
+  stock restante. Más gráficas de ventas y ranking de productos más vendidos.
+- **Menos ruido en el panel de control.** Recepción es un flujo de trabajo, no
+  una ficha: se le quitan «Nuevo», la rueda de ajustes y el guardar/descartar
+  genéricos (el icono de nube confundía), porque la acción de verdad son sus
+  botones de cabecera. Se hace con `create/duplicate/delete="false"` en el arch
+  más `js_class="mgs_clean_form"` (`static/src/js/clean_form.js`), que solo añade
+  una clase al raíz del formulario para poder acotar el CSS a esa pantalla —
+  **nunca un `display:none` global**. La lista de Stock pierde «Nuevo» (los
+  productos se dan de alta en Recepción) y la ficha de producto pierde
+  «Duplicar». La lista de Alertas deja de ser editable en línea: «Nuevo» abre el
+  formulario, donde los campos cambian según el tipo de aviso.
+- **Página de inicio** (`static/src/js/home.js`, acción cliente `mgs_home`, y ya
+  la pantalla que se abre tras el login): emblema, nombre de la tienda y tres
+  accesos grandes a Recepción, Stock e Informes, más un aviso discreto si hay
+  avisos de stock pendientes. **No ocupa sitio en el menú**: la acción va en el
+  propio `menu_mgs_root`, así que pulsar «Gestor de Stock» en la barra superior
+  (o su icono en el lanzador de apps) vuelve aquí. Odoo solo desciende al primer
+  hijo con acción cuando la app no tiene la suya
+  (`web/models/ir_ui_menu.py`, `load_web_menus`).
+- **«Nuevo» con nombre propio**: el botón genérico de Odoo no dice qué crea. En
+  Alertas se sustituye por uno que pone **«Nuevo aviso de stock»** y abre un
+  diálogo (`<header><button display="always">` en la lista, patrón nativo que
+  usa el propio core).
+- **Barra de navegación rehecha**: el nombre de la app se separa con un filete
+  del grupo de secciones, y Recepción / Stock / Informes se ven como pestañas
+  uniformes (misma altura, mismo relleno, pastilla redondeada), tanto las hojas
+  como los desplegables, con estados de hover y activo legibles.
+
+## 0bis. Cambios recientes (2026-09-03, mañana)
 
 - **Limpieza total: el módulo se reduce a 4 flujos.** `mi_gestor_stock` pasa de
   "maquillaje CSS sobre Odoo estándar" a una app propia con menú explícito:
@@ -20,7 +68,7 @@
   §6bis-§6quinquies. Plan de la reestructuración:
   `C:\Users\Usuario\.claude\plans\busco-una-limpieza-total-vivid-aurora.md`.
 
-## 0bis. Cambios anteriores (2026-09-02)
+## 0ter. Cambios anteriores (2026-09-02)
 
 - **BD reproducible desde el repo.** La base de datos ya **no se sube a git**;
   se reconstruye idéntica en cualquier equipo con **`bootstrap.ps1`** (crea venv,
@@ -345,44 +393,60 @@ static/src/
 
 ---
 
-## 6bis. Los 4 flujos de la app (limpieza total, 2026-09-03)
+## 6bis. Los flujos de la app
 
-Tras el login se abre **Gestor de Stock**, la única app del sistema, con
-exactamente estos 4 flujos (`views/mgs_menus.xml`):
+Tras el login se abre el **panel de Stock** dentro de **Gestor de Stock**, la
+única app del sistema (`views/mgs_menus.xml`):
 
 1. **Recepción** (`models/mgs_reception.py` + `views/mgs_reception_views.xml`):
-   pantalla de escaneo. Hereda `barcodes.barcode_events_mixin` (nativo del
-   módulo `barcodes`), así que el lector Honeywell (HID + Enter) funciona en
-   cualquier parte de la pantalla, sin necesidad de tener el foco en un campo
-   — hay además un campo de respaldo para teclear el código a mano. Si el
-   código no existe, ofrece crear el producto ahí mismo (nombre + precio). Al
-   pulsar "Guardar en almacén" crea y valida un `stock.picking` de entrada de
-   verdad (trazabilidad completa: `WH/IN/000xx`), sin pedir proveedor ni
-   albarán manual.
+   pantalla de escaneo con **dos modos** (campo `mode`):
+   - *Producto existente*: se escanea y, como ya está dado de alta, se reutiliza
+     toda su información; solo se refrescan `mgs_reception_date` y
+     `mgs_expiry_date`. Repetir el escaneo suma unidades a la misma línea.
+   - *Producto nuevo*: se rellenan nombre, categoría, precio, coste y caducidad,
+     y el escaneo **asigna el código de barras** al producto que se va a crear.
+
+   Hereda `barcodes.barcode_events_mixin` (nativo del módulo `barcodes`), así que
+   el lector Honeywell (HID + Enter) funciona en cualquier parte de la pantalla,
+   sin necesidad de tener el foco en un campo — hay además un campo de respaldo
+   para teclear el código a mano. Al pulsar "Guardar en almacén" crea y valida un
+   `stock.picking` de entrada de verdad (trazabilidad completa: `WH/IN/000xx`),
+   sin pedir proveedor ni albarán manual.
    > ⚠️ Al tocar este fichero, recuerda: en un `TransientModel` nuevo,
    > `self.line_ids = [Command.create(...)]` dentro de un método que añade
    > líneas **borra las líneas anteriores** (no tiene `_origin`). Hay que
    > concatenar con `self.line_ids |= self.env[...].new({...})`.
-2. **Stock** (`views/product_views.xml`): Productos (lista con existencias y
-   mínimo) y Alertas (filtro `mgs_low_stock=True`, filas en rojo). El campo
-   `mgs_low_stock` es un booleano **no almacenado con `search=`** propio
-   (`_search_mgs_low_stock` en `models/product_template.py`) — un dominio
-   tipo `[('qty_available','<=','mgs_min_qty')]` no es una opción: Odoo
-   compara campo contra literal, y lanza `UserError` si el operando derecho
-   no es un número.
-3. **Compra**: abre `point_of_sale.action_pos_config_kanban` (el TPV nativo).
-   El descuento de stock al vender ya es nativo de Odoo. **Importante**: al
-   cerrar una sesión de TPV, Odoo redirige a la acción cliente
-   `point_of_sale.action_client_pos_menu`, cuyo `menu_id` por defecto es
-   `point_of_sale.menu_point_root` — como ese menú está desactivado (ver
-   §7bis), `data/ux_defaults.xml` lo reapunta a `mi_gestor_stock.menu_mgs_root`
-   con un `<function model="ir.actions.client" name="write">` (el `<record>`
-   normal se ignora: ese registro es `noupdate="1"`).
-4. **Informes** (`views/pos_report_views.xml`): "Ventas y balance" y
-   "Productos más vendidos" reutilizan el modelo nativo `report.pos.order` y
-   sus vistas pivot/graph/list (`point_of_sale.view_report_pos_order_*`); solo
-   cambian nombre, dominio y contexto por defecto. No hay modelo ni vista de
-   informe propios.
+2. **Stock**, con tres entradas:
+   - *Panel* (`static/src/js/stock_dashboard.js`, acción cliente
+     `mgs_stock_dashboard`, **pantalla de inicio**): avisos activos, caducidades
+     próximas, los 3 productos con menos stock y el listado agrupado por
+     categorías. Todos los datos salen de una única llamada a
+     `product.template.mgs_dashboard_data()`.
+   - *Productos* (`views/product_views.xml`): lista filtrada a `is_storable`
+     (fuera los técnicos del TPV/localización: Propinas, DUA Valoración…),
+     agrupada por categoría, con filas en rojo si están bajo mínimo.
+   - *Alertas* (`models/mgs_stock_alert.py`): avisos configurables por producto,
+     **por cantidad** (se evalúan en vivo, así desaparecen solos al reponer) o
+     **periódicos** (los genera el `ir.cron` cada 6 h, se descartan a mano).
+
+   El campo `mgs_low_stock` es un booleano **no almacenado con `search=`** propio
+   (`_search_mgs_low_stock` en `models/product_template.py`) — un dominio tipo
+   `[('qty_available','<=','min_qty')]` no es una opción: Odoo compara campo
+   contra literal, y lanza `UserError` si el operando derecho no es un número.
+3. **Informes** (`views/pos_report_views.xml` + `report/mgs_monthly_report.xml`):
+   gráficas de ventas y ranking de más vendidos sobre el modelo nativo
+   `report.pos.order`, más un **informe mensual en PDF** (asistente
+   `mgs.monthly.report`) con ventas, coste de lo vendido, beneficio bruto, gasto
+   en reposición, balance y valor del stock restante.
+
+**El TPV no está en el menú** (se quitó «Compra»), pero sigue instalado y
+registrando cada venta — se abre aparte a pantalla completa en `/pos/ui`, que es
+como se usa en el mostrador. **Importante**: al cerrar una sesión de TPV, Odoo
+redirige a la acción cliente `point_of_sale.action_client_pos_menu`, cuyo
+`menu_id` por defecto es `point_of_sale.menu_point_root` — como ese menú está
+desactivado (ver §7bis), `data/ux_defaults.xml` lo reapunta a
+`mi_gestor_stock.menu_mgs_root` con un `<function model="ir.actions.client"
+name="write">` (el `<record>` normal se ignora: ese registro es `noupdate="1"`).
 
 `_mgs_rename_picking_types()` en `res_company.py` sigue renombrando
 "PoS Orders" → "Pedidos TPV" (nombre del albarán generado al vender).

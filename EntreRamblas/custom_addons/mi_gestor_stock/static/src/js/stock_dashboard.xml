@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+  <t t-name="mi_gestor_stock.StockDashboard">
+    <div class="mgs-dashboard">
+
+      <div t-if="state.loading" class="mgs-dash-loading">Cargando…</div>
+
+      <t t-else="">
+        <div class="mgs-dash-head">
+          <h1 class="mgs-dash-heading">Stock</h1>
+          <div class="mgs-dash-head-actions">
+            <button class="btn btn-secondary" t-on-click="() => this.openReception()">Recepción</button>
+            <button class="btn btn-secondary" t-on-click="() => this.openProducts()">Ver todos los productos</button>
+            <button class="btn btn-secondary" t-on-click="() => this.openAlerts()">Configurar avisos</button>
+          </div>
+        </div>
+
+        <!-- ===================== AVISOS ===================== -->
+        <section class="mgs-dash-section" t-if="state.data.alerts.length">
+          <h2 class="mgs-dash-title">Avisos</h2>
+          <div class="mgs-alert-list">
+            <div t-foreach="state.data.alerts" t-as="al" t-key="al_index"
+                 t-attf-class="mgs-alert-card {{ al.kind === 'threshold' ? 'is-threshold' : 'is-periodic' }}">
+              <i t-attf-class="fa {{ al.kind === 'threshold' ? 'fa-exclamation-triangle' : 'fa-calendar-check-o' }} mgs-alert-icon"
+                 role="img"/>
+              <span class="mgs-alert-msg" t-esc="al.message"/>
+              <button class="mgs-alert-open" t-on-click="() => this.openProduct(al.product_id)">Ver</button>
+              <button t-if="al.notice_id" class="mgs-alert-x" title="Descartar aviso"
+                      t-on-click="() => this.dismissNotice(al.notice_id)">×</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= POR CADUCAR =================== -->
+        <section class="mgs-dash-section" t-if="state.data.expiring.length">
+          <h2 class="mgs-dash-title">Caducidad próxima</h2>
+          <div class="mgs-alert-list">
+            <div t-foreach="state.data.expiring" t-as="ex" t-key="ex.product_id"
+                 t-attf-class="mgs-alert-card {{ ex.days &lt; 0 ? 'is-expired' : 'is-expiring' }}"
+                 t-on-click="() => this.openProduct(ex.product_id)">
+              <i class="fa fa-clock-o mgs-alert-icon" role="img"/>
+              <span class="mgs-alert-msg">
+                <t t-esc="ex.name"/> · <t t-esc="expiryLabel(ex.days)"/> (<t t-esc="ex.expiry"/>)
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= STOCK MÁS BAJO ================= -->
+        <section class="mgs-dash-section" t-if="state.data.low_stock.length">
+          <h2 class="mgs-dash-title">Stock más bajo</h2>
+          <div class="mgs-lowstock-grid">
+            <div t-foreach="state.data.low_stock" t-as="p" t-key="p.id"
+                 class="mgs-lowstock-card" t-on-click="() => this.openProduct(p.id)">
+              <div class="mgs-lowstock-qty"><t t-esc="formatQty(p.qty)"/></div>
+              <div class="mgs-lowstock-uom" t-esc="p.uom"/>
+              <div class="mgs-lowstock-name" t-esc="p.name"/>
+              <div class="mgs-lowstock-categ" t-esc="p.categ"/>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============== PRODUCTOS POR CATEGORÍA =============== -->
+        <section class="mgs-dash-section">
+          <h2 class="mgs-dash-title">Productos por categoría</h2>
+
+          <div t-if="!hasProducts" class="mgs-dash-empty">
+            Todavía no hay productos. Da de alta el primero desde
+            <a href="#" t-on-click.prevent="() => this.openReception()">Recepción</a>.
+          </div>
+
+          <div t-foreach="state.data.categories" t-as="cat" t-key="cat.id" class="mgs-categ">
+            <div class="mgs-categ-head" t-on-click="() => this.toggleCategory(cat.id)">
+              <i t-attf-class="fa {{ isCollapsed(cat.id) ? 'fa-caret-right' : 'fa-caret-down' }}"
+                 role="img"/>
+              <span class="mgs-categ-name" t-esc="cat.name"/>
+              <span class="mgs-categ-count">(<t t-esc="cat.products.length"/>)</span>
+            </div>
+            <table t-if="!isCollapsed(cat.id)" class="mgs-categ-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-end">Stock</th>
+                  <th class="text-end">PVP</th>
+                  <th>Caduca</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr t-foreach="cat.products" t-as="p" t-key="p.id"
+                    t-attf-class="{{ p.low ? 'is-low' : '' }}"
+                    t-on-click="() => this.openProduct(p.id)">
+                  <td t-esc="p.name"/>
+                  <td class="text-end">
+                    <t t-esc="formatQty(p.qty)"/> <small t-esc="p.uom"/>
+                  </td>
+                  <td class="text-end" t-esc="formatPrice(p.price)"/>
+                  <td>
+                    <span t-if="p.expiry" t-attf-class="{{ p.expired ? 'mgs-expired' : '' }}"
+                          t-esc="p.expiry"/>
+                    <span t-else="" class="text-muted">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </t>
+    </div>
+  </t>
+
+</templates>
