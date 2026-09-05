@@ -19,6 +19,8 @@
         "security/ir.model.access.csv",
         "data/branding.xml",
         "data/cron_alerts.xml",
+        "data/mgs_hardware_data.xml",
+        "views/mgs_config_views.xml",
         "views/mgs_reception_views.xml",
         "views/mgs_alert_views.xml",
         "views/mgs_dashboard_views.xml",
@@ -48,6 +50,11 @@
         ],
         "web.assets_frontend": [
             "mi_gestor_stock/static/src/scss/login.scss",
+        ],
+        # Puente TPV <-> impresora termica ESC/POS y cajon portamonedas, sin
+        # IoT Box (ver static/src/js/pos_hardware.js).
+        "point_of_sale._assets_pos": [
+            "mi_gestor_stock/static/src/js/pos_hardware.js",
         ],
     },
     "installable": True,

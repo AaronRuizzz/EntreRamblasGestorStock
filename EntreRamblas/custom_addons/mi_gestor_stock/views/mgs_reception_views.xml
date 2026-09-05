@@ -17,6 +17,10 @@
                 <header>
                     <button name="action_confirm" string="Guardar en almacén" type="object"
                             class="btn-primary" invisible="not line_ids"/>
+                    <!-- Etiquetas en la térmica de 80 mm: la impresora dibuja
+                         el código de barras (ESC/POS), no hace falta PDF. -->
+                    <button name="action_mgs_print_labels" string="Imprimir etiquetas"
+                            type="object" invisible="not line_ids"/>
                     <button name="action_clear" string="Vaciar" type="object"
                             invisible="not line_ids"/>
                 </header>
@@ -51,6 +55,12 @@
                             <group string="Código de barras">
                                 <field name="new_barcode" nolabel="1" class="mgs-scan-input"
                                        placeholder="Escanea el código para asignarlo…"/>
+                                <!-- Flores a granel, envoltorios o composiciones
+                                     propias no traen EAN: se les genera uno
+                                     interno y se imprime en una etiqueta. -->
+                                <button name="action_mgs_generate_barcode" type="object"
+                                        string="Generar código interno"
+                                        class="btn-link ps-0" colspan="2"/>
                             </group>
                         </group>
                         <div class="mgs-new-actions">
@@ -74,6 +84,8 @@
                             <field name="qty_available" readonly="1" string="Stock actual"/>
                             <field name="quantity"/>
                             <field name="expiry_date"/>
+                            <button name="action_mgs_print_label" type="object"
+                                    icon="fa-print" title="Imprimir etiqueta"/>
                         </list>
                     </field>
                 </sheet>

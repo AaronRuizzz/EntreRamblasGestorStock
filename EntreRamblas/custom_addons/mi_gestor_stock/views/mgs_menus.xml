@@ -34,4 +34,14 @@
               action="action_mgs_report_top_products" sequence="20"/>
     <menuitem id="menu_mgs_reports_monthly" name="Informe mensual (PDF)" parent="menu_mgs_reports"
               action="action_mgs_monthly_report" sequence="30"/>
+
+    <!-- Configuración: solo para el administrador. Los lectores, la impresora
+         y el cajón se ajustan una vez al montar la tienda; el uso diario no
+         pasa por aquí. -->
+    <menuitem id="menu_mgs_settings" name="Configuración" parent="menu_mgs_root"
+              sequence="40" groups="base.group_system"/>
+    <menuitem id="menu_mgs_settings_devices" name="Dispositivos" parent="menu_mgs_settings"
+              action="action_mgs_config" sequence="10" groups="base.group_system"/>
+    <menuitem id="menu_mgs_settings_backups" name="Copias de seguridad" parent="menu_mgs_settings"
+              action="action_mgs_backups" sequence="20" groups="base.group_system"/>
 </odoo>

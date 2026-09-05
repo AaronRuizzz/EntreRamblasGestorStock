@@ -1,3 +1,5 @@
+from . import mgs_config
+from . import mgs_backup
 from . import res_company
 from . import product_template
 from . import mgs_stock_alert

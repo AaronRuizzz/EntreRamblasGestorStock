@@ -89,6 +89,45 @@ class ProductTemplate(models.Model):
         }
 
     # ------------------------------------------------------------------
+    # Código de barras y etiquetas (impresora térmica, ver mgs_config.py)
+    # ------------------------------------------------------------------
+    def action_mgs_generate_barcode(self):
+        """Asigna un código interno a un producto que llegó sin código.
+
+        Pasa mucho en floristería: flores a granel, envoltorios o composiciones
+        propias no traen EAN del proveedor. Con un código interno impreso en
+        una etiqueta, el producto ya se puede escanear en caja igual que
+        cualquier otro.
+        """
+        config = self.env["mgs.config"]
+        for tmpl in self:
+            if not tmpl.barcode:
+                tmpl.barcode = config.mgs_next_internal_barcode()
+        return True
+
+    def action_mgs_print_label(self):
+        """Imprime la etiqueta del producto en la térmica de 80 mm."""
+        config = self.env["mgs.config"]._mgs_get()
+        return config.mgs_print_labels(self)
+
+    @api.model
+    def mgs_find_by_barcode(self, barcode):
+        """Busca un producto por código escaneado (lo usa el panel de Stock).
+
+        Se mira también la referencia interna: en la tienda conviven códigos
+        de proveedor y etiquetas propias.
+        """
+        code = self.env["mgs.config"].mgs_clean_scan(barcode)
+        if not code:
+            return False
+        tmpl = self.search([("barcode", "=", code)], limit=1)
+        if not tmpl:
+            tmpl = self.search([("default_code", "=", code)], limit=1)
+        if not tmpl:
+            return False
+        return {"id": tmpl.id, "name": tmpl.display_name}
+
+    # ------------------------------------------------------------------
     # Resumen para la página de inicio (static/src/js/home.js)
     # ------------------------------------------------------------------
     @api.model

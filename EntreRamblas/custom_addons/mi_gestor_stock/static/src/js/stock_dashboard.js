@@ -4,7 +4,7 @@
 // Todos los datos vienen de product.template.mgs_dashboard_data() en una
 // sola llamada (ver models/product_template.py).
 import { registry } from "@web/core/registry";
-import { useService } from "@web/core/utils/hooks";
+import { useBus, useService } from "@web/core/utils/hooks";
 import { Component, onWillStart, useState } from "@odoo/owl";
 
 export class MgsStockDashboard extends Component {
@@ -14,6 +14,14 @@ export class MgsStockDashboard extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        this.notification = useService("notification");
+        // Escanear un producto aquí abre su ficha: sirve para consultar
+        // precio y existencias con la pistola, sin teclear nada. Los dos
+        // lectores son HID, así que el servicio "barcode" los recoge igual.
+        const barcode = useService("barcode");
+        useBus(barcode.bus, "barcode_scanned", (ev) =>
+            this.onBarcodeScanned(ev.detail.barcode)
+        );
         this.state = useState({
             loading: true,
             data: {
@@ -68,6 +76,18 @@ export class MgsStockDashboard extends Component {
             return "caduca hoy";
         }
         return `caduca en ${days} d.`;
+    }
+
+    async onBarcodeScanned(barcode) {
+        const found = await this.orm.call("product.template", "mgs_find_by_barcode", [barcode]);
+        if (!found) {
+            this.notification.add(
+                `El código ${barcode} no está dado de alta. Añádelo desde Recepción.`,
+                { type: "warning" }
+            );
+            return;
+        }
+        this.openProduct(found.id);
     }
 
     openProduct(productId) {

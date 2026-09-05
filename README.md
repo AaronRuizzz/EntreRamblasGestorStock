@@ -1,11 +1,51 @@
 # Entre Ramblas · Clavel & Azahar — Gestor de stock + TPV (Odoo 18)
 
-> Documento de traspaso entre sesiones. Recoge todo lo hecho hasta **2026-09-02**.
+> Documento de traspaso entre sesiones. Recoge todo lo hecho hasta **2026-09-05**.
 > Léelo entero antes de continuar.
 
 ---
 
-## 0. Cambios recientes (2026-09-03, tarde)
+## 0. Cambios recientes (2026-09-05) — hardware de tienda y copia en disco
+
+- **Los cuatro aparatos de la factura ya tienen sitio en el programa**, sin IoT
+  Box y sin depender del navegador. Nueva pantalla **Configuración →
+  Dispositivos** (`models/mgs_config.py`, modelo `mgs.config`, registro único):
+  lectores, impresora y cajón, con botones de **«Imprimir ticket de prueba»** y
+  **«Abrir el cajón»** para validar el montaje el día que se conecte todo.
+- **Impresora Approx appPOS80AM**: el servidor le habla **ESC/POS** directamente
+  (`models/mgs_escpos.py`, sin dependencias externas) por **red (TCP 9100)**, por
+  la **cola de Windows en modo RAW** o por una **ruta/puerto**. Los tickets del
+  TPV salen solos, sin el diálogo de impresión del navegador (adiós al apaño del
+  *kiosk-printing*), y si la impresora no responde el TPV vuelve solo a imprimir
+  por el navegador: **una venta nunca se queda sin ticket**.
+- **Cajón Approx CASH01**: se abre con el pulso `ESC p` que la impresora manda
+  por el RJ11. El TPV ya llama a `openCashbox()` al cobrar en efectivo o al dar
+  cambio; ahora esa llamada llega de verdad al cajón
+  (`static/src/js/pos_hardware.js`). **Esto era el punto dudoso de §2 y queda
+  resuelto sin IoT Box.**
+- **Etiquetas de producto en la térmica**: la impresora dibuja el código de
+  barras ella misma (comando `GS k`), así que no hace falta PDF ni imagen.
+  Botones en la ficha del producto y en Recepción (una etiqueta por línea o
+  todas de golpe).
+- **Códigos internos para lo que llega sin EAN** (flor a granel, envoltorios,
+  composiciones propias): botón «Generar código interno», que crea un **EAN-13
+  válido** con prefijo `28` — a propósito fuera de los prefijos que el TPV
+  reserva para descuentos (`22`), precio incrustado (`23`) y cajero/cliente
+  (`041`/`042`).
+- **Los dos lectores** siguen funcionando por donde funcionaban (HID = teclado),
+  y ahora además: se les puede quitar el prefijo/sufijo que se les programe, se
+  ajusta el retardo entre teclas para el Bluetooth desde la pantalla de
+  Configuración, y **escanear en el panel de Stock abre la ficha del producto**
+  (consultar precio y existencias con la pistola, sin teclear).
+- **Persistencia en un archivo del disco** (`models/mgs_backup.py`): cada pocas
+  horas se deja en disco **un único `.zip` con todo dentro** —base de datos,
+  imágenes y adjuntos—, en el formato de copia nativo de Odoo. Además del
+  histórico con fecha, se mantiene siempre
+  `.odoo_data\backups\mi_base_stock-ultima.zip`, un nombre fijo que siempre
+  contiene el estado más reciente (cómodo para sincronizar con el SSD externo).
+  Para volver atrás: **`.\restore-backup.ps1`**. Detalle completo en **§11**.
+
+## 0bis. Cambios recientes (2026-09-03, tarde)
 
 - **Recepción con dos modos.** «Producto existente» (escaneas y se reutiliza toda
   su información, refrescando fecha de recepción y caducidad) y «Producto nuevo»
@@ -53,7 +93,7 @@
   uniformes (misma altura, mismo relleno, pastilla redondeada), tanto las hojas
   como los desplegables, con estados de hover y activo legibles.
 
-## 0bis. Cambios recientes (2026-09-03, mañana)
+## 0ter. Cambios recientes (2026-09-03, mañana)
 
 - **Limpieza total: el módulo se reduce a 4 flujos.** `mi_gestor_stock` pasa de
   "maquillaje CSS sobre Odoo estándar" a una app propia con menú explícito:
@@ -68,7 +108,7 @@
   §6bis-§6quinquies. Plan de la reestructuración:
   `C:\Users\Usuario\.claude\plans\busco-una-limpieza-total-vivid-aurora.md`.
 
-## 0ter. Cambios anteriores (2026-09-02)
+## 0quater. Cambios anteriores (2026-09-02)
 
 - **BD reproducible desde el repo.** La base de datos ya **no se sube a git**;
   se reconstruye idéntica en cualquier equipo con **`bootstrap.ps1`** (crea venv,
@@ -139,9 +179,14 @@ Requisitos del cliente:
 | **Corsair EX300U 1 TB SSD externo** | Recomendado para **copias de seguridad** de la BD + filestore | — | **No** |
 
 ### Notas sobre el TPV en Community (sin IoT Box)
-- **Ticket**: sale como PDF; con Chrome en *kiosk-printing* se imprime sin diálogo.
-- **Cajón**: solo se abre de forma fiable con impresora Epson *ePOS* o *IoT Box*. La Approx es ESC/POS genérica. Pendiente de probar el auto-kick del firmware.
-- Odoo instaló `pos_epson_printer` automáticamente pero **solo sirve para impresoras Epson**.
+
+> **Actualizado el 2026-09-05**: lo de abajo era el punto de partida de Odoo
+> estándar. El módulo ya no depende de nada de eso — habla ESC/POS directamente
+> con la impresora y dispara el cajón por el RJ11. Ver **§11**.
+
+- **Ticket**: de fábrica sale como PDF y con Chrome en *kiosk-printing* se imprime sin diálogo. **Ya no hace falta**: el ticket se manda en ESC/POS desde el servidor.
+- **Cajón**: Odoo solo lo abre de forma fiable con impresora Epson *ePOS* o *IoT Box*, y la Approx es ESC/POS genérica. **Resuelto** parcheando `openCashbox()` del TPV para que el pulso salga por nuestra impresora (`static/src/js/pos_hardware.js`).
+- Odoo instaló `pos_epson_printer` automáticamente pero **solo sirve para impresoras Epson**; no se usa.
 
 ---
 
@@ -283,10 +328,15 @@ de log como error y puede abortar el arranque. Redirige a fichero con
 # Consola Python de Odoo (para tocar datos directamente)
 .\venv\Scripts\python.exe .\odoo\odoo-bin shell -c odoo.conf -d mi_base_stock --no-http
 
-# Copia de seguridad manual de la BD
+# Copia de seguridad manual de la BD, a pelo (el módulo ya las hace solo, ver §11.4:
+# un único .zip con base de datos + filestore, y restore-backup.ps1 para volver atrás)
 $env:PGPASSWORD='odoo'
 & "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe" -U odoo -h localhost -Fc mi_base_stock -f backup_mi_base_stock.dump
 # + copiar la carpeta .odoo_data\ (filestore: imágenes y adjuntos)
+
+# Restaurar una copia del módulo (con el servidor parado)
+.\restore-backup.ps1 -Lista
+.\restore-backup.ps1
 ```
 
 ---
@@ -295,24 +345,35 @@ $env:PGPASSWORD='odoo'
 
 ```
 __manifest__.py
-__init__.py                    # importa models/
+__init__.py                     # importa models/
 models/
   __init__.py
   res_company.py                # aplica marca (nombre+logo) e idioma español
-  product_template.py           # defaults de floristería + campos y lógica de alertas de stock
-  mgs_reception.py               # wizard de Recepción (pantalla de escaneo)
+  product_template.py           # defaults de floristería, alertas, datos del panel, etiquetas
+  mgs_reception.py              # wizard de Recepción (pantalla de escaneo)
+  mgs_stock_alert.py            # avisos por cantidad y periódicos (+ su cron)
+  mgs_monthly_report.py         # asistente del informe mensual en PDF
+  mgs_config.py                 # § HARDWARE: lectores, impresora, cajón y ajustes de copia
+  mgs_escpos.py                 # § HARDWARE: comandos ESC/POS y transportes (sin dependencias)
+  mgs_backup.py                 # § COPIAS: volcado a un .zip del disco + cron + retención
 data/
   branding.xml                  # marca/idioma + desactiva registro público + fix salida TPV
   ux_defaults.xml               # pantalla de inicio, home action, oculta apps que no se usan
-  cron_alerts.xml               # ir.cron diario: avisos de stock bajo mínimo
+  cron_alerts.xml               # ir.cron cada 6 h: avisos periódicos de stock
+  mgs_hardware_data.xml         # registro único de configuración (noupdate), secuencia, cron de copias
 security/
-  ir.model.access.csv           # ACL de mgs.reception y mgs.reception.line
+  ir.model.access.csv           # ACL de los modelos mgs.*
 views/
-  mgs_menus.xml                  # ÚNICA app visible: Recepción · Stock · Compra · Informes
+  mgs_menus.xml                 # ÚNICA app visible: Recepción · Stock · Informes · Configuración
   mgs_reception_views.xml       # formulario + acción de la pantalla de Recepción
+  mgs_alert_views.xml           # lista/formulario de avisos de stock
+  mgs_dashboard_views.xml       # acciones cliente: inicio y panel de Stock
   product_views.xml             # ficha de producto simplificada + lista/buscador de Stock
   pos_report_views.xml          # acciones de Informes (reutilizan report.pos.order nativo)
+  mgs_config_views.xml          # pantalla de Dispositivos + historial de copias
   login_templates.xml           # personalización de la pantalla de login
+report/
+  mgs_monthly_report.xml        # plantilla QWeb del informe mensual
 static/src/
   img/
     logo-emblema.png / logo.png / favicon.png   # emblema a color, USADOS (login/empresa/favicon)
@@ -322,6 +383,10 @@ static/src/
     primary_variables.scss      # color de marca de Odoo ($o-community-color, etc.)
   js/
     title.js                    # título de pestaña + limpieza mínima del systray
+    clean_form.js               # js_class que marca los formularios-flujo (Recepción)
+    home.js / home.xml          # página de inicio
+    stock_dashboard.js / .xml   # panel de Stock (escanear aquí abre la ficha del producto)
+    pos_hardware.js             # § HARDWARE: puente TPV ↔ impresora ESC/POS y cajón
 ```
 
 ### `__manifest__.py` — puntos clave
@@ -610,11 +675,14 @@ La localización fiscal española (`l10n_es`) ya estaba instalada (§3).
    carpeta `EntreRamblasGestorStock\` entera + restaurar el dump de la BD.
 10. **Mover la BD/filestore al disco que indique el cliente** (`data_dir` y `db` en
     `odoo.conf`, o `data_directory` de PostgreSQL).
-11. Instalar drivers de la impresora Approx, configurar Chrome *kiosk-printing*, probar
-    **ticket + cajón** con el hardware real. Decidir si hace falta IoT Box para el cajón.
+11. ~~Instalar drivers de la impresora Approx, configurar Chrome *kiosk-printing*~~ —
+    ya no hace falta: el ticket sale en ESC/POS desde el servidor (§11.2). Queda
+    **probar ticket + cajón con el hardware real** (Configuración → Dispositivos
+    tiene los dos botones de prueba). IoT Box descartada.
 12. Emparejar el lector Honeywell (modo HID) y probar el escaneo en TPV y en recepción.
-13. **Copias de seguridad automáticas** al SSD Corsair (tarea programada de Windows con
-    `pg_dump` + copia del filestore).
+13. ~~Copias de seguridad automáticas~~ ✅ hecho (§11.4): las hace el propio módulo
+    cada 6 h en un `.zip` con base de datos + filestore. **Pendiente en producción**:
+    apuntar la carpeta al SSD Corsair desde Configuración → Dispositivos.
 14. Arrancar Odoo como **servicio de Windows** para que se inicie con el equipo (NSSM o similar).
 15. Revisar seguridad: `admin_passwd` robusta, `list_db = False` (ya está), quizá cifrado del disco.
 
@@ -632,3 +700,178 @@ La localización fiscal española (`l10n_es`) ya estaba instalada (§3).
   porque `custom_addons` es la carpeta padre). No incluye `stock-logistics-barcode`:
   esa carpeta OCA no está presente en este repo (solo existía en la carpeta antigua
   `C:\Users\Usuario\Desktop\EntreRamblas\`, sin instalar).
+
+---
+
+## 11. Hardware de la tienda y persistencia en disco
+
+Todo lo de esta sección se configura en **Gestor de Stock → Configuración →
+Dispositivos** (menú visible solo para el administrador). Es un **registro
+único** del modelo `mgs.config`, creado por `data/mgs_hardware_data.xml` con
+`noupdate="1"`: lo que se ajuste en la tienda **no se pisa** en el siguiente
+`-u mi_gestor_stock`.
+
+### 11.1 Los dos lectores (Honeywell XP 1472g y PcCom)
+
+Los dos son **HID**: cada lectura se escribe como si se tecleara y termina en
+Enter. No hay driver, ni puerto, ni configuración en Windows — y por eso los dos
+funcionan exactamente igual para el programa. Quien los recoge es el motor
+`barcodes` de Odoo, que ya estaba instalado.
+
+Dónde funciona el escaneo:
+
+| Pantalla | Qué hace al escanear |
+|---|---|
+| **Recepción** | Suma unidades (modo existente) o asigna el código (modo nuevo). Hereda `barcodes.barcode_events_mixin`: engancha en cualquier punto de la pantalla, sin poner el foco en un campo |
+| **Panel de Stock** | Abre la ficha del producto — consultar precio/existencias con la pistola (`onBarcodeScanned` en `stock_dashboard.js` → `product.template.mgs_find_by_barcode`) |
+| **TPV** (`/pos/ui`) | Añade el producto a la venta (nativo de Odoo) |
+| **Cualquier campo de texto** | Se escribe el código, como con un teclado |
+
+Ajustes disponibles, todos opcionales:
+
+- **Retardo máximo entre teclas** (150 ms por defecto). Si el lector Bluetooth
+  pierde caracteres, súbelo a 250. Se guarda en el parámetro de sistema
+  `barcode.max_time_between_keys_in_ms`, que Odoo sirve en la sesión del
+  navegador (`odoo/addons/barcodes/models/ir_http.py`) → hace falta **Ctrl+F5**
+  para que el cambio llegue al navegador.
+- **Prefijo / sufijo a descartar**: solo si alguien programa el lector para
+  añadir caracteres. El Enter final **no** se pone aquí (es la marca de fin de
+  lectura y Odoo ya lo consume).
+- **Prefijo de códigos internos** (`28` por defecto).
+
+> ⚠️ **No uses 22, 23, 041 ni 042** como prefijo de códigos internos: la
+> nomenclatura por defecto del TPV los reserva para descuentos, precio
+> incrustado, cajero y cliente
+> (`odoo/addons/point_of_sale/data/default_barcode_patterns.xml`). Un código
+> propio que empiece por ahí lo interpretaría mal la caja.
+
+### 11.2 Impresora Approx appPOS80AM (ESC/POS)
+
+El servidor le manda **ESC/POS** en crudo. El generador de comandos está en
+`models/mgs_escpos.py` (unas 250 líneas, **sin dependencias externas**: nada de
+`python-escpos`). Tres formas de conectarla:
+
+| Modo | Cuándo usarlo | Requisitos |
+|---|---|---|
+| **Red (TCP 9100)** — recomendado | La impresora en la LAN por su boca Ethernet | IP **fija** (reserva en el router o su utilidad de configuración) |
+| **Impresora de Windows (RAW)** | Conectada por USB al PC de caja | Driver instalado + `pip install pywin32` en el venv |
+| **Ruta o puerto** | `\\EQUIPO\POS80`, `COM1`, o **un fichero para probar sin hardware** | — |
+
+Qué imprime:
+
+- **Ticket del TPV**, automáticamente al cobrar: cabecera con nombre/NIF de la
+  tienda, líneas con cantidad y precio, total, **desglose de IVA** (ticket
+  simplificado español), pagos, cambio, pie y el número de ticket en código de
+  barras. Sale directo por la térmica, **sin diálogo del navegador**.
+- **Etiquetas de producto**: nombre, PVP y el código de barras. Lo dibuja la
+  propia impresora (`GS k`, EAN-13 si el código es válido y CODE128 si no), así
+  que no hace falta ni PDF ni wkhtmltopdf.
+- **Ticket de prueba** con acentos, euro y un código de barras de muestra: si ese
+  código se lee con la pistola, el circuito completo funciona.
+
+Si en el ticket salen símbolos raros, cambia el **juego de caracteres** (cp858
+por defecto, que es cp850 + euro). La opción **«Sin acentos»** siempre funciona:
+transliterá los acentos y escribe `EUR` en lugar de `€`.
+
+### 11.3 Cajón Approx CASH01
+
+No recibe datos: cuelga del **RJ11 de la impresora** y se abre con un pulso de
+12 V. Abrir el cajón es, técnicamente, mandarle 5 bytes a la impresora
+(`ESC p m t1 t2`).
+
+- **Al cobrar en efectivo o dar cambio**, el TPV ya llama a `openCashbox()`
+  (`payment_screen.js` → `_finalizeValidation`). `static/src/js/pos_hardware.js`
+  parchea esa llamada para que, además del camino de la IoT Box (que aquí no
+  existe y no hace nada), se dispare nuestro pulso.
+- **A mano**, con el botón «Abrir el cajón» de la pantalla de Configuración.
+- Si la impresora está apagada o sin red, **no hay pulso**: el cajón se abre con
+  la llave. Es una limitación física del montaje, no del programa.
+
+Ajustables: patilla del RJ11 (2 por defecto, algunos cajones usan la 5) y
+duración del pulso (100 ms; súbelo si el solenoide no llega a saltar).
+
+### 11.4 La persistencia: un archivo en el disco con todo dentro
+
+**Odoo no puede funcionar sobre un fichero suelto** (necesita PostgreSQL: usa
+vistas, secuencias y tipos propios). Lo que sí se hace, y es lo que se pidió, es
+**volcar automáticamente el estado completo a un archivo del disco**:
+
+```
+.odoo_data\backups\
+  mi_base_stock-ultima.zip          <- SIEMPRE el estado más reciente (nombre fijo)
+  mi_base_stock-20260905-1130.zip   <- histórico con fecha (14 copias por defecto)
+```
+
+Dentro de cada `.zip`:
+
+| Contenido | Qué es |
+|---|---|
+| `dump.sql` | La base de datos entera: productos, stock, ventas, clientes, usuarios y la propia configuración de los dispositivos |
+| `filestore/` | Imágenes y adjuntos |
+| `manifest.json` | Versión de Odoo y módulos instalados |
+
+Es el **formato de copia nativo de Odoo**, así que ese archivo se puede restaurar
+en este equipo o en cualquier otro Odoo 18.
+
+- **Cada cuánto**: un `ir.cron` se despierta cada hora y el modelo decide si toca
+  copia comparando con la última (6 h por defecto). Mirar la última copia en vez
+  de fiarlo al intervalo del cron hace que, si la tienda pasa la noche apagada,
+  al encender se haga **la copia que tocaba, no cuatro seguidas**.
+- **Dónde**: por defecto `<data_dir>\backups`. Cambiando la carpeta en la
+  pantalla de Configuración se escriben directamente en el **SSD Corsair**
+  (`E:\CopiasEntreRamblas`, por ejemplo).
+- **Historial**: menú Configuración → Copias de seguridad, con el botón
+  «Hacer una copia ahora». Las copias fallidas también quedan registradas, con
+  el motivo.
+
+**Restaurar** (con el servidor **parado**):
+
+```powershell
+.\restore-backup.ps1                       # la copia más reciente
+.\restore-backup.ps1 -Lista                # ver qué copias hay
+.\restore-backup.ps1 -Archivo E:\copias\mi_base_stock-20260905-1130.zip
+```
+
+Pide confirmación escribiendo `SI`, borra la base actual y restaura la copia
+(base de datos + filestore). Por debajo llama a `tools\restore_backup.py`.
+
+> ⚠️ **Gotcha (dos veces el mismo)**: `dump_db`, `restore_db` y `exp_drop` de
+> `odoo/service/db.py` llevan el decorador `check_db_management_enabled`, que
+> lanza `AccessDenied` cuando **`list_db = False`** — y así está `odoo.conf` a
+> propósito, para ocultar el gestor de bases de datos del navegador. Por eso:
+> **(a)** `models/mgs_backup.py` **no** llama a `dump_db`, sino que rehace el
+> volcado (pg_dump + filestore + manifest + zip), que es exactamente lo que hace
+> Odoo por dentro; **(b)** `tools/restore_backup.py` levanta `list_db` en
+> memoria antes de restaurar, algo legítimo en un script local con el servidor
+> parado.
+>
+> ⚠️ Y otro: en Windows **`pg_dump` no está en el PATH**, así que la copia
+> fallaría en silencio. `odoo.conf` fija ahora `pg_path = C:\Program
+> Files\PostgreSQL\16\bin` (si se instala otra versión, hay que cambiar el
+> número); además `_mgs_pg_tool()` lo busca por su cuenta en
+> `C:\Program Files\PostgreSQL\*\bin` como red de seguridad.
+
+### 11.5 Puesta en marcha en el PC de producción
+
+1. Emparejar el **Honeywell** en modo HID Bluetooth (código del manual) y
+   enchufar el dongle del **PcCom**. Probar en cualquier campo de texto: el
+   código debe escribirse y saltar de línea solo.
+2. Conectar la **impresora** (red o USB) y el **cajón** al RJ11 de la impresora.
+3. Configuración → Dispositivos → elegir la conexión y pulsar **«Imprimir ticket
+   de prueba»** y **«Abrir el cajón»**.
+4. Escanear el código de barras del propio ticket de prueba: cierra el círculo
+   lector ↔ impresora.
+5. Poner la **carpeta de copias** en el SSD externo y pulsar «Hacer una copia
+   ahora» para dejar la primera hecha.
+
+### 11.6 Archivos que intervienen
+
+| Archivo | Qué hace |
+|---|---|
+| `models/mgs_escpos.py` | Generador de comandos ESC/POS y los tres transportes (red / Windows RAW / ruta) |
+| `models/mgs_config.py` | Modelo `mgs.config`: ajustes, tickets, etiquetas, cajón, códigos internos |
+| `models/mgs_backup.py` | Modelo `mgs.backup`: volcado a `.zip`, archivo permanente, retención y cron |
+| `views/mgs_config_views.xml` | Pantalla de configuración (3 pestañas) y lista de copias |
+| `data/mgs_hardware_data.xml` | Registro único (`noupdate`), secuencia de códigos internos y cron de copias |
+| `static/src/js/pos_hardware.js` | Puente TPV ↔ hardware: ticket ESC/POS y apertura de cajón, con vuelta atrás segura |
+| `tools/restore_backup.py` + `restore-backup.ps1` | Restauración de una copia |

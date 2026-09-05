@@ -58,6 +58,15 @@
                 <group name="group_stock_floristeria" string="Código y Referencia">
                     <field name="barcode" string="Código de barras" placeholder="Escanear con pistola Honeywell..."/>
                     <field name="default_code" string="Referencia interna"/>
+                    <!-- Hardware: código interno para productos sin EAN del
+                         proveedor + etiqueta en la térmica de 80 mm
+                         (models/mgs_config.py). -->
+                    <button name="action_mgs_generate_barcode" type="object"
+                            string="Generar código interno" class="btn-link ps-0"
+                            colspan="2" invisible="barcode"/>
+                    <button name="action_mgs_print_label" type="object"
+                            string="Imprimir etiqueta" class="btn-link ps-0"
+                            colspan="2" invisible="not barcode"/>
                     <!-- Campos técnicos en modo invisible -->
                     <field name="currency_id" invisible="1"/>
                     <field name="cost_currency_id" invisible="1"/>

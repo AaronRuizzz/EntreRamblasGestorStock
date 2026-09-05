@@ -48,9 +48,15 @@ class MgsReception(models.TransientModel):
     def on_barcode_scanned(self, barcode):
         """Override del mixin barcodes.barcode_events_mixin: se llama cuando el
         lector (en modo HID, en cualquier parte de la pantalla) termina una
-        lectura con Enter."""
+        lectura con Enter.
+
+        Tanto el Honeywell (Bluetooth -> base -> teclado) como el PcCom
+        (dongle 2,4 GHz -> teclado) entregan la lectura como texto tecleado,
+        así que los dos entran por aquí. `mgs_clean_scan` quita el prefijo o
+        el sufijo que se les haya programado (ver Configuración →
+        Dispositivos)."""
         self.ensure_one()
-        barcode = (barcode or "").strip()
+        barcode = self.env["mgs.config"].mgs_clean_scan(barcode)
         if not barcode:
             return
         if self.mode == "nuevo":
@@ -60,7 +66,7 @@ class MgsReception(models.TransientModel):
 
     @api.onchange("manual_barcode")
     def _onchange_manual_barcode(self):
-        code = (self.manual_barcode or "").strip()
+        code = self.env["mgs.config"].mgs_clean_scan(self.manual_barcode)
         self.manual_barcode = False
         if code:
             self._mgs_add_barcode(code)
@@ -150,6 +156,28 @@ class MgsReception(models.TransientModel):
         self.new_price = 0.0
         self.new_cost = 0.0
         self.new_expiry_date = False
+
+    def action_mgs_generate_barcode(self):
+        """Modo 'nuevo': código interno para un producto que llega sin EAN.
+
+        Se rellena el campo, se crea el producto con él y luego se imprime la
+        etiqueta con «Imprimir etiquetas»: a partir de ahí el producto se
+        escanea como cualquier otro.
+        """
+        self.ensure_one()
+        self.new_barcode = self.env["mgs.config"].mgs_next_internal_barcode()
+        self.scan_message = _("Código interno %s generado. Imprime la etiqueta "
+                              "cuando lo añadas.", self.new_barcode)
+        return True
+
+    def action_mgs_print_labels(self):
+        """Una etiqueta por producto de la recepción, en la térmica de 80 mm."""
+        self.ensure_one()
+        if not self.line_ids:
+            raise UserError(_("No hay productos que etiquetar todavía."))
+        products = self.env["product.product"].browse(
+            [line.product_id.id for line in self.line_ids if line.product_id])
+        return self.env["mgs.config"]._mgs_get().mgs_print_labels(products)
 
     def action_clear(self):
         self.ensure_one()
@@ -242,3 +270,8 @@ class MgsReceptionLine(models.TransientModel):
     qty_available = fields.Float(related="product_id.qty_available", string="Stock actual",
                                   readonly=True)
     expiry_date = fields.Date("Caduca el")
+
+    def action_mgs_print_label(self):
+        """Etiqueta solo de este producto (botón de la línea)."""
+        self.ensure_one()
+        return self.env["mgs.config"]._mgs_get().mgs_print_labels(self.product_id)
