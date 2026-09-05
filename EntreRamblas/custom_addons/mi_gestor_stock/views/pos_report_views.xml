@@ -1,39 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ============================================================
-         Informes (Fase 5 del plan de limpieza): se reutiliza el modelo
-         nativo report.pos.order y sus vistas pivot/graph/list, solo se
-         cambian nombre, dominio y contexto por defecto.
+         Informes: se apoyan en el modelo nativo report.pos.order, que
+         ya agrega las ventas del TPV (product_id, product_qty,
+         price_total, margin, date...). Aquí solo se definen las vistas
+         y los contextos que interesan a la floristería.
          ============================================================ -->
+
+    <!-- ================= Ventas y balance ================= -->
+    <record id="view_mgs_sales_graph" model="ir.ui.view">
+        <field name="name">report.pos.order.graph.mgs</field>
+        <field name="model">report.pos.order</field>
+        <field name="arch" type="xml">
+            <graph string="Ventas" type="bar" sample="1">
+                <field name="date" interval="month"/>
+                <field name="price_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_mgs_sales_pivot" model="ir.ui.view">
+        <field name="name">report.pos.order.pivot.mgs</field>
+        <field name="model">report.pos.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Ventas y balance" sample="1">
+                <field name="date" interval="month" type="row"/>
+                <field name="price_total" type="measure"/>
+                <field name="margin" type="measure"/>
+                <field name="product_qty" type="measure"/>
+            </pivot>
+        </field>
+    </record>
 
     <record id="action_mgs_report_sales" model="ir.actions.act_window">
         <field name="name">Ventas y balance</field>
         <field name="res_model">report.pos.order</field>
         <field name="view_mode">graph,pivot,list</field>
         <field name="search_view_id" ref="point_of_sale.view_report_pos_order_search"/>
-        <field name="context">{'search_default_not_cancelled': 1, 'search_default_order_month': 1}</field>
+        <field name="context">{'search_default_not_cancelled': 1}</field>
         <field name="view_ids" eval="[(5,0,0),
-            (0,0,{'sequence':1,'view_mode':'graph','view_id': ref('point_of_sale.view_report_pos_order_graph')}),
-            (0,0,{'sequence':2,'view_mode':'pivot','view_id': ref('point_of_sale.view_report_pos_order_pivot')}),
+            (0,0,{'sequence':1,'view_mode':'graph','view_id': ref('view_mgs_sales_graph')}),
+            (0,0,{'sequence':2,'view_mode':'pivot','view_id': ref('view_mgs_sales_pivot')}),
             (0,0,{'sequence':3,'view_mode':'list', 'view_id': ref('point_of_sale.report_pos_order_view_tree')})]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Todavía no hay ventas registradas.</p>
+            <p>En cuanto se cobre en el TPV, aquí aparecerán los importes y el margen.</p>
+        </field>
+    </record>
+
+    <!-- ============= Productos más vendidos (ranking) ============= -->
+    <record id="view_mgs_top_products_graph" model="ir.ui.view">
+        <field name="name">report.pos.order.graph.top.mgs</field>
+        <field name="model">report.pos.order</field>
+        <field name="arch" type="xml">
+            <graph string="Productos más vendidos" type="bar" order="desc" sample="1">
+                <field name="product_id"/>
+                <field name="product_qty" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_mgs_top_products_pivot" model="ir.ui.view">
+        <field name="name">report.pos.order.pivot.top.mgs</field>
+        <field name="model">report.pos.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Productos más vendidos" sample="1">
+                <field name="product_id" type="row"/>
+                <field name="product_qty" type="measure"/>
+                <field name="price_total" type="measure"/>
+                <field name="margin" type="measure"/>
+            </pivot>
         </field>
     </record>
 
     <record id="action_mgs_report_top_products" model="ir.actions.act_window">
         <field name="name">Productos más vendidos</field>
         <field name="res_model">report.pos.order</field>
-        <field name="view_mode">list,graph,pivot</field>
+        <field name="view_mode">graph,pivot,list</field>
         <field name="search_view_id" ref="point_of_sale.view_report_pos_order_search"/>
-        <field name="context">{'search_default_not_cancelled': 1, 'search_default_product': 1,
-                                'group_by': ['product_id']}</field>
+        <field name="context">{'search_default_not_cancelled': 1, 'search_default_product': 1}</field>
         <field name="view_ids" eval="[(5,0,0),
-            (0,0,{'sequence':1,'view_mode':'list', 'view_id': ref('point_of_sale.report_pos_order_view_tree')}),
-            (0,0,{'sequence':2,'view_mode':'graph','view_id': ref('point_of_sale.view_report_pos_order_graph')}),
-            (0,0,{'sequence':3,'view_mode':'pivot','view_id': ref('point_of_sale.view_report_pos_order_pivot')})]"/>
+            (0,0,{'sequence':1,'view_mode':'graph','view_id': ref('view_mgs_top_products_graph')}),
+            (0,0,{'sequence':2,'view_mode':'pivot','view_id': ref('view_mgs_top_products_pivot')}),
+            (0,0,{'sequence':3,'view_mode':'list', 'view_id': ref('point_of_sale.report_pos_order_view_tree')})]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Todavía no hay ventas registradas.</p>
+            <p>Cuando las haya, aquí saldrá el ranking de lo que más se vende.</p>
         </field>
     </record>
 </odoo>

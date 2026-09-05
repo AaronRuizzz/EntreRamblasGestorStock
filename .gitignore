@@ -55,6 +55,10 @@ EntreRamblas/env/
 !.env.example
 
 # Backups y volcados de bases de datos
+# (las copias automaticas del Gestor de Stock, en .odoo_data/backups/ o en
+#  la carpeta que se indique en Configuracion > Dispositivos)
+backups/
+mi_base_stock-*.zip
 *.pgsql
 *.dump
 *.backup

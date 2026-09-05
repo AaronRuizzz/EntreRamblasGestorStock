@@ -11,6 +11,13 @@
         <field name="priority" eval="90"/>
         <field name="arch" type="xml">
 
+            <!-- 0. Menos ruido en el panel de control: los productos se crean en
+                 Recepción, y duplicar una ficha no tiene sentido aquí. -->
+            <xpath expr="//form" position="attributes">
+                <attribute name="create">false</attribute>
+                <attribute name="duplicate">false</attribute>
+            </xpath>
+
             <!-- 1. Ocultar estrella de favoritos y checks técnicos de la cabecera -->
             <xpath expr="//field[@name='is_favorite']" position="attributes">
                 <attribute name="invisible">1</attribute>
@@ -51,6 +58,15 @@
                 <group name="group_stock_floristeria" string="Código y Referencia">
                     <field name="barcode" string="Código de barras" placeholder="Escanear con pistola Honeywell..."/>
                     <field name="default_code" string="Referencia interna"/>
+                    <!-- Hardware: código interno para productos sin EAN del
+                         proveedor + etiqueta en la térmica de 80 mm
+                         (models/mgs_config.py). -->
+                    <button name="action_mgs_generate_barcode" type="object"
+                            string="Generar código interno" class="btn-link ps-0"
+                            colspan="2" invisible="barcode"/>
+                    <button name="action_mgs_print_label" type="object"
+                            string="Imprimir etiqueta" class="btn-link ps-0"
+                            colspan="2" invisible="not barcode"/>
                     <!-- Campos técnicos en modo invisible -->
                     <field name="currency_id" invisible="1"/>
                     <field name="cost_currency_id" invisible="1"/>
@@ -58,13 +74,17 @@
                 </group>
             </xpath>
 
-            <!-- 4bis. Aviso de stock mínimo, junto a la información de precios -->
+            <!-- 4bis. Existencias, caducidad y avisos -->
             <xpath expr="//group[@name='group_stock_floristeria']" position="after">
-                <group name="group_mgs_alert" string="Aviso de stock">
+                <group name="group_mgs_stock" string="Existencias y caducidad">
                     <field name="qty_available" string="Existencias" readonly="1"/>
-                    <field name="mgs_alert_on"/>
-                    <field name="mgs_min_qty" invisible="not mgs_alert_on"/>
+                    <field name="mgs_reception_date" readonly="1"/>
+                    <field name="mgs_expiry_date"/>
                     <field name="mgs_low_stock" invisible="1"/>
+                    <field name="mgs_expired" invisible="1"/>
+                    <field name="mgs_alert_count" invisible="1"/>
+                    <button name="action_mgs_open_alerts" type="object" class="btn-link ps-0"
+                            string="Configurar avisos de este producto"/>
                 </group>
             </xpath>
 
@@ -88,36 +108,28 @@
     </record>
 
     <!-- ============================================================
-         Stock: lista y buscador propios (Fase 3 del plan de limpieza)
+         Stock: lista y buscador propios
          ============================================================ -->
     <record id="view_mgs_product_list" model="ir.ui.view">
         <field name="name">product.template.list.mgs</field>
         <field name="model">product.template</field>
         <field name="arch" type="xml">
-            <list string="Stock" decoration-danger="mgs_low_stock">
+            <!-- create="false": los productos se dan de alta en Recepción
+                 (modo "Producto nuevo"), que además les asigna el código de
+                 barras. Aquí solo se consultan y se editan. -->
+            <list string="Stock" create="false"
+                  decoration-danger="mgs_low_stock" decoration-warning="mgs_expired">
                 <field name="name" string="Producto"/>
                 <field name="barcode" optional="show"/>
-                <field name="categ_id" string="Categoría" optional="hide"/>
+                <field name="categ_id" string="Categoría" optional="show"/>
                 <field name="qty_available" string="Existencias"/>
-                <field name="mgs_min_qty" string="Mínimo"/>
+                <field name="mgs_expiry_date" string="Caduca"/>
+                <field name="mgs_reception_date" string="Recibido" optional="hide"/>
                 <field name="list_price" string="PVP" widget="monetary"
                        options="{'currency_field': 'currency_id'}"/>
                 <field name="currency_id" column_invisible="True"/>
                 <field name="mgs_low_stock" column_invisible="True"/>
-            </list>
-        </field>
-    </record>
-
-    <record id="view_mgs_alert_list" model="ir.ui.view">
-        <field name="name">product.template.list.mgs.alerts</field>
-        <field name="model">product.template</field>
-        <field name="arch" type="xml">
-            <list string="Alertas de stock" decoration-danger="mgs_low_stock">
-                <field name="name" string="Producto"/>
-                <field name="barcode" optional="show"/>
-                <field name="qty_available" string="Existencias"/>
-                <field name="mgs_min_qty" string="Mínimo"/>
-                <field name="mgs_low_stock" column_invisible="True"/>
+                <field name="mgs_expired" column_invisible="True"/>
             </list>
         </field>
     </record>
@@ -133,6 +145,8 @@
                 <separator/>
                 <filter string="Bajo mínimo" name="filter_mgs_low_stock"
                         domain="[('mgs_low_stock','=',True)]"/>
+                <filter string="Caducados" name="filter_mgs_expired"
+                        domain="[('mgs_expiry_date','&lt;',context_today().strftime('%Y-%m-%d'))]"/>
                 <separator/>
                 <filter string="Archivados" name="inactive" domain="[('active','=',False)]"/>
                 <group expand="1" string="Agrupar por">
@@ -143,30 +157,21 @@
     </record>
 
     <record id="action_mgs_products" model="ir.actions.act_window">
-        <field name="name">Stock</field>
+        <field name="name">Productos</field>
         <field name="res_model">product.template</field>
         <field name="view_mode">list,form</field>
+        <!-- Solo productos almacenables: fuera los técnicos que instalan
+             el TPV / la localización fiscal (Propinas, DUA Valoración...),
+             que no son is_storable y no son inventario real. -->
+        <field name="domain">[('is_storable','=',True)]</field>
+        <field name="context">{'search_default_group_categ_id': 1}</field>
         <field name="search_view_id" ref="view_mgs_product_search"/>
         <field name="view_ids" eval="[(5,0,0),
             (0,0,{'sequence':1,'view_mode':'list','view_id': ref('view_mgs_product_list')}),
             (0,0,{'sequence':2,'view_mode':'form'})]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Todavía no hay productos.</p>
-            <p>Se dan de alta desde Recepción al escanear un código nuevo, o aquí con «Nuevo».</p>
-        </field>
-    </record>
-
-    <record id="action_mgs_stock_alerts" model="ir.actions.act_window">
-        <field name="name">Alertas de stock</field>
-        <field name="res_model">product.template</field>
-        <field name="view_mode">list,form</field>
-        <field name="domain">[('mgs_low_stock','=',True)]</field>
-        <field name="search_view_id" ref="view_mgs_product_search"/>
-        <field name="view_ids" eval="[(5,0,0),
-            (0,0,{'sequence':1,'view_mode':'list','view_id': ref('view_mgs_alert_list')}),
-            (0,0,{'sequence':2,'view_mode':'form'})]"/>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Sin alertas: todo por encima del mínimo.</p>
+            <p>Se dan de alta desde Recepción, en el modo «Producto nuevo».</p>
         </field>
     </record>
 </odoo>

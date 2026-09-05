@@ -4,7 +4,12 @@
         <field name="name">mgs.reception.form</field>
         <field name="model">mgs.reception</field>
         <field name="arch" type="xml">
-            <form string="Recepción">
+            <!-- js_class + create/duplicate/delete a false: esta pantalla es un
+                 flujo de trabajo, no una ficha. Fuera "Nuevo", la rueda de
+                 ajustes y el guardar/descartar genéricos; los únicos botones
+                 son los de la cabecera. -->
+            <form string="Recepción" js_class="mgs_clean_form"
+                  create="false" duplicate="false" delete="false">
                 <!-- Engancha el lector: barcodes.barcode_events_mixin recibe
                      aquí cualquier escaneo hecho en toda la pantalla, tenga
                      o no el foco puesto en un campo. No marcar invisible. -->
@@ -12,32 +17,75 @@
                 <header>
                     <button name="action_confirm" string="Guardar en almacén" type="object"
                             class="btn-primary" invisible="not line_ids"/>
+                    <!-- Etiquetas en la térmica de 80 mm: la impresora dibuja
+                         el código de barras (ESC/POS), no hace falta PDF. -->
+                    <button name="action_mgs_print_labels" string="Imprimir etiquetas"
+                            type="object" invisible="not line_ids"/>
                     <button name="action_clear" string="Vaciar" type="object"
                             invisible="not line_ids"/>
                 </header>
                 <sheet>
-                    <div class="mgs-scan-box">
-                        <field name="manual_barcode" nolabel="1" class="mgs-scan-input"
-                               placeholder="Escanea el código de barras o tecléalo…"/>
-                        <field name="scan_message" readonly="1" nolabel="1"
-                               class="mgs-scan-feedback" invisible="not scan_message"/>
+                    <div class="mgs-mode-switch">
+                        <field name="mode" widget="radio" options="{'horizontal': true}"
+                               nolabel="1"/>
                     </div>
 
-                    <group string="Producto nuevo" invisible="not unknown_barcode">
-                        <field name="unknown_barcode" string="Código escaneado" readonly="1"/>
-                        <field name="pending_name" placeholder="Nombre del producto"/>
-                        <field name="pending_price"/>
-                        <button name="action_create_missing_product" string="Crear producto"
-                                type="object" class="btn-primary"/>
-                        <button name="action_discard_pending" string="Descartar" type="object"/>
-                    </group>
+                    <!-- ============ MODO: PRODUCTO EXISTENTE ============ -->
+                    <div class="mgs-scan-box" invisible="mode != 'existente'">
+                        <field name="manual_barcode" nolabel="1" class="mgs-scan-input"
+                               placeholder="Escanea el código de barras del producto…"/>
+                        <div class="mgs-scan-hint">
+                            El producto ya está dado de alta: se reutiliza toda su
+                            información y solo se actualizan la fecha de recepción y
+                            la de caducidad.
+                        </div>
+                    </div>
 
+                    <!-- ============ MODO: PRODUCTO NUEVO ============ -->
+                    <div class="mgs-new-box" invisible="mode != 'nuevo'">
+                        <group>
+                            <group string="Información del producto">
+                                <field name="new_name" placeholder="Ej. Rosa roja de tallo largo"/>
+                                <field name="new_categ_id" options="{'no_open': True}"
+                                       placeholder="Ej. Flor cortada"/>
+                                <field name="new_price"/>
+                                <field name="new_cost"/>
+                                <field name="new_expiry_date"/>
+                            </group>
+                            <group string="Código de barras">
+                                <field name="new_barcode" nolabel="1" class="mgs-scan-input"
+                                       placeholder="Escanea el código para asignarlo…"/>
+                                <!-- Flores a granel, envoltorios o composiciones
+                                     propias no traen EAN: se les genera uno
+                                     interno y se imprime en una etiqueta. -->
+                                <button name="action_mgs_generate_barcode" type="object"
+                                        string="Generar código interno"
+                                        class="btn-link ps-0" colspan="2"/>
+                            </group>
+                        </group>
+                        <div class="mgs-new-actions">
+                            <button name="action_add_new_product" type="object"
+                                    string="Crear y añadir a la recepción"
+                                    class="btn-primary"/>
+                        </div>
+                    </div>
+
+                    <field name="scan_message" readonly="1" nolabel="1"
+                           class="mgs-scan-feedback" invisible="not scan_message"/>
+
+                    <!-- create="false": la única forma de meter un producto en la
+                         lista es escaneando (existente) o dándolo de alta arriba
+                         (nuevo). Sin "Añadir línea" no se puede elegir a mano un
+                         producto ya creado. -->
                     <field name="line_ids">
-                        <list editable="bottom">
+                        <list editable="bottom" create="false">
                             <field name="product_id" readonly="1"/>
                             <field name="barcode" readonly="1" optional="show"/>
                             <field name="qty_available" readonly="1" string="Stock actual"/>
                             <field name="quantity"/>
+                            <field name="expiry_date"/>
+                            <button name="action_mgs_print_label" type="object"
+                                    icon="fa-print" title="Imprimir etiqueta"/>
                         </list>
                     </field>
                 </sheet>

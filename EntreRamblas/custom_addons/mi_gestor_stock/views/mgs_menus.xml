@@ -2,27 +2,46 @@
 <odoo>
     <!-- ============================================================
          Gestor de Stock — única app visible del sistema.
-         4 flujos: Recepción · Stock (Productos/Alertas) · Compra ·
-         Informes (Ventas/Más vendidos).
+         3 flujos: Recepción · Stock (Panel/Productos/Alertas) ·
+         Informes (Ventas/Más vendidos/Informe mensual).
+         El TPV sigue instalado y registrando ventas, pero se abre
+         aparte a pantalla completa (/pos/ui), no desde este menú.
          ============================================================ -->
+    <!-- La acción va en el propio menú raíz: al pulsar "Gestor de Stock" en la
+         barra superior (o el icono en el lanzador de apps) se abre la página de
+         inicio. Odoo solo desciende al primer hijo con acción cuando la app NO
+         tiene la suya (web/models/ir_ui_menu.py, load_web_menus), así que
+         poniéndola aquí no hace falta un menú "Inicio" ocupando sitio. -->
     <menuitem id="menu_mgs_root" name="Gestor de Stock" sequence="1"
+              action="action_mgs_home"
               web_icon="mi_gestor_stock,static/description/icon.png"/>
 
     <menuitem id="menu_mgs_reception" name="Recepción" parent="menu_mgs_root"
               action="action_mgs_reception" sequence="10"/>
 
     <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="20"/>
+    <menuitem id="menu_mgs_stock_panel" name="Panel" parent="menu_mgs_stock"
+              action="action_mgs_stock_dashboard" sequence="10"/>
     <menuitem id="menu_mgs_stock_products" name="Productos" parent="menu_mgs_stock"
-              action="action_mgs_products" sequence="10"/>
+              action="action_mgs_products" sequence="20"/>
     <menuitem id="menu_mgs_stock_alerts" name="Alertas" parent="menu_mgs_stock"
-              action="action_mgs_stock_alerts" sequence="20"/>
+              action="action_mgs_alerts" sequence="30"/>
 
-    <menuitem id="menu_mgs_pos" name="Compra" parent="menu_mgs_root"
-              action="point_of_sale.action_pos_config_kanban" sequence="30"/>
-
-    <menuitem id="menu_mgs_reports" name="Informes" parent="menu_mgs_root" sequence="40"/>
+    <menuitem id="menu_mgs_reports" name="Informes" parent="menu_mgs_root" sequence="30"/>
     <menuitem id="menu_mgs_reports_sales" name="Ventas y balance" parent="menu_mgs_reports"
               action="action_mgs_report_sales" sequence="10"/>
     <menuitem id="menu_mgs_reports_top" name="Productos más vendidos" parent="menu_mgs_reports"
               action="action_mgs_report_top_products" sequence="20"/>
+    <menuitem id="menu_mgs_reports_monthly" name="Informe mensual (PDF)" parent="menu_mgs_reports"
+              action="action_mgs_monthly_report" sequence="30"/>
+
+    <!-- Configuración: solo para el administrador. Los lectores, la impresora
+         y el cajón se ajustan una vez al montar la tienda; el uso diario no
+         pasa por aquí. -->
+    <menuitem id="menu_mgs_settings" name="Configuración" parent="menu_mgs_root"
+              sequence="40" groups="base.group_system"/>
+    <menuitem id="menu_mgs_settings_devices" name="Dispositivos" parent="menu_mgs_settings"
+              action="action_mgs_config" sequence="10" groups="base.group_system"/>
+    <menuitem id="menu_mgs_settings_backups" name="Copias de seguridad" parent="menu_mgs_settings"
+              action="action_mgs_backups" sequence="20" groups="base.group_system"/>
 </odoo>

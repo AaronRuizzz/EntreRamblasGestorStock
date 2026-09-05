@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Registro único de configuración.
+
+         noupdate="1" A PROPÓSITO: lo que el cliente ajuste en la tienda
+         (IP de la impresora, carpeta de copias, prefijo de los códigos)
+         NO se puede pisar en el siguiente `-u mi_gestor_stock`.
+         ============================================================ -->
+    <data noupdate="1">
+        <record id="mgs_config_default" model="mgs.config">
+            <field name="name">Configuración de la tienda</field>
+        </record>
+
+        <!-- Numeración de los códigos de barras internos, para los productos
+             que llegan sin EAN del proveedor (ver mgs_config.py). -->
+        <record id="seq_mgs_internal_barcode" model="ir.sequence">
+            <field name="name">Códigos de barras internos</field>
+            <field name="code">mgs.internal.barcode</field>
+            <field name="implementation">standard</field>
+            <field name="padding">6</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+
+    <data>
+        <!-- ============================================================
+             Copia de seguridad automática.
+
+             El cron se despierta cada hora y es el modelo el que decide si
+             toca copia, comparando con la última hecha (models/mgs_backup.py).
+             Así el ritmo se respeta aunque el equipo pase la noche apagado.
+             ============================================================ -->
+        <record id="ir_cron_mgs_backup" model="ir.cron">
+            <field name="name">Gestor de stock: copia de seguridad en disco</field>
+            <field name="model_id" ref="model_mgs_backup"/>
+            <field name="state">code</field>
+            <field name="code">model._mgs_cron_backup()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

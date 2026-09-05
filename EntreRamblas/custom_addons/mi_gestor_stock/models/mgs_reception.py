@@ -4,55 +4,98 @@ from odoo.exceptions import UserError
 
 
 class MgsReception(models.TransientModel):
-    """Pantalla de recepción rápida: escanear -> completar si hace falta ->
-    guardar en almacén. El registro que queda de verdad es el stock.picking
-    de entrada que se crea y valida en action_confirm(); este wizard es solo
-    el bloc de notas donde se acumulan las líneas mientras se escanea."""
+    """Pantalla de recepción de mercancía, con dos modos:
+
+      - "existente": se escanea el código y, como el producto ya está dado de
+        alta, se reutiliza toda su información; solo se refrescan la fecha de
+        recepción y la de caducidad.
+      - "nuevo": se rellena la información del producto y se le asigna un código
+        escaneándolo; al añadirlo se crea el producto y entra en la lista.
+
+    El registro que queda de verdad es el stock.picking de entrada que se crea y
+    valida en action_confirm(); este wizard es solo el bloc de notas donde se
+    acumulan las líneas mientras se escanea.
+    """
     _name = "mgs.reception"
     _inherit = ["barcodes.barcode_events_mixin"]
     _description = "Recepción de mercancía"
     _transient_max_hours = 8.0
 
+    mode = fields.Selection([
+        ("existente", "Producto existente"),
+        ("nuevo", "Producto nuevo"),
+    ], string="Modo", default="existente", required=True)
+
     line_ids = fields.One2many("mgs.reception.line", "reception_id", string="Líneas")
+    scan_message = fields.Char(readonly=True)
+
+    # --- modo "existente" ---
     manual_barcode = fields.Char(
         string="Código de barras",
         help="Respaldo para teclear el código a mano si el lector no engancha.")
-    scan_message = fields.Char(readonly=True)
-    unknown_barcode = fields.Char(readonly=True)
-    pending_name = fields.Char(string="Nombre del producto nuevo")
-    pending_price = fields.Float(string="PVP", digits='Product Price')
+
+    # --- modo "nuevo" ---
+    new_barcode = fields.Char("Código de barras")
+    new_name = fields.Char("Nombre del producto")
+    new_categ_id = fields.Many2one("product.category", string="Categoría")
+    new_price = fields.Float("Precio de venta", digits="Product Price")
+    new_cost = fields.Float("Precio de coste", digits="Product Price")
+    new_expiry_date = fields.Date("Caduca el")
 
     # ------------------------------------------------------------------
     # Entrada de escaneos
     # ------------------------------------------------------------------
     def on_barcode_scanned(self, barcode):
-        """Override del mixin barcodes.barcode_events_mixin: se llama cuando
-        el lector (en modo HID, en cualquier parte de la pantalla) termina
-        una lectura con Enter."""
+        """Override del mixin barcodes.barcode_events_mixin: se llama cuando el
+        lector (en modo HID, en cualquier parte de la pantalla) termina una
+        lectura con Enter.
+
+        Tanto el Honeywell (Bluetooth -> base -> teclado) como el PcCom
+        (dongle 2,4 GHz -> teclado) entregan la lectura como texto tecleado,
+        así que los dos entran por aquí. `mgs_clean_scan` quita el prefijo o
+        el sufijo que se les haya programado (ver Configuración →
+        Dispositivos)."""
         self.ensure_one()
-        self._mgs_add_barcode(barcode)
+        barcode = self.env["mgs.config"].mgs_clean_scan(barcode)
+        if not barcode:
+            return
+        if self.mode == "nuevo":
+            self._mgs_assign_new_barcode(barcode)
+        else:
+            self._mgs_add_barcode(barcode)
 
     @api.onchange("manual_barcode")
     def _onchange_manual_barcode(self):
-        code = (self.manual_barcode or "").strip()
+        code = self.env["mgs.config"].mgs_clean_scan(self.manual_barcode)
         self.manual_barcode = False
         if code:
             self._mgs_add_barcode(code)
 
-    def _mgs_add_barcode(self, barcode):
-        barcode = (barcode or "").strip()
-        if not barcode:
+    @api.onchange("mode")
+    def _onchange_mode(self):
+        self.scan_message = False
+
+    def _mgs_assign_new_barcode(self, barcode):
+        """Modo 'nuevo': el escaneo rellena el código del producto que se va a dar
+        de alta, avisando si ya lo tiene otro."""
+        existing = self._mgs_find_product(barcode)
+        if existing:
+            self.scan_message = _(
+                "Ese código ya es de «%s». Cambia a «Producto existente» para recibirlo.",
+                existing.display_name)
             return
+        self.new_barcode = barcode
+        self.scan_message = _("Código %s asignado al producto nuevo.", barcode)
+
+    def _mgs_add_barcode(self, barcode):
+        """Modo 'existente': busca el producto y suma una unidad a su línea."""
         product = self._mgs_find_product(barcode)
         if not product:
-            self.unknown_barcode = barcode
-            self.pending_name = False
-            self.pending_price = 0.0
-            self.scan_message = _("«%s» no está dado de alta. Rellena el nombre y pulsa "
-                                   "«Crear producto».", barcode)
+            self.scan_message = _(
+                "«%s» no está dado de alta. Cambia a «Producto nuevo» para crearlo.",
+                barcode)
             return
 
-        self.unknown_barcode = False
         line = self.line_ids.filtered(lambda l: l.product_id.id == product.id)[:1]
         if line:
             line.quantity += 1
@@ -60,11 +103,12 @@ class MgsReception(models.TransientModel):
             # OJO: nunca `self.line_ids = [Command.create({...})]` aqui.
             # Este wizard es un TransientModel NUEVO (sin _origin): esa
             # asignacion arranca de ids=() en convert_to_cache y BORRA las
-            # lineas ya añadidas (odoo/fields.py, _RelationalMulti,
-            # ~linea 4446). Hay que concatenar con |= sobre un .new(...).
+            # lineas ya añadidas (odoo/fields.py, _RelationalMulti, ~4446).
+            # Hay que concatenar con |= sobre un .new(...).
             self.line_ids |= self.env["mgs.reception.line"].new({
                 "product_id": product.id,
                 "quantity": 1.0,
+                "expiry_date": product.product_tmpl_id.mgs_expiry_date,
             })
         self.scan_message = _("%s · +1", product.display_name)
 
@@ -76,45 +120,69 @@ class MgsReception(models.TransientModel):
         return product
 
     # ------------------------------------------------------------------
-    # Alta rápida cuando el código no existe
+    # Modo "nuevo": alta del producto
     # ------------------------------------------------------------------
-    def action_create_missing_product(self):
+    def action_add_new_product(self):
         self.ensure_one()
-        if not self.unknown_barcode:
-            return
-        if not self.pending_name:
-            raise UserError(_("Escribe el nombre del producto antes de crearlo."))
+        if not self.new_name:
+            raise UserError(_("Escribe el nombre del producto."))
+        if not self.new_barcode:
+            raise UserError(_("Escanea el código de barras del producto nuevo."))
+        if self._mgs_find_product(self.new_barcode):
+            raise UserError(_("Ya existe un producto con el código %s.", self.new_barcode))
 
         template = self.env["product.template"].create({
-            "name": self.pending_name,
-            "barcode": self.unknown_barcode,
-            "list_price": self.pending_price,
+            "name": self.new_name,
+            "barcode": self.new_barcode,
+            "list_price": self.new_price,
+            "standard_price": self.new_cost,
+            "categ_id": self.new_categ_id.id or self.env.ref("product.product_category_all").id,
             "is_storable": True,
             "sale_ok": True,
             "available_in_pos": True,
+            "mgs_expiry_date": self.new_expiry_date,
         })
-        product = template.product_variant_id
         self.line_ids |= self.env["mgs.reception.line"].new({
-            "product_id": product.id,
+            "product_id": template.product_variant_id.id,
             "quantity": 1.0,
+            "expiry_date": self.new_expiry_date,
         })
         self.scan_message = _("%s creado y añadido.", template.name)
-        self.unknown_barcode = False
-        self.pending_name = False
-        self.pending_price = 0.0
 
-    def action_discard_pending(self):
+        # Deja el formulario limpio para dar de alta otro producto nuevo.
+        self.new_barcode = False
+        self.new_name = False
+        self.new_categ_id = False
+        self.new_price = 0.0
+        self.new_cost = 0.0
+        self.new_expiry_date = False
+
+    def action_mgs_generate_barcode(self):
+        """Modo 'nuevo': código interno para un producto que llega sin EAN.
+
+        Se rellena el campo, se crea el producto con él y luego se imprime la
+        etiqueta con «Imprimir etiquetas»: a partir de ahí el producto se
+        escanea como cualquier otro.
+        """
         self.ensure_one()
-        self.unknown_barcode = False
-        self.pending_name = False
-        self.pending_price = 0.0
-        self.scan_message = False
+        self.new_barcode = self.env["mgs.config"].mgs_next_internal_barcode()
+        self.scan_message = _("Código interno %s generado. Imprime la etiqueta "
+                              "cuando lo añadas.", self.new_barcode)
+        return True
+
+    def action_mgs_print_labels(self):
+        """Una etiqueta por producto de la recepción, en la térmica de 80 mm."""
+        self.ensure_one()
+        if not self.line_ids:
+            raise UserError(_("No hay productos que etiquetar todavía."))
+        products = self.env["product.product"].browse(
+            [line.product_id.id for line in self.line_ids if line.product_id])
+        return self.env["mgs.config"]._mgs_get().mgs_print_labels(products)
 
     def action_clear(self):
         self.ensure_one()
         self.line_ids = [Command.clear()]
         self.scan_message = False
-        self.unknown_barcode = False
 
     # ------------------------------------------------------------------
     # Guardar en almacén: crea y valida un albarán de entrada real
@@ -164,6 +232,14 @@ class MgsReception(models.TransientModel):
             # al usuario en vez de asumir que la recepcion quedo validada.
             return result
 
+        # Refresca fecha de recepcion y caducidad de cada producto recibido.
+        today = fields.Date.context_today(self)
+        for line in self.line_ids:
+            vals = {"mgs_reception_date": today}
+            if line.expiry_date:
+                vals["mgs_expiry_date"] = line.expiry_date
+            line.product_id.product_tmpl_id.write(vals)
+
         message = _("%(n)s productos guardados en almacén · albarán %(ref)s",
                     n=len(self.line_ids), ref=picking.name)
         new_wizard = self.create({})
@@ -183,7 +259,7 @@ class MgsReception(models.TransientModel):
 
 class MgsReceptionLine(models.TransientModel):
     _name = "mgs.reception.line"
-    _description = "Línea de recepción rápida"
+    _description = "Línea de recepción"
     _transient_max_hours = 8.0
 
     reception_id = fields.Many2one("mgs.reception", required=True, ondelete="cascade", index=True)
@@ -193,3 +269,9 @@ class MgsReceptionLine(models.TransientModel):
                              digits='Product Unit of Measure')
     qty_available = fields.Float(related="product_id.qty_available", string="Stock actual",
                                   readonly=True)
+    expiry_date = fields.Date("Caduca el")
+
+    def action_mgs_print_label(self):
+        """Etiqueta solo de este producto (botón de la línea)."""
+        self.ensure_one()
+        return self.env["mgs.config"]._mgs_get().mgs_print_labels(self.product_id)

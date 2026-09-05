@@ -3,13 +3,12 @@
     <!-- ==========================================================
          Pantalla de inicio tras el login
          ==========================================================
-         "Stock > Productos" para el administrador y la plantilla de
-         usuarios nuevos: es la pantalla de solo lectura que más se
-         consulta en el día a día. -->
+         La página de inicio: emblema, nombre de la tienda y acceso directo a
+         Recepción, Stock e Informes. -->
     <function model="res.users" name="write">
         <value model="res.users"
                eval="[ref('base.user_admin'), ref('base.default_user')]"/>
-        <value eval="{'action_id': ref('mi_gestor_stock.action_mgs_products')}"/>
+        <value eval="{'action_id': ref('mi_gestor_stock.action_mgs_home')}"/>
     </function>
 
     <!-- ==========================================================

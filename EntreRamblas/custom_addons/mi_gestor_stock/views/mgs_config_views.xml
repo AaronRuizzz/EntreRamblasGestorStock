@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Configuración de los dispositivos de la tienda.
+         Un único registro (models/mgs_config.py), tres pestañas:
+         lectores · impresora y cajón · copia de seguridad.
+         ============================================================ -->
+    <record id="view_mgs_config_form" model="ir.ui.view">
+        <field name="name">mgs.config.form</field>
+        <field name="model">mgs.config</field>
+        <field name="arch" type="xml">
+            <form string="Dispositivos" create="false" duplicate="false" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Dispositivos y copias de seguridad</h1>
+                        <p class="text-muted">
+                            Los lectores escriben como un teclado, la impresora habla
+                            ESC/POS y el cajón se abre con el pulso que le manda la
+                            impresora por el cable RJ11.
+                        </p>
+                    </div>
+
+                    <notebook>
+                        <!-- ============ LECTORES ============ -->
+                        <page string="Lectores de códigos" name="scanners">
+                            <div class="alert alert-info" role="status">
+                                Los dos lectores (Honeywell Voyager XP 1472g por Bluetooth
+                                y PcCom por dongle 2,4 GHz) funcionan en <b>modo HID</b>:
+                                cada lectura se escribe como si se tecleara, terminada en
+                                Enter. No necesitan driver ni configuración en Windows.
+                                Odoo los reconoce solos en cualquier pantalla del programa
+                                y en el TPV.
+                            </div>
+                            <group>
+                                <group string="Ajuste fino de la lectura">
+                                    <field name="scan_max_delay_ms"/>
+                                    <field name="scan_strip_prefix"/>
+                                    <field name="scan_strip_suffix"/>
+                                </group>
+                                <group string="Productos sin código de proveedor">
+                                    <field name="internal_prefix"/>
+                                </group>
+                            </group>
+                            <div class="text-muted">
+                                <p>
+                                    Si el lector Bluetooth pierde caracteres, sube el retardo
+                                    máximo a 250 ms y vuelve a cargar la página (Ctrl+F5).
+                                </p>
+                            </div>
+                        </page>
+
+                        <!-- ============ IMPRESORA Y CAJÓN ============ -->
+                        <page string="Impresora y cajón" name="printer">
+                            <group>
+                                <group string="Impresora de tickets (Approx appPOS80AM)">
+                                    <field name="printer_mode"/>
+                                    <field name="printer_host" placeholder="192.168.1.50"
+                                           invisible="printer_mode != 'network'"
+                                           required="printer_mode == 'network'"/>
+                                    <field name="printer_port"
+                                           invisible="printer_mode != 'network'"/>
+                                    <field name="printer_name" placeholder="POS-80"
+                                           invisible="printer_mode != 'windows'"
+                                           required="printer_mode == 'windows'"/>
+                                    <field name="printer_path" placeholder="\\EQUIPO\POS80"
+                                           invisible="printer_mode != 'path'"
+                                           required="printer_mode == 'path'"/>
+                                    <field name="printer_timeout"
+                                           invisible="printer_mode != 'network'"/>
+                                    <field name="paper_width"/>
+                                    <field name="printer_codepage"/>
+                                    <field name="receipt_footer"/>
+                                    <field name="label_copies"/>
+                                    <field name="pos_autoprint"/>
+                                </group>
+                                <group string="Cajón portamonedas (Approx CASH01)">
+                                    <field name="drawer_enabled"/>
+                                    <field name="drawer_pin" invisible="not drawer_enabled"/>
+                                    <field name="drawer_pulse_ms" invisible="not drawer_enabled"/>
+                                    <field name="drawer_on_sale" invisible="not drawer_enabled"/>
+                                </group>
+                            </group>
+                            <div class="mt-3">
+                                <button name="action_mgs_test_print" type="object"
+                                        string="Imprimir ticket de prueba"
+                                        class="btn-primary"
+                                        invisible="printer_mode == 'disabled'"/>
+                                <button name="action_mgs_open_drawer" type="object"
+                                        string="Abrir el cajón" class="btn-secondary ms-2"
+                                        invisible="printer_mode == 'disabled' or not drawer_enabled"/>
+                            </div>
+                            <div class="alert alert-warning mt-3" role="status"
+                                 invisible="printer_mode != 'network'">
+                                La impresora tiene que tener IP fija (se configura desde su
+                                propia utilidad o reservándola en el router). Si cambia de IP
+                                al reiniciar, los tickets dejarán de salir.
+                            </div>
+                        </page>
+
+                        <!-- ============ COPIA DE SEGURIDAD ============ -->
+                        <page string="Copia de seguridad" name="backup">
+                            <div class="alert alert-info" role="status">
+                                Cada copia deja en el disco <b>un único archivo</b> con todo
+                                dentro: base de datos (productos, stock, ventas, usuarios,
+                                esta misma configuración) más las imágenes y adjuntos. Es el
+                                formato de copia nativo de Odoo, así que sirve para restaurar
+                                en este equipo o en otro.
+                            </div>
+                            <group>
+                                <group string="Automática">
+                                    <field name="backup_enabled"/>
+                                    <field name="backup_every_hours"
+                                           invisible="not backup_enabled"/>
+                                    <field name="backup_keep" invisible="not backup_enabled"/>
+                                </group>
+                                <group string="Dónde">
+                                    <field name="backup_dir" placeholder="E:\CopiasEntreRamblas"/>
+                                    <field name="backup_latest_name"/>
+                                    <field name="backup_last_date"/>
+                                    <field name="backup_last_path"/>
+                                </group>
+                            </group>
+                            <div class="mt-3">
+                                <button name="action_mgs_backup_now" type="object"
+                                        string="Hacer una copia ahora" class="btn-primary"/>
+                            </div>
+                            <div class="text-muted mt-3">
+                                <p>
+                                    Para restaurar: para el servidor y ejecuta
+                                    <code>.\restore-backup.ps1 -Archivo &lt;ruta del .zip&gt;</code>
+                                    desde la carpeta <code>EntreRamblas</code>.
+                                </p>
+                                <p>
+                                    Si apuntas la carpeta al SSD externo, el archivo con nombre
+                                    fijo (el que acaba en <code>-ultima.zip</code>) se
+                                    sobrescribe en cada copia y siempre contiene el estado
+                                    más reciente.
+                                </p>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- La pantalla trabaja siempre sobre el mismo registro: la acción se
+         resuelve en Python (action_mgs_open) para pasar su res_id. -->
+    <record id="action_mgs_config" model="ir.actions.server">
+        <field name="name">Dispositivos</field>
+        <field name="model_id" ref="model_mgs_config"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_mgs_open()</field>
+    </record>
+
+    <!-- ============================================================
+         Historial de copias de seguridad
+         ============================================================ -->
+    <record id="view_mgs_backup_list" model="ir.ui.view">
+        <field name="name">mgs.backup.list</field>
+        <field name="model">mgs.backup</field>
+        <field name="arch" type="xml">
+            <list string="Copias de seguridad" create="false" delete="false"
+                  decoration-danger="state == 'error'">
+                <header>
+                    <!-- display="always": sin esto, un botón de cabecera de
+                         lista solo aparece cuando hay filas seleccionadas
+                         (web/views/list/list_controller.xml), y este tiene que
+                         poder pulsarse justo cuando la lista está vacía. -->
+                    <button name="action_mgs_backup_now" type="object" display="always"
+                            string="Hacer una copia ahora" class="btn-primary"/>
+                </header>
+                <field name="date"/>
+                <field name="name"/>
+                <field name="size_human" string="Tamaño"/>
+                <field name="kind"/>
+                <field name="state"/>
+                <field name="path" optional="show"/>
+                <field name="message" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mgs_backups" model="ir.actions.act_window">
+        <field name="name">Copias de seguridad</field>
+        <field name="res_model">mgs.backup</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_mgs_backup_list"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay copias.</p>
+            <p>Se hacen solas cada pocas horas. Pulsa «Hacer una copia ahora» para
+               generar la primera.</p>
+        </field>
+    </record>
+</odoo>
