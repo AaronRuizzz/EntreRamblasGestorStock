@@ -10,11 +10,7 @@ COMPANY_NAME = "Entre Ramblas · Clavel & Azahar"
 LANG_CODE = "es_ES"
 _IMG_DIR = "mi_gestor_stock/static/src/img"
 
-# Credenciales del administrador. Se fijan desde el modulo para que una BD
-# creada desde cero (bootstrap.ps1) tenga SIEMPRE el mismo acceso, igual en
-# el equipo de cualquiera. (Ver README §4.)
-ADMIN_LOGIN = "entreramblasclavelyazahar@gmail.com"
-ADMIN_PASSWORD = "gestionDeStockNani2026"
+# El acceso inicial se provisiona fuera del módulo; nunca fijar contraseñas en código.
 
 
 def _img_b64(filename):
@@ -143,18 +139,12 @@ class ResCompany(models.Model):
             [("lang", "!=", LANG_CODE)]
         ).write({"lang": LANG_CODE})
 
-        # Nombre + credenciales del usuario administrador, para que una BD
-        # recien creada tenga el acceso documentado en el README (§4).
+        # Nombre visible del administrador; no modificar credenciales existentes.
         admin = self.env.ref("base.user_admin", raise_if_not_found=False)
         if admin:
             if admin.name in ("Administrator", "Mitchell Admin"):
                 admin.name = "Administrador"
-            # Mientras el login siga siendo el de fabrica ("admin") estamos
-            # ante una BD recien creada: fijamos login + contrasena. En cuanto
-            # el login pasa a ser el email, un `-u` posterior ya no toca la
-            # contrasena (respeta un cambio hecho en produccion).
-            if admin.login == "admin":
-                admin.sudo().write({"login": ADMIN_LOGIN, "password": ADMIN_PASSWORD})
+
 
         # Ahora si: deja el espanol como UNICO idioma activo, para que la
         # pantalla de login y cualquier pagina anonima salgan en espanol.

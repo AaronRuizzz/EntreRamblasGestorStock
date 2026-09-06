@@ -30,7 +30,27 @@ class MgsStockAlert(models.Model):
     # --- threshold ---
     min_qty = fields.Float(
         "Avisar cuando queden", default=10.0, digits="Product Unit of Measure",
-        help="Salta el aviso cuando el stock sea igual o menor que esta cantidad.")
+             help="Salta el aviso cuando el stock sea igual o menor que esta cantidad.")
+
+    target_qty = fields.Float("Stock objetivo", digits="Product Unit of Measure",
+                              help="Si se deja a cero, se propone reponer hasta el doble del mínimo.")
+    available_qty = fields.Float("Disponible sin caducar", compute="_compute_replenishment")
+    suggested_qty = fields.Float("Reposición sugerida", compute="_compute_replenishment")
+
+    @api.depends("product_id", "min_qty", "target_qty", "product_id.qty_available")
+    def _compute_replenishment(self):
+        now = fields.Datetime.now()
+        for alert in self:
+            quants = self.env["stock.quant"].search([
+                ("product_id.product_tmpl_id", "=", alert.product_id.id),
+                ("company_id", "=", self.env.company.id), ("location_id.usage", "=", "internal"),
+                ("owner_id", "=", False),
+            ])
+            available = sum(q.quantity - q.reserved_quantity for q in quants
+                            if not q.lot_id.expiration_date or q.lot_id.expiration_date >= now)
+            alert.available_qty = available
+            target = max(alert.min_qty, alert.target_qty or alert.min_qty * 2)
+            alert.suggested_qty = max(0, target - available) if available <= alert.min_qty else 0
 
     # --- periodic ---
     interval_type = fields.Selection([

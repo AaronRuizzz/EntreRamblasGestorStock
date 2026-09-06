@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, time
+import pytz
 from odoo import Command, api, fields, models, _
 from odoo.exceptions import UserError
 
 
 class MgsReception(models.TransientModel):
-    """Pantalla de recepción de mercancía, con dos modos:
+    """Pantalla de recepciÃ³n de mercancÃ­a, con dos modos:
 
-      - "existente": se escanea el código y, como el producto ya está dado de
-        alta, se reutiliza toda su información; solo se refrescan la fecha de
-        recepción y la de caducidad.
-      - "nuevo": se rellena la información del producto y se le asigna un código
-        escaneándolo; al añadirlo se crea el producto y entra en la lista.
+      - "existente": se escanea el cÃ³digo y, como el producto ya estÃ¡ dado de
+        alta, se reutiliza toda su informaciÃ³n; solo se refrescan la fecha de
+        recepciÃ³n y la de caducidad.
+      - "nuevo": se rellena la informaciÃ³n del producto y se le asigna un cÃ³digo
+        escaneÃ¡ndolo; al aÃ±adirlo se crea el producto y entra en la lista.
 
     El registro que queda de verdad es el stock.picking de entrada que se crea y
     valida en action_confirm(); este wizard es solo el bloc de notas donde se
-    acumulan las líneas mientras se escanea.
+    acumulan las lÃ­neas mientras se escanea.
     """
     _name = "mgs.reception"
     _inherit = ["barcodes.barcode_events_mixin"]
-    _description = "Recepción de mercancía"
+    _description = "RecepciÃ³n de mercancÃ­a"
     _transient_max_hours = 8.0
 
     mode = fields.Selection([
@@ -26,18 +28,20 @@ class MgsReception(models.TransientModel):
         ("nuevo", "Producto nuevo"),
     ], string="Modo", default="existente", required=True)
 
-    line_ids = fields.One2many("mgs.reception.line", "reception_id", string="Líneas")
+    line_ids = fields.One2many("mgs.reception.line", "reception_id", string="LÃ­neas")
     scan_message = fields.Char(readonly=True)
+    supplier_id = fields.Many2one("res.partner", string="Proveedor")
+    picking_id = fields.Many2one("stock.picking", readonly=True, copy=False)
 
     # --- modo "existente" ---
     manual_barcode = fields.Char(
-        string="Código de barras",
-        help="Respaldo para teclear el código a mano si el lector no engancha.")
+        string="CÃ³digo de barras",
+        help="Respaldo para teclear el cÃ³digo a mano si el lector no engancha.")
 
     # --- modo "nuevo" ---
-    new_barcode = fields.Char("Código de barras")
+    new_barcode = fields.Char("CÃ³digo de barras")
     new_name = fields.Char("Nombre del producto")
-    new_categ_id = fields.Many2one("product.category", string="Categoría")
+    new_categ_id = fields.Many2one("product.category", string="CategorÃ­a")
     new_price = fields.Float("Precio de venta", digits="Product Price")
     new_cost = fields.Float("Precio de coste", digits="Product Price")
     new_expiry_date = fields.Date("Caduca el")
@@ -52,8 +56,8 @@ class MgsReception(models.TransientModel):
 
         Tanto el Honeywell (Bluetooth -> base -> teclado) como el PcCom
         (dongle 2,4 GHz -> teclado) entregan la lectura como texto tecleado,
-        así que los dos entran por aquí. `mgs_clean_scan` quita el prefijo o
-        el sufijo que se les haya programado (ver Configuración →
+        asÃ­ que los dos entran por aquÃ­. `mgs_clean_scan` quita el prefijo o
+        el sufijo que se les haya programado (ver ConfiguraciÃ³n â†’
         Dispositivos)."""
         self.ensure_one()
         barcode = self.env["mgs.config"].mgs_clean_scan(barcode)
@@ -76,23 +80,23 @@ class MgsReception(models.TransientModel):
         self.scan_message = False
 
     def _mgs_assign_new_barcode(self, barcode):
-        """Modo 'nuevo': el escaneo rellena el código del producto que se va a dar
+        """Modo 'nuevo': el escaneo rellena el cÃ³digo del producto que se va a dar
         de alta, avisando si ya lo tiene otro."""
         existing = self._mgs_find_product(barcode)
         if existing:
             self.scan_message = _(
-                "Ese código ya es de «%s». Cambia a «Producto existente» para recibirlo.",
+                "Ese cÃ³digo ya es de Â«%sÂ». Cambia a Â«Producto existenteÂ» para recibirlo.",
                 existing.display_name)
             return
         self.new_barcode = barcode
-        self.scan_message = _("Código %s asignado al producto nuevo.", barcode)
+        self.scan_message = _("CÃ³digo %s asignado al producto nuevo.", barcode)
 
     def _mgs_add_barcode(self, barcode):
-        """Modo 'existente': busca el producto y suma una unidad a su línea."""
+        """Modo 'existente': busca el producto y suma una unidad a su lÃ­nea."""
         product = self._mgs_find_product(barcode)
         if not product:
             self.scan_message = _(
-                "«%s» no está dado de alta. Cambia a «Producto nuevo» para crearlo.",
+                "Â«%sÂ» no estÃ¡ dado de alta. Cambia a Â«Producto nuevoÂ» para crearlo.",
                 barcode)
             return
 
@@ -103,14 +107,14 @@ class MgsReception(models.TransientModel):
             # OJO: nunca `self.line_ids = [Command.create({...})]` aqui.
             # Este wizard es un TransientModel NUEVO (sin _origin): esa
             # asignacion arranca de ids=() en convert_to_cache y BORRA las
-            # lineas ya añadidas (odoo/fields.py, _RelationalMulti, ~4446).
+            # lineas ya aÃ±adidas (odoo/fields.py, _RelationalMulti, ~4446).
             # Hay que concatenar con |= sobre un .new(...).
             self.line_ids |= self.env["mgs.reception.line"].new({
                 "product_id": product.id,
                 "quantity": 1.0,
-                "expiry_date": product.product_tmpl_id.mgs_expiry_date,
+                "unit_cost": product.standard_price,
             })
-        self.scan_message = _("%s · +1", product.display_name)
+        self.scan_message = _("%s Â· +1", product.display_name)
 
     def _mgs_find_product(self, barcode):
         Product = self.env["product.product"]
@@ -126,10 +130,12 @@ class MgsReception(models.TransientModel):
         self.ensure_one()
         if not self.new_name:
             raise UserError(_("Escribe el nombre del producto."))
+        if self.new_cost < 0 or self.new_price < 0:
+            raise UserError(_("El precio y el coste no pueden ser negativos."))
         if not self.new_barcode:
-            raise UserError(_("Escanea el código de barras del producto nuevo."))
+            raise UserError(_("Escanea el cÃ³digo de barras del producto nuevo."))
         if self._mgs_find_product(self.new_barcode):
-            raise UserError(_("Ya existe un producto con el código %s.", self.new_barcode))
+            raise UserError(_("Ya existe un producto con el cÃ³digo %s.", self.new_barcode))
 
         template = self.env["product.template"].create({
             "name": self.new_name,
@@ -140,14 +146,17 @@ class MgsReception(models.TransientModel):
             "is_storable": True,
             "sale_ok": True,
             "available_in_pos": True,
-            "mgs_expiry_date": self.new_expiry_date,
+            "tracking": "lot",
+            "mgs_auto_lots": True,
+            "use_expiration_date": True,
         })
         self.line_ids |= self.env["mgs.reception.line"].new({
             "product_id": template.product_variant_id.id,
             "quantity": 1.0,
             "expiry_date": self.new_expiry_date,
+            "unit_cost": self.new_cost,
         })
-        self.scan_message = _("%s creado y añadido.", template.name)
+        self.scan_message = _("%s creado y aÃ±adido.", template.name)
 
         # Deja el formulario limpio para dar de alta otro producto nuevo.
         self.new_barcode = False
@@ -158,26 +167,26 @@ class MgsReception(models.TransientModel):
         self.new_expiry_date = False
 
     def action_mgs_generate_barcode(self):
-        """Modo 'nuevo': código interno para un producto que llega sin EAN.
+        """Modo 'nuevo': cÃ³digo interno para un producto que llega sin EAN.
 
-        Se rellena el campo, se crea el producto con él y luego se imprime la
-        etiqueta con «Imprimir etiquetas»: a partir de ahí el producto se
+        Se rellena el campo, se crea el producto con Ã©l y luego se imprime la
+        etiqueta con Â«Imprimir etiquetasÂ»: a partir de ahÃ­ el producto se
         escanea como cualquier otro.
         """
         self.ensure_one()
         self.new_barcode = self.env["mgs.config"].mgs_next_internal_barcode()
-        self.scan_message = _("Código interno %s generado. Imprime la etiqueta "
-                              "cuando lo añadas.", self.new_barcode)
+        self.scan_message = _("CÃ³digo interno %s generado. Imprime la etiqueta "
+                              "cuando lo aÃ±adas.", self.new_barcode)
         return True
 
     def action_mgs_print_labels(self):
-        """Una etiqueta por producto de la recepción, en la térmica de 80 mm."""
+        """Una etiqueta por producto de la recepciÃ³n, en la tÃ©rmica de 80 mm."""
         self.ensure_one()
         if not self.line_ids:
-            raise UserError(_("No hay productos que etiquetar todavía."))
+            raise UserError(_("No hay productos que etiquetar todavÃ­a."))
         products = self.env["product.product"].browse(
             [line.product_id.id for line in self.line_ids if line.product_id])
-        return self.env["mgs.config"]._mgs_get().mgs_print_labels(products)
+        return self.env["mgs.config"]._mgs_get()._mgs_print_labels(products)
 
     def action_clear(self):
         self.ensure_one()
@@ -185,7 +194,7 @@ class MgsReception(models.TransientModel):
         self.scan_message = False
 
     # ------------------------------------------------------------------
-    # Guardar en almacén: crea y valida un albarán de entrada real
+    # Guardar en almacÃ©n: crea y valida un albarÃ¡n de entrada real
     # ------------------------------------------------------------------
     def _mgs_get_picking_type(self):
         picking_type = self.env["stock.picking.type"].search([
@@ -194,14 +203,37 @@ class MgsReception(models.TransientModel):
         ], limit=1)
         if not picking_type:
             raise UserError(_(
-                "No hay ningún tipo de operación de entrada configurado para "
+                "No hay ningÃºn tipo de operaciÃ³n de entrada configurado para "
                 "esta empresa."))
         return picking_type
 
     def action_confirm(self):
         self.ensure_one()
+        # Serializa reintentos y doble clic sobre el mismo asistente.
+        self.env.cr.execute("SELECT id FROM mgs_reception WHERE id = %s FOR UPDATE", [self.id])
+        self.invalidate_recordset(["picking_id"])
+        if self.picking_id:
+            return {
+                "type": "ir.actions.act_window", "res_model": "stock.picking",
+                "view_mode": "form", "res_id": self.picking_id.id,
+            }
         if not self.line_ids:
             raise UserError(_("Escanea al menos un producto antes de guardar."))
+
+        for line in self.line_ids:
+            if line.quantity <= 0 or line.unit_cost < 0:
+                raise UserError(_("La cantidad debe ser positiva y el coste no puede ser negativo."))
+            product = line.product_id
+            if product.tracking == "serial":
+                raise UserError(_("La recepciÃ³n rÃ¡pida trabaja por partidas, no por nÃºmeros de serie."))
+            if product.tracking == "none":
+                if self.env["stock.quant"].search_count([
+                    ("product_id", "=", product.id), ("location_id.usage", "=", "internal"),
+                    ("quantity", "!=", 0),
+                ]):
+                    raise UserError(_("%s tiene existencias sin partida. RegularÃ­zalas antes de activar las partidas.", product.display_name))
+                product.write({"tracking": "lot", "use_expiration_date": True})
+            product.mgs_auto_lots = True
 
         picking_type = self._mgs_get_picking_type()
         src = picking_type.default_location_src_id or self.env.ref("stock.stock_location_suppliers")
@@ -211,7 +243,8 @@ class MgsReception(models.TransientModel):
             "picking_type_id": picking_type.id,
             "location_id": src.id,
             "location_dest_id": dest.id,
-            "origin": _("Recepción rápida"),
+            "origin": _("RecepciÃ³n rÃ¡pida"),
+            "partner_id": self.supplier_id.id,
             "move_ids": [Command.create({
                 "name": line.product_id.display_name,
                 "product_id": line.product_id.id,
@@ -221,11 +254,31 @@ class MgsReception(models.TransientModel):
                 "location_dest_id": dest.id,
             }) for line in self.line_ids],
         })
-        picking.action_confirm()
-        for move in picking.move_ids:
-            move.quantity = move.product_uom_qty
+        self.picking_id = picking
+        # No fusionar lÃ­neas: cada entrada conserva su coste y caducidad.
+        picking.move_ids._action_confirm(merge=False)
+        zone = pytz.timezone(self.env.user.tz or "Europe/Madrid")
+        for line, move in zip(self.line_ids.sorted("id"), picking.move_ids.sorted("id")):
+            expiry = (zone.localize(datetime.combine(line.expiry_date, time.max))
+                      .astimezone(pytz.UTC).replace(tzinfo=None, microsecond=0)) if line.expiry_date else False
+            lot = self.env["stock.lot"].create({
+                "product_id": line.product_id.id,
+                "company_id": picking.company_id.id,
+                "expiration_date": expiry,
+                "mgs_received_at": fields.Datetime.now(),
+                "mgs_supplier_id": self.supplier_id.id,
+                "mgs_unit_cost": line.unit_cost,
+                "mgs_cost_recorded": True,
+            })
+            move.move_line_ids.unlink()
+            self.env["stock.move.line"].create({
+                "move_id": move.id, "picking_id": picking.id,
+                "product_id": line.product_id.id, "product_uom_id": move.product_uom.id,
+                "location_id": src.id, "location_dest_id": dest.id,
+                "lot_id": lot.id, "quantity": line.quantity,
+            })
             move.picked = True
-        result = picking.button_validate()
+        result = picking.with_context(skip_expired=True).button_validate()
         if isinstance(result, dict):
             # Caso defensivo: alguna configuracion no estandar del tipo de
             # operacion pide un wizard (backorder, lotes...). Se lo pasamos
@@ -236,11 +289,9 @@ class MgsReception(models.TransientModel):
         today = fields.Date.context_today(self)
         for line in self.line_ids:
             vals = {"mgs_reception_date": today}
-            if line.expiry_date:
-                vals["mgs_expiry_date"] = line.expiry_date
             line.product_id.product_tmpl_id.write(vals)
 
-        message = _("%(n)s productos guardados en almacén · albarán %(ref)s",
+        message = _("%(n)s productos guardados en almacÃ©n Â· albarÃ¡n %(ref)s",
                     n=len(self.line_ids), ref=picking.name)
         new_wizard = self.create({})
         reopen = self.env["ir.actions.actions"]._for_xml_id("mi_gestor_stock.action_mgs_reception")
@@ -250,7 +301,7 @@ class MgsReception(models.TransientModel):
             "tag": "display_notification",
             "params": {
                 "type": "success",
-                "title": _("Guardado en almacén"),
+                "title": _("Guardado en almacÃ©n"),
                 "message": message,
                 "next": reopen,
             },
@@ -259,7 +310,7 @@ class MgsReception(models.TransientModel):
 
 class MgsReceptionLine(models.TransientModel):
     _name = "mgs.reception.line"
-    _description = "Línea de recepción"
+    _description = "LÃ­nea de recepciÃ³n"
     _transient_max_hours = 8.0
 
     reception_id = fields.Many2one("mgs.reception", required=True, ondelete="cascade", index=True)
@@ -270,8 +321,10 @@ class MgsReceptionLine(models.TransientModel):
     qty_available = fields.Float(related="product_id.qty_available", string="Stock actual",
                                   readonly=True)
     expiry_date = fields.Date("Caduca el")
+    unit_cost = fields.Float("Coste por unidad", digits="Product Price", required=True)
+    uom_id = fields.Many2one(related="product_id.uom_id", string="Unidad", readonly=True)
 
     def action_mgs_print_label(self):
-        """Etiqueta solo de este producto (botón de la línea)."""
+        """Etiqueta solo de este producto (botÃ³n de la lÃ­nea)."""
         self.ensure_one()
-        return self.env["mgs.config"]._mgs_get().mgs_print_labels(self.product_id)
+        return self.env["mgs.config"]._mgs_get()._mgs_print_labels(self.product_id)

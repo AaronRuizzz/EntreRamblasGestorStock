@@ -2,6 +2,7 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_compare
+from .mgs_permissions import require_operator, is_manager
 
 # Cuantas tarjetas de "stock mas bajo" muestra el panel de Stock.
 LOW_STOCK_CARDS = 3
@@ -17,6 +18,8 @@ class ProductTemplate(models.Model):
     is_storable = fields.Boolean(default=True)
     sale_ok = fields.Boolean(default=True)
     available_in_pos = fields.Boolean(default=True)
+    mgs_auto_lots = fields.Boolean("Partidas automáticas", default=False,
+                                   help="El TPV asigna las partidas por caducidad y antigüedad.")
 
     # ------------------------------------------------------------------
     # Recepción y caducidad (se actualizan en cada entrada de mercancía,
@@ -26,9 +29,9 @@ class ProductTemplate(models.Model):
         "Última recepción", readonly=True,
         help="Fecha de la última entrada de mercancía de este producto.")
     mgs_expiry_date = fields.Date(
-        "Caduca el",
-        help="Caducidad de la última tanda recibida. Se actualiza en cada recepción.")
-    mgs_expired = fields.Boolean("Caducado", compute="_compute_mgs_expired")
+        "Próxima caducidad", compute="_compute_mgs_next_expiry",
+        help="Primera caducidad de las partidas con existencias. Se conserva cada recepción por separado.")
+    mgs_expired = fields.Boolean("Caducado", compute="_compute_mgs_expired", search="_search_mgs_expired")
 
     # ------------------------------------------------------------------
     # Avisos de stock (modelo mgs.stock.alert)
@@ -41,11 +44,36 @@ class ProductTemplate(models.Model):
         search='_search_mgs_low_stock',
         help="El producto tiene un aviso por cantidad y está en el límite o por debajo.")
 
+    def _mgs_available_lot_quants(self):
+        return self.env["stock.quant"].search([
+            ("product_id.product_tmpl_id", "in", self.ids),
+            ("company_id", "=", self.env.company.id),
+            ("location_id.usage", "=", "internal"),
+            ("quantity", ">", 0), ("lot_id", "!=", False),
+        ])
+
+    @api.depends("qty_available")
+    def _compute_mgs_next_expiry(self):
+        dates = {}
+        for quant in self._mgs_available_lot_quants():
+            if quant.lot_id.expiration_date:
+                key = quant.product_id.product_tmpl_id.id
+                date = fields.Datetime.context_timestamp(self, quant.lot_id.expiration_date).date()
+                dates[key] = min(dates.get(key, date), date)
+        for product in self:
+            product.mgs_expiry_date = dates.get(product.id, False)
+
     @api.depends("mgs_expiry_date")
     def _compute_mgs_expired(self):
         today = fields.Date.context_today(self)
         for tmpl in self:
             tmpl.mgs_expired = bool(tmpl.mgs_expiry_date and tmpl.mgs_expiry_date < today)
+
+    def _search_mgs_expired(self, operator, value):
+        if operator not in ("=", "!="):
+            raise UserError(_("Operador no soportado para caducidad."))
+        expired = self.search([]).filtered("mgs_expired")
+        return [("id", "in" if (operator == "=") == bool(value) else "not in", expired.ids)]
 
     @api.depends("mgs_alert_ids")
     def _compute_mgs_alert_count(self):
@@ -107,8 +135,10 @@ class ProductTemplate(models.Model):
 
     def action_mgs_print_label(self):
         """Imprime la etiqueta del producto en la térmica de 80 mm."""
+        require_operator(self.env)
+        self.check_access("read")
         config = self.env["mgs.config"]._mgs_get()
-        return config.mgs_print_labels(self)
+        return config._mgs_print_labels(self)
 
     @api.model
     def mgs_find_by_barcode(self, barcode):
@@ -132,10 +162,13 @@ class ProductTemplate(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def mgs_home_summary(self):
+        require_operator(self.env)
         low = len(self._mgs_low_stock_ids())
         pending = self.env["mgs.stock.alert.notice"].search_count([("is_read", "=", False)])
         return {
             "alerts": low + pending,
+            "is_manager": is_manager(self.env),
+            "backup_warning": self.env["mgs.backup"]._mgs_status_warning() if is_manager(self.env) else False,
             "products": self.search_count([("is_storable", "=", True)]),
         }
 
@@ -173,13 +206,16 @@ class ProductTemplate(models.Model):
         # --- 2. Caducados / por caducar ---
         today = fields.Date.context_today(self)
         expiring = []
-        for tmpl in products.filtered(lambda p: p.mgs_expiry_date):
-            days = (tmpl.mgs_expiry_date - today).days
+        lots = products._mgs_available_lot_quants().lot_id
+        for lot in lots.filtered("expiration_date"):
+            expiry = fields.Datetime.context_timestamp(self, lot.expiration_date).date()
+            days = (expiry - today).days
             if days <= 3:
                 expiring.append({
-                    "product_id": tmpl.id,
-                    "name": tmpl.name,
-                    "expiry": fields.Date.to_string(tmpl.mgs_expiry_date),
+                    "product_id": lot.product_id.product_tmpl_id.id,
+                    "name": "%s · %s" % (lot.product_id.name, lot.name),
+                    "lot_id": lot.id,
+                    "expiry": fields.Date.to_string(expiry),
                     "days": days,
                 })
         expiring.sort(key=lambda e: e["days"])

@@ -1,6 +1,6 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
-    "version": "18.0.1.0.0",
+    "version": "18.0.2.0.0",
     "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
@@ -9,6 +9,7 @@
     # conjunto de modulos en cualquier equipo (ver bootstrap.ps1).
     "depends": [
         "stock",            # Inventario
+        "product_expiry",   # Caducidad nativa por partida
         "barcodes",         # Motor de codigos de barras
         "web",
         "point_of_sale",    # TPV (sigue registrando las ventas; no esta en el menu)
@@ -16,13 +17,19 @@
         "l10n_es",          # Localizacion fiscal espanola (IVA, plan PYMEs, NIF)
     ],
     "data": [
+        "security/mgs_security.xml",
         "security/ir.model.access.csv",
         "data/branding.xml",
         "data/cron_alerts.xml",
         "data/mgs_hardware_data.xml",
         "views/mgs_config_views.xml",
+        "views/mgs_hardware_job_views.xml",
         "views/mgs_reception_views.xml",
+        "views/mgs_scrap_views.xml",
+        "views/mgs_inventory_count_views.xml",
+        "views/mgs_opening_stock_views.xml",
         "views/mgs_alert_views.xml",
+        "views/mgs_replenishment_views.xml",
         "views/mgs_dashboard_views.xml",
         "views/product_views.xml",
         "views/pos_report_views.xml",
@@ -55,6 +62,7 @@
         # IoT Box (ver static/src/js/pos_hardware.js).
         "point_of_sale._assets_pos": [
             "mi_gestor_stock/static/src/js/pos_hardware.js",
+            "mi_gestor_stock/static/src/js/pos_validation.js",
         ],
     },
     "installable": True,

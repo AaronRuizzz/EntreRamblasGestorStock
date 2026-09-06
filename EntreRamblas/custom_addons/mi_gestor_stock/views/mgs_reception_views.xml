@@ -25,6 +25,7 @@
                             invisible="not line_ids"/>
                 </header>
                 <sheet>
+                    <group><field name="supplier_id"/><field name="picking_id" invisible="not picking_id"/></group>
                     <div class="mgs-mode-switch">
                         <field name="mode" widget="radio" options="{'horizontal': true}"
                                nolabel="1"/>
@@ -36,8 +37,8 @@
                                placeholder="Escanea el código de barras del producto…"/>
                         <div class="mgs-scan-hint">
                             El producto ya está dado de alta: se reutiliza toda su
-                            información y solo se actualizan la fecha de recepción y
-                            la de caducidad.
+                            información. Cada recepción conserva su propia partida,
+                            coste y caducidad.
                         </div>
                     </div>
 
@@ -83,6 +84,8 @@
                             <field name="barcode" readonly="1" optional="show"/>
                             <field name="qty_available" readonly="1" string="Stock actual"/>
                             <field name="quantity"/>
+                            <field name="uom_id"/>
+                            <field name="unit_cost"/>
                             <field name="expiry_date"/>
                             <button name="action_mgs_print_label" type="object"
                                     icon="fa-print" title="Imprimir etiqueta"/>

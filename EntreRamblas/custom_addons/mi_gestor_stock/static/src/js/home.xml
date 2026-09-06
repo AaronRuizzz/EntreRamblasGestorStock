@@ -10,6 +10,10 @@
 
         <h1 class="mgs-home-title">Gestor de Stock</h1>
         <p class="mgs-home-sub">Entre Ramblas · Clavel &amp; Azahar</p>
+        <div t-if="state.backupWarning" class="alert alert-warning" role="status">
+          <p t-esc="state.backupWarning"/>
+          <button class="btn btn-outline-dark" t-on-click="() => this.open('mi_gestor_stock.action_mgs_backups')">Revisar copias</button>
+        </div>
 
         <div t-if="state.loaded and state.alerts" class="mgs-home-alerts"
              t-on-click="() => this.open('mi_gestor_stock.action_mgs_stock_dashboard')">
@@ -23,6 +27,12 @@
 
         <div class="mgs-home-grid">
           <button class="mgs-home-tile"
+                  t-on-click="() => this.open('point_of_sale.action_pos_config_kanban')">
+            <i class="fa fa-shopping-basket" role="img"/>
+            <span class="mgs-home-tile-name">Vender</span>
+            <span class="mgs-home-tile-hint">Abrir caja y cobrar</span>
+          </button>
+          <button t-if="state.isManager" class="mgs-home-tile"
                   t-on-click="() => this.open('mi_gestor_stock.action_mgs_reception')">
             <i class="fa fa-barcode" role="img"/>
             <span class="mgs-home-tile-name">Recepción</span>
@@ -39,7 +49,7 @@
             </span>
           </button>
 
-          <button class="mgs-home-tile"
+          <button t-if="state.isManager" class="mgs-home-tile"
                   t-on-click="() => this.open('mi_gestor_stock.action_mgs_report_sales')">
             <i class="fa fa-line-chart" role="img"/>
             <span class="mgs-home-tile-name">Informes</span>

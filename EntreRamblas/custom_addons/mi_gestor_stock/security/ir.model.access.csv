@@ -1,10 +1,17 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_mgs_reception_user,mgs.reception user,model_mgs_reception,base.group_user,1,1,1,1
-access_mgs_reception_line_user,mgs.reception.line user,model_mgs_reception_line,base.group_user,1,1,1,1
-access_mgs_stock_alert_user,mgs.stock.alert user,model_mgs_stock_alert,base.group_user,1,1,1,1
+access_mgs_reception_user,mgs.reception user,model_mgs_reception,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_reception_line_user,mgs.reception.line user,model_mgs_reception_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_stock_alert_user,mgs.stock.alert user,model_mgs_stock_alert,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_stock_alert_notice_user,mgs.stock.alert.notice user,model_mgs_stock_alert_notice,base.group_user,1,1,1,1
-access_mgs_monthly_report_user,mgs.monthly.report user,model_mgs_monthly_report,base.group_user,1,1,1,1
-access_mgs_config_user,mgs.config user,model_mgs_config,base.group_user,1,0,0,0
-access_mgs_config_manager,mgs.config manager,model_mgs_config,base.group_system,1,1,1,0
-access_mgs_backup_user,mgs.backup user,model_mgs_backup,base.group_user,1,0,0,0
-access_mgs_backup_manager,mgs.backup manager,model_mgs_backup,base.group_system,1,1,1,1
+access_mgs_monthly_report_user,mgs.monthly.report user,model_mgs_monthly_report,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_config_user,mgs.config user,model_mgs_config,mi_gestor_stock.group_mgs_manager,1,0,0,0
+access_mgs_config_manager,mgs.config manager,model_mgs_config,mi_gestor_stock.group_mgs_manager,1,1,1,0
+access_mgs_backup_user,mgs.backup user,model_mgs_backup,mi_gestor_stock.group_mgs_manager,1,0,0,0
+access_mgs_backup_manager,mgs.backup manager,model_mgs_backup,mi_gestor_stock.group_mgs_manager,1,1,1,1
+
+access_mgs_alert_staff,mgs.alert staff,model_mgs_stock_alert,mi_gestor_stock.group_mgs_user,1,0,0,0
+access_mgs_hardware_jobs,mgs.hardware jobs,model_mgs_hardware_job,mi_gestor_stock.group_mgs_user,1,0,0,0
+access_mgs_count_owner,mgs.count owner,model_mgs_inventory_count,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_count_line_owner,mgs.count line owner,model_mgs_inventory_count_line,mi_gestor_stock.group_mgs_manager,1,1,1,0
+access_mgs_opening,mgs opening,model_mgs_opening_stock,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_opening_line,mgs opening line,model_mgs_opening_stock_line,mi_gestor_stock.group_mgs_manager,1,1,1,1

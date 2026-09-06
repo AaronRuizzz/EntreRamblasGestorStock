@@ -13,12 +13,14 @@ export class MgsHome extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
-        this.state = useState({ alerts: 0, products: 0, loaded: false });
+        this.state = useState({ alerts: 0, products: 0, loaded: false, isManager: false, backupWarning: false });
         onWillStart(async () => {
             try {
                 const data = await this.orm.call("product.template", "mgs_home_summary", []);
                 this.state.alerts = data.alerts;
                 this.state.products = data.products;
+                this.state.isManager = data.is_manager;
+                this.state.backupWarning = data.backup_warning;
             } finally {
                 this.state.loaded = true;
             }

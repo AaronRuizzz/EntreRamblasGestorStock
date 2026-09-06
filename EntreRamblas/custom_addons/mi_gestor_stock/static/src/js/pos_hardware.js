@@ -1,89 +1,102 @@
 /** @odoo-module **/
-// Puente entre el TPV y el hardware de la tienda, SIN IoT Box.
-//
-// Odoo Community da por hecho que el cajón y la impresora térmica cuelgan de
-// una IoT Box (o de una Epson ePOS). Aquí no hay ninguna de las dos: la
-// impresora Approx está en la misma red (o en el mismo PC) que el servidor,
-// así que el servidor le habla ESC/POS directamente (models/mgs_config.py) y
-// el TPV solo tiene que avisar en dos momentos:
-//
-//   1. cuando toca abrir el cajón  -> openCashbox()
-//   2. cuando toca imprimir ticket -> printReceipt()
-//
-// Todo va envuelto en try/catch y con vuelta atrás al comportamiento estándar:
-// un fallo de la impresora NUNCA puede dejar una venta a medias.
 import { patch } from "@web/core/utils/patch";
 import { rpc } from "@web/core/network/rpc";
+import { _t } from "@web/core/l10n/translation";
 import { HardwareProxy } from "@point_of_sale/app/hardware_proxy/hardware_proxy_service";
 import { PosStore } from "@point_of_sale/app/store/pos_store";
+import { ProductProduct } from "@point_of_sale/app/models/product_product";
+import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
+import { ask, makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
+import { TextInputPopup } from "@point_of_sale/app/utils/input_popups/text_input_popup";
 
 async function mgsCall(method, args = []) {
-    return rpc(
-        `/web/dataset/call_kw/mgs.config/${method}`,
-        { model: "mgs.config", method, args, kwargs: {} },
-        { silent: true }
-    );
+    return rpc(`/web/dataset/call_kw/mgs.config/${method}`, {
+        model: "mgs.config", method, args, kwargs: {},
+    }, { silent: true });
 }
 
+patch(ProductProduct.prototype, {
+    isTracked() { return this.mgs_auto_lots ? false : super.isTracked(...arguments); },
+});
+patch(PosOrderline.prototype, {
+    has_valid_product_lot() {
+        return this.product_id.mgs_auto_lots || super.has_valid_product_lot(...arguments);
+    },
+});
+
 patch(HardwareProxy.prototype, {
-    /**
-     * El TPV ya llama aquí solo: al cobrar en efectivo o cuando hay cambio
-     * que devolver (payment_screen.js -> _finalizeValidation), y desde los
-     * diálogos de apertura y cierre de caja. Se mantiene la llamada original
-     * (por si algún día hay IoT Box) y se añade la nuestra.
-     */
     async openCashbox(action = false) {
-        const result = await super.openCashbox(action);
+        const reason = await makeAwaitable(this.pos.dialog, TextInputPopup, {
+            title: _t("Motivo de apertura del cajón"),
+            startingValue: typeof action === "string" ? action : "",
+            placeholder: _t("Ej.: preparar cambio o contar efectivo"),
+        });
+        if (!reason?.trim()) return;
         try {
-            if (this.mgsDrawer !== false) {
-                await mgsCall("mgs_pos_open_drawer");
-            }
+            const job = await mgsCall("mgs_pos_manual_drawer", [this.pos.session.id, reason.trim(), crypto.randomUUID()]);
+            await this.pos.mgsHardwareStatus(job);
         } catch (error) {
-            console.warn("mi_gestor_stock: no se pudo abrir el cajón", error);
+            this.pos.notification.add(error.data?.message || _t("No se pudo confirmar la apertura. Comprueba el cajón antes de repetirla."), { type: "warning", sticky: true });
         }
-        return result;
     },
 });
 
 patch(PosStore.prototype, {
     async processServerData() {
         const result = await super.processServerData(...arguments);
-        // Una sola consulta al abrir el TPV: así imprimir un ticket no gasta
-        // una llamada extra al servidor para preguntar si hay impresora.
         this.mgsHardware = { escpos_receipt: false, drawer: false };
         try {
             this.mgsHardware = await mgsCall("mgs_pos_hardware_info");
-            this.hardwareProxy.mgsDrawer = this.mgsHardware.drawer;
         } catch (error) {
-            console.warn("mi_gestor_stock: hardware no disponible", error);
+            this.notification.add(_t("No se pudo consultar la configuración de la impresora."), { type: "warning" });
         }
         return result;
     },
-
-    /**
-     * Ticket directo por la térmica, sin el diálogo de impresión del
-     * navegador. Si el pedido todavía no está en el servidor o la impresora
-     * no responde, se cae al comportamiento normal de Odoo (imprimir por el
-     * navegador), de modo que el cliente siempre se lleva su ticket.
-     */
+    async mgsHardwareStatus(job) {
+        if (job.state === "disabled") return job;
+        const status = await mgsCall("mgs_pos_job_status", [job.id]);
+        if (status.state !== "sent") {
+            this.notification.add(_t("Solicitud registrada. El envío no está confirmado: comprueba el dispositivo antes de repetirlo."), { type: "warning", sticky: true });
+        }
+        return status;
+    },
+    async mgsOpenSaleDrawer(order) {
+        if (!this.mgsHardware?.drawer) return;
+        try {
+            const job = await mgsCall("mgs_pos_open_drawer", [order.id]);
+            await this.mgsHardwareStatus(job);
+        } catch (error) {
+            this.notification.add(_t("Venta guardada. No se pudo confirmar la apertura del cajón."), { type: "warning", sticky: true });
+        }
+    },
     async printReceipt(options = {}) {
         const order = options.order || this.get_order();
-        if (this.mgsHardware?.escpos_receipt && typeof order?.id === "number") {
-            try {
-                const printed = await mgsCall("mgs_pos_print_order", [order.id]);
-                if (printed) {
-                    if (!options.printBillActionTriggered) {
-                        order.nb_print += 1;
-                        await this.data.write("pos.order", [order.id], {
-                            nb_print: order.nb_print,
-                        });
-                    }
-                    return true;
-                }
-            } catch (error) {
-                console.warn("mi_gestor_stock: fallo al imprimir el ticket", error);
-            }
+        if (!this.mgsHardware?.escpos_receipt || options.printBillActionTriggered) {
+            return super.printReceipt(options);
         }
-        return super.printReceipt(options);
+        if (typeof order?.id !== "number") {
+            this.notification.add(_t("Confirma la venta en el servidor antes de imprimir."), { type: "warning" });
+            return false;
+        }
+        try {
+            let job = await mgsCall("mgs_pos_print_order", [order.id]);
+            if (job.existing && !options.order) {
+                const confirmed = await ask(this.dialog, {
+                    title: _t("Reimprimir ticket"),
+                    body: _t("Ya existe una solicitud para esta venta. Comprueba la impresora y confirma si necesitas otra copia."),
+                    confirmLabel: _t("Imprimir otra copia"), cancelLabel: _t("Cancelar"),
+                });
+                if (!confirmed) return false;
+                job = await mgsCall("mgs_pos_print_order", [order.id, crypto.randomUUID()]);
+            }
+            const status = await this.mgsHardwareStatus(job);
+            if (status.state === "sent") {
+                order.nb_print = status.nb_print;
+                return true;
+            }
+        } catch (error) {
+            this.notification.add(error.data?.message || _t("Venta guardada. Resultado de impresión incierto: comprueba el papel antes de solicitar otra copia."), { type: "warning", sticky: true });
+        }
+        return false;
     },
 });

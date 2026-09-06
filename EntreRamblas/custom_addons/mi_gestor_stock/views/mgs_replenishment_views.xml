@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mgs_replenishment_list" model="ir.ui.view">
+        <field name="name">mgs.stock.alert.replenishment</field>
+        <field name="model">mgs.stock.alert</field>
+        <field name="arch" type="xml">
+            <list string="Reposición sugerida" editable="bottom" decoration-warning="suggested_qty &gt; 0">
+                <field name="product_id"/><field name="min_qty"/>
+                <field name="target_qty"/><field name="available_qty"/><field name="suggested_qty"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_mgs_replenishment" model="ir.actions.act_window">
+        <field name="name">Reposición sugerida</field>
+        <field name="res_model">mgs.stock.alert</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_mgs_replenishment_list"/>
+        <field name="domain">[('alert_type','=','threshold')]</field>
+        <field name="context">{'default_alert_type':'threshold'}</field>
+    </record>
+</odoo>

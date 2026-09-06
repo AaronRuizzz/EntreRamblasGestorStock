@@ -16,18 +16,26 @@
               action="action_mgs_home"
               web_icon="mi_gestor_stock,static/description/icon.png"/>
 
+    <menuitem id="menu_mgs_sell" name="Vender" parent="menu_mgs_root"
+              action="point_of_sale.action_pos_config_kanban" sequence="5" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_reception" name="Recepción" parent="menu_mgs_root"
-              action="action_mgs_reception" sequence="10"/>
+              action="action_mgs_reception" sequence="10" groups="mi_gestor_stock.group_mgs_manager"/>
 
     <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="20"/>
+    <menuitem id="menu_mgs_opening" name="Existencias iniciales" parent="menu_mgs_stock" action="action_opening_stock" sequence="40" groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_counts" name="Recuento físico" parent="menu_mgs_stock"
+              action="action_mgs_inventory_counts" sequence="35" groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_scrap" name="Mermas" parent="menu_mgs_root" action="action_mgs_scrap" sequence="25"/>
     <menuitem id="menu_mgs_stock_panel" name="Panel" parent="menu_mgs_stock"
               action="action_mgs_stock_dashboard" sequence="10"/>
+    <menuitem id="menu_mgs_replenishment" name="Reposición" parent="menu_mgs_stock"
+              action="action_mgs_replenishment" sequence="40" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_stock_products" name="Productos" parent="menu_mgs_stock"
               action="action_mgs_products" sequence="20"/>
     <menuitem id="menu_mgs_stock_alerts" name="Alertas" parent="menu_mgs_stock"
               action="action_mgs_alerts" sequence="30"/>
 
-    <menuitem id="menu_mgs_reports" name="Informes" parent="menu_mgs_root" sequence="30"/>
+    <menuitem id="menu_mgs_reports" groups="mi_gestor_stock.group_mgs_manager" name="Informes" parent="menu_mgs_root" sequence="30"/>
     <menuitem id="menu_mgs_reports_sales" name="Ventas y balance" parent="menu_mgs_reports"
               action="action_mgs_report_sales" sequence="10"/>
     <menuitem id="menu_mgs_reports_top" name="Productos más vendidos" parent="menu_mgs_reports"
@@ -39,9 +47,11 @@
          y el cajón se ajustan una vez al montar la tienda; el uso diario no
          pasa por aquí. -->
     <menuitem id="menu_mgs_settings" name="Configuración" parent="menu_mgs_root"
-              sequence="40" groups="base.group_system"/>
+              sequence="40" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_settings_devices" name="Dispositivos" parent="menu_mgs_settings"
-              action="action_mgs_config" sequence="10" groups="base.group_system"/>
+              action="action_mgs_config" sequence="10" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_settings_backups" name="Copias de seguridad" parent="menu_mgs_settings"
-              action="action_mgs_backups" sequence="20" groups="base.group_system"/>
+              action="action_mgs_backups" sequence="20" groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_hardware_jobs" name="Impresiones y aperturas" parent="menu_mgs_settings"
+              action="action_mgs_hardware_jobs" sequence="30" groups="mi_gestor_stock.group_mgs_manager"/>
 </odoo>

@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 from dateutil.relativedelta import relativedelta
+from datetime import datetime, time, timedelta
+import base64
+import csv
+import io
+import pytz
+import zipfile
 
 from odoo import api, fields, models, _
+from odoo.exceptions import UserError
+from .mgs_permissions import require_manager
 
 # Estados de un pedido de TPV que cuentan como venta real.
 SOLD_STATES = ("paid", "done", "invoiced")
@@ -14,6 +22,102 @@ class MgsMonthlyReport(models.TransientModel):
 
     date_from = fields.Date("Desde", required=True, default=lambda s: s._default_from())
     date_to = fields.Date("Hasta", required=True, default=lambda s: s._default_to())
+    category_id = fields.Many2one("product.category", "Categoría")
+    csv_file = fields.Binary(readonly=True, attachment=False)
+    csv_filename = fields.Char(readonly=True)
+    export_file = fields.Binary(readonly=True, attachment=False)
+    export_filename = fields.Char(readonly=True)
+
+    def action_export_all_csv(self):
+        self.ensure_one()
+        data = self.mgs_get_report_data()
+        output = io.BytesIO()
+
+        def safe(value):
+            # Solo el texto puede convertirse en fórmula; conservar números negativos.
+            if isinstance(value, str) and value.lstrip()[:1] in ('=', '+', '-', '@'):
+                return "'" + value
+            if isinstance(value, str) and value[:1] in ('\t', '\r', '\n'):
+                return "'" + value
+            return value
+
+        with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
+            def table(name, header, rows):
+                buffer = io.StringIO(newline='')
+                writer = csv.writer(buffer, delimiter=';')
+                writer.writerow(header)
+                writer.writerows([safe(value) for value in row] for row in rows)
+                archive.writestr(name + '.csv', buffer.getvalue().encode('utf-8-sig'))
+
+            metrics = [
+                ('Ventas antes de devoluciones, con impuestos', 'gross_sales_including_tax'),
+                ('Devoluciones con impuestos', 'refunds_including_tax'),
+                ('Ventas netas sin impuestos', 'total_revenue'), ('Impuestos netos', 'taxes'),
+                ('Ventas netas con impuestos', 'sales_including_tax'),
+                ('Coste histórico vendido neto', 'total_cost_sold'), ('Margen bruto', 'gross_profit'),
+                ('Coste de mermas', 'scrap_cost'), ('Margen después de mermas', 'margin_after_scrap'),
+                ('Tickets con venta', 'sale_ticket_count'), ('Tickets con devolución', 'refund_ticket_count'),
+                ('Ticket medio de venta con impuestos', 'average_sale_ticket'),
+                ('Entradas de proveedor a coste', 'purchases'),
+                ('Valor de stock actual', 'stock_value'), ('Registros sin coste histórico', 'missing_costs'),
+            ]
+            if data['payments_available']:
+                metrics += [('Cobros netos', 'payments_net'), ('Cuenta cliente neta no cobrada', 'payments_deferred_net')]
+            table('resumen', ['Concepto', 'Valor'], [
+                ['Desde', self.date_from], ['Hasta', self.date_to], ['Zona horaria', 'Europe/Madrid'],
+                ['Moneda', data['currency'].name], ['Categoría', data['category'] or 'Todas'],
+                ['Stock consultado (UTC)', fields.Datetime.now()],
+                ['Cobros disponibles', 'Sí' if data['payments_available'] else 'No: filtro de categoría'],
+            ] + [[label, data[key]] for label, key in metrics])
+            table('ventas', ['Producto', 'Unidades netas', 'Ventas sin impuestos', 'Coste histórico', 'Margen bruto'],
+                  [[r['name'], r['qty'], r['revenue'], r['cost'], r['revenue'] - r['cost']] for r in data['sold_rows']])
+            table('ventas_diarias', ['Fecha Madrid', 'Ventas sin impuestos', 'Impuestos', 'Coste histórico', 'Margen bruto'],
+                  [[r['date'], r['revenue'], r['taxes'], r['cost'], r['revenue'] - r['cost']] for r in data['daily_rows']])
+            table('mermas', ['Producto', 'Partida', 'Motivo', 'Cantidad', 'Unidad', 'Coste histórico'],
+                  [[r[k] for k in ('product', 'lot', 'reason', 'quantity', 'uom', 'cost')] for r in data['scrap_rows']])
+            table('stock_actual', ['Producto', 'Cantidad', 'Unidad', 'Valor'],
+                  [[r[k] for k in ('name', 'qty', 'uom', 'value')] for r in data['stock_rows']])
+            if data['payments_available']:
+                table('cobros', ['Método', 'Entradas', 'Salidas (cambio y reembolso)', 'Neto', 'Cuenta cliente no cobrada'],
+                      [[r['name'], r['received'], r['returned'], r['received'] - r['returned'],
+                        'Sí' if r['deferred'] else 'No'] for r in data['payment_rows']])
+            archive.writestr('LEEME.txt', (
+                'CSV UTF-8 con BOM, separador punto y coma, decimales con punto.\n'
+                'Importa los CSV eligiendo estos ajustes en tu hoja de cálculo.\n'
+                'Ventas y mermas: periodo inclusivo Europe/Madrid. Cobros: fecha del pago.\n'
+                'El stock es actual, no el stock al final del periodo.\n'
+                'Con categoría seleccionada se omiten cobros: los pagos mixtos no tienen reparto exacto por categoría.\n'
+                'La cuenta de cliente se separa de los cobros efectivos.\n'
+                'Los textos que podrían interpretarse como fórmulas llevan un apóstrofo inicial.\n'
+            ).encode('utf-8'))
+        self.write({'export_file': base64.b64encode(output.getvalue()),
+                    'export_filename': 'estadisticas-%s-%s.zip' % (self.date_from, self.date_to)})
+        return {'type': 'ir.actions.act_url', 'target': 'download',
+                'url': '/web/content/mgs.monthly.report/%s/export_file/%s?download=true' % (self.id, self.export_filename)}
+
+    def _mgs_period(self):
+        self.ensure_one()
+        if not self.date_from or not self.date_to or self.date_from > self.date_to:
+            raise UserError(_("Selecciona un periodo válido: la fecha inicial no puede superar la final."))
+        zone = pytz.timezone("Europe/Madrid")
+        return tuple(zone.localize(datetime.combine(day, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+                     for day in (self.date_from, self.date_to + timedelta(days=1)))
+
+    def action_export_csv(self):
+        self.ensure_one()
+        data = self.mgs_get_report_data()
+        output = io.StringIO(newline="")
+        writer = csv.writer(output, delimiter=";")
+        writer.writerow(["Producto", "Unidades netas", "Ventas sin impuestos", "Coste histórico", "Margen bruto"])
+        for row in data["sold_rows"]:
+            name = row["name"]
+            if name and name[0] in "=+-@\t\r\n":
+                name = "'" + name
+            writer.writerow([name, row["qty"], row["revenue"], row["cost"], row["revenue"] - row["cost"]])
+        self.write({"csv_file": base64.b64encode(output.getvalue().encode("utf-8-sig")),
+                    "csv_filename": "ventas-%s-%s.csv" % (self.date_from, self.date_to)})
+        return {"type": "ir.actions.act_url", "target": "download",
+                "url": "/web/content/mgs.monthly.report/%s/csv_file/%s?download=true" % (self.id, self.csv_filename)}
 
     @api.model
     def _default_from(self):
@@ -32,11 +136,14 @@ class MgsMonthlyReport(models.TransientModel):
     # Datos del informe (lo llama la plantilla QWeb)
     # ------------------------------------------------------------------
     def mgs_get_report_data(self):
+        require_manager(self.env)
         self.ensure_one()
-        lines = self.env["pos.order.line"].search([
-            ("order_id.date_order", ">=", fields.Datetime.to_datetime(self.date_from)),
-            ("order_id.date_order", "<=", fields.Datetime.to_datetime(self.date_to).replace(
-                hour=23, minute=59, second=59)),
+        start, end = self._mgs_period()
+        category_domain = [("product_id.categ_id", "child_of", self.category_id.id)] if self.category_id else []
+        lines = self.env["pos.order.line"].search(category_domain + [
+            ("company_id", "=", self.env.company.id),
+            ("order_id.date_order", ">=", start),
+            ("order_id.date_order", "<", end),
             ("order_id.state", "in", SOLD_STATES),
         ])
 
@@ -51,36 +158,89 @@ class MgsMonthlyReport(models.TransientModel):
                 "cost": 0.0,
             })
             entry["qty"] += line.qty
-            entry["revenue"] += line.price_subtotal_incl
-            entry["cost"] += line.qty * tmpl.standard_price
+            entry["revenue"] += line.price_subtotal
+            entry["cost"] += line.total_cost
 
         sold_rows = sorted(sold.values(), key=lambda r: r["revenue"], reverse=True)
         total_revenue = sum(r["revenue"] for r in sold_rows)
         total_cost_sold = sum(r["cost"] for r in sold_rows)
         total_qty_sold = sum(r["qty"] for r in sold_rows)
+        positive = lines.filtered(lambda line: line.qty > 0)
+        negative = lines.filtered(lambda line: line.qty < 0)
+        sale_ticket_count = len(positive.order_id)
+        gross_sales = sum(positive.mapped("price_subtotal_incl"))
+        refunds = -sum(negative.mapped("price_subtotal_incl"))
+        daily = {}
+        madrid = pytz.timezone("Europe/Madrid")
+        for line in lines:
+            day = pytz.UTC.localize(line.order_id.date_order).astimezone(madrid).date()
+            row = daily.setdefault(day, {"date": day, "revenue": 0.0, "cost": 0.0, "taxes": 0.0})
+            row["revenue"] += line.price_subtotal
+            row["cost"] += line.total_cost
+            row["taxes"] += line.price_subtotal_incl - line.price_subtotal
+
+        scraps = self.env["stock.scrap"].search(category_domain + [
+            ("company_id", "=", self.env.company.id), ("state", "=", "done"),
+            ("date_done", ">=", start), ("date_done", "<", end),
+        ])
+        reasons = dict(self.env["stock.scrap"]._fields["mgs_reason"]._description_selection(self.env))
+        scrap_rows = []
+        for scrap in scraps:
+            move_lines = scrap.move_ids.move_line_ids
+            scrap_rows.append({"product": scrap.product_id.display_name,
+                "lot": scrap.lot_id.name or "", "reason": reasons.get(scrap.mgs_reason, ""),
+                "quantity": sum(move_lines.mapped("quantity_product_uom")),
+                "uom": scrap.product_id.uom_id.name,
+                "cost": sum(ml.quantity_product_uom * ml.mgs_unit_cost for ml in move_lines)})
+        scrap_cost = sum(row["cost"] for row in scrap_rows)
+
+        # Un cobro mixto no se puede atribuir exactamente a categorías.
+        # Se muestra solo con el informe de todas las categorías y por fecha de pago.
+        payment_rows = []
+        if not self.category_id:
+            payments = self.env["pos.payment"].search([
+                ("pos_order_id.company_id", "=", self.env.company.id),
+                ("pos_order_id.state", "in", SOLD_STATES),
+                ("payment_date", ">=", start), ("payment_date", "<", end),
+            ])
+            grouped = {}
+            for payment in payments:
+                method = payment.payment_method_id
+                deferred = method.type == "pay_later"
+                row = grouped.setdefault(method.id, {"name": method.name + (_(" (cuenta cliente, no cobrado)") if deferred else ""),
+                    "received": 0.0, "returned": 0.0, "deferred": deferred})
+                row["received" if payment.amount >= 0 else "returned"] += abs(payment.amount)
+            payment_rows = sorted(grouped.values(), key=lambda row: row["name"])
 
         # --- Entradas de mercancía (gasto de reposición) del periodo ---
-        moves = self.env["stock.move"].search([
+        moves = self.env["stock.move"].search(category_domain + [
+            ("company_id", "=", self.env.company.id),
             ("state", "=", "done"),
-            ("date", ">=", fields.Datetime.to_datetime(self.date_from)),
-            ("date", "<=", fields.Datetime.to_datetime(self.date_to).replace(
-                hour=23, minute=59, second=59)),
-            ("location_id.usage", "in", ("supplier", "inventory")),
+            ("date", ">=", start),
+            ("date", "<", end),
+            ("location_id.usage", "=", "supplier"),
             ("location_dest_id.usage", "=", "internal"),
         ])
         purchases = 0.0
         purchased_qty = 0.0
         for move in moves:
-            purchases += move.quantity * move.product_id.product_tmpl_id.standard_price
-            purchased_qty += move.quantity
+            purchases += sum(ml.quantity_product_uom * ml.mgs_unit_cost for ml in move.move_line_ids)
+            purchased_qty += sum(move.move_line_ids.mapped("quantity_product_uom"))
 
         # --- Stock restante ---
-        products = self.env["product.template"].search([("is_storable", "=", True)])
+        products = self.env["product.template"].search([("is_storable", "=", True)] +
+            ([("categ_id", "child_of", self.category_id.id)] if self.category_id else []))
         stock_rows = []
         stock_value = 0.0
         for tmpl in products.sorted(key=lambda p: p.name or ""):
-            qty = tmpl.qty_available
-            value = qty * tmpl.standard_price
+            quants = self.env["stock.quant"].search([
+                ("product_id.product_tmpl_id", "=", tmpl.id),
+                ("company_id", "=", self.env.company.id), ("location_id.usage", "=", "internal"),
+                ("owner_id", "=", False),
+            ])
+            qty = sum(quants.mapped("quantity"))
+            value = sum(q.quantity * (q.lot_id.mgs_unit_cost if q.lot_id.mgs_cost_recorded
+                                     else q.product_id.standard_price) for q in quants)
             stock_value += value
             if qty:
                 stock_rows.append({
@@ -95,9 +255,28 @@ class MgsMonthlyReport(models.TransientModel):
             "date_from": self.date_from,
             "date_to": self.date_to,
             "currency": self.env.company.currency_id,
+            "category": self.category_id.display_name if self.category_id else False,
+            "sale_ticket_count": sale_ticket_count,
+            "refund_ticket_count": len(negative.order_id),
+            "gross_sales_including_tax": gross_sales,
+            "refunds_including_tax": refunds,
+            "average_sale_ticket": gross_sales / sale_ticket_count if sale_ticket_count else 0.0,
+            "daily_rows": [daily[day] for day in sorted(daily)],
+            "scrap_rows": scrap_rows,
+            "scrap_cost": scrap_cost,
+            "margin_after_scrap": total_revenue - total_cost_sold - scrap_cost,
+            "payment_rows": payment_rows,
+            "payments_available": not self.category_id,
+            "payments_net": sum(row["received"] - row["returned"] for row in payment_rows if not row["deferred"]),
+            "payments_deferred_net": sum(row["received"] - row["returned"] for row in payment_rows if row["deferred"]),
             "sold_rows": sold_rows,
             "total_qty_sold": total_qty_sold,
             "total_revenue": total_revenue,
+            "taxes": sum(line.price_subtotal_incl - line.price_subtotal for line in lines),
+            "sales_including_tax": sum(lines.mapped("price_subtotal_incl")),
+            "missing_costs": len(lines.filtered(lambda line: not line.is_total_cost_computed)) +
+                len(moves.move_line_ids.filtered(lambda ml: not ml.mgs_cost_recorded)) +
+                len(scraps.move_ids.move_line_ids.filtered(lambda ml: not ml.mgs_cost_recorded)),
             "total_cost_sold": total_cost_sold,
             "gross_profit": total_revenue - total_cost_sold,
             "purchases": purchases,

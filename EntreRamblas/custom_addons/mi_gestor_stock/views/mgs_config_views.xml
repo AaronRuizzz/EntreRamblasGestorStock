@@ -111,10 +111,11 @@
                                     <field name="backup_enabled"/>
                                     <field name="backup_every_hours"
                                            invisible="not backup_enabled"/>
-                                    <field name="backup_keep" invisible="not backup_enabled"/>
+                                    <field name="backup_retention_days" invisible="not backup_enabled"/>
                                 </group>
                                 <group string="Dónde">
-                                    <field name="backup_dir" placeholder="E:\CopiasEntreRamblas"/>
+                                    <field name="backup_dir" string="Carpeta local"/>
+                                    <field name="backup_ssd_dir" placeholder="E:\CopiasEntreRamblas"/>
                                     <field name="backup_latest_name"/>
                                     <field name="backup_last_date"/>
                                     <field name="backup_last_path"/>
@@ -127,14 +128,13 @@
                             <div class="text-muted mt-3">
                                 <p>
                                     Para restaurar: para el servidor y ejecuta
-                                    <code>.\restore-backup.ps1 -Archivo &lt;ruta del .zip&gt;</code>
+                                    <code>.\restore-backup.ps1 -Archivo &lt;ruta del .zip&gt; -Database stock_recuperado</code>
                                     desde la carpeta <code>EntreRamblas</code>.
                                 </p>
                                 <p>
-                                    Si apuntas la carpeta al SSD externo, el archivo con nombre
-                                    fijo (el que acaba en <code>-ultima.zip</code>) se
-                                    sobrescribe en cada copia y siempre contiene el estado
-                                    más reciente.
+                                    La copia local se conserva aunque el SSD esté desconectado.
+                                    El historial muestra si la réplica externa está pendiente
+                                    o ha fallado. Crea primero la carpeta de destino en el SSD.
                                 </p>
                             </div>
                         </page>
@@ -175,6 +175,7 @@
                 <field name="size_human" string="Tamaño"/>
                 <field name="kind"/>
                 <field name="state"/>
+                <field name="replica_state"/>
                 <field name="path" optional="show"/>
                 <field name="message" optional="hide"/>
             </list>

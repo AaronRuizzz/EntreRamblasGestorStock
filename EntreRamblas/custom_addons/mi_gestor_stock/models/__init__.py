@@ -2,6 +2,15 @@ from . import mgs_config
 from . import mgs_backup
 from . import res_company
 from . import product_template
+from . import mgs_stock_lot
+from . import mgs_pos_stock
+from . import mgs_scrap
 from . import mgs_stock_alert
 from . import mgs_reception
 from . import mgs_monthly_report
+from . import mgs_security
+from . import mgs_hardware_job
+from . import mgs_pos_session
+from . import mgs_inventory_count
+from . import mgs_damaged_return
+from . import mgs_opening_stock

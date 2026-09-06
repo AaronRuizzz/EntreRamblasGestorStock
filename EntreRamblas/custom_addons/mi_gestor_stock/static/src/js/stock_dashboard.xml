@@ -36,7 +36,7 @@
         <section class="mgs-dash-section" t-if="state.data.expiring.length">
           <h2 class="mgs-dash-title">Caducidad próxima</h2>
           <div class="mgs-alert-list">
-            <div t-foreach="state.data.expiring" t-as="ex" t-key="ex.product_id"
+            <div t-foreach="state.data.expiring" t-as="ex" t-key="ex.lot_id"
                  t-attf-class="mgs-alert-card {{ ex.days &lt; 0 ? 'is-expired' : 'is-expiring' }}"
                  t-on-click="() => this.openProduct(ex.product_id)">
               <i class="fa fa-clock-o mgs-alert-icon" role="img"/>

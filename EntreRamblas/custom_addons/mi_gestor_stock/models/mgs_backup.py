@@ -23,11 +23,15 @@ bases de datos desde el navegador—. Por eso aquí se reconstruye el volcado
 por dentro, sin depender de esa opción.
 """
 import json
+import hashlib
 import logging
 import os
 import shutil
 import subprocess
 import tempfile
+import zipfile
+from pathlib import Path
+from uuid import uuid4
 from datetime import timedelta
 
 import odoo
@@ -59,12 +63,24 @@ class MgsBackup(models.Model):
     kind = fields.Selection([
         ("auto", "Automática"),
         ("manual", "Manual"),
+        ("close", "Cierre de caja"),
     ], string="Origen", default="auto", readonly=True)
     state = fields.Selection([
         ("done", "Correcta"),
         ("error", "Con error"),
     ], string="Estado", default="done", readonly=True)
     message = fields.Text("Detalle", readonly=True)
+    checksum = fields.Char("SHA-256", readonly=True)
+    replica_path = fields.Char("Archivo SSD", readonly=True)
+    replica_state = fields.Selection([
+        ("none", "SSD sin configurar"), ("done", "SSD correcto"),
+        ("error", "SSD pendiente / error"),
+    ], default="none", readonly=True)
+
+    @api.model
+    def _mgs_checksum(self, path):
+        with open(path, "rb") as stream:
+            return hashlib.file_digest(stream, "sha256").hexdigest()
 
     @api.depends("size")
     def _compute_size_human(self):
@@ -145,22 +161,38 @@ class MgsBackup(models.Model):
         db_name = self.env.cr.dbname
         tmp_target = target + ".part"
         with tempfile.TemporaryDirectory() as dump_dir:
-            filestore = odoo.tools.config.filestore(db_name)
-            if os.path.exists(filestore):
-                shutil.copytree(filestore, os.path.join(dump_dir, "filestore"))
-            with open(os.path.join(dump_dir, "manifest.json"), "w", encoding="utf-8") as fh:
-                json.dump(self._mgs_manifest(), fh, indent=4)
-            subprocess.run(
-                [self._mgs_pg_tool("pg_dump"), "--no-owner",
-                 "--file=" + os.path.join(dump_dir, "dump.sql"), db_name],
-                env=exec_pg_environ(), stdout=subprocess.DEVNULL,
-                stderr=subprocess.STDOUT, check=True,
-            )
+            # El SQL y la lista de adjuntos comparten la misma instantánea.
+            # Si un adjunto desaparece durante la copia, se rechaza la copia.
+            with odoo.sql_db.db_connect(db_name).cursor() as snapshot:
+                snapshot.execute("SELECT pg_export_snapshot()")
+                snapshot_id = snapshot.fetchone()[0]
+                snapshot.execute("SELECT DISTINCT store_fname FROM ir_attachment WHERE store_fname IS NOT NULL")
+                filenames = [row[0] for row in snapshot.fetchall()]
+                snapshot_env = api.Environment(snapshot, self.env.uid, dict(self.env.context))
+                with open(os.path.join(dump_dir, "manifest.json"), "w", encoding="utf-8") as fh:
+                    json.dump(snapshot_env["mgs.backup"]._mgs_manifest(), fh, indent=4)
+                subprocess.run(
+                    [self._mgs_pg_tool("pg_dump"), "--no-owner", "--snapshot=" + snapshot_id,
+                     "--file=" + os.path.join(dump_dir, "dump.sql"), db_name],
+                    env=exec_pg_environ(), stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE, check=True, timeout=1800,
+                )
+                filestore = Path(odoo.tools.config.filestore(db_name)).resolve()
+                for filename in filenames:
+                    source = (filestore / filename).resolve()
+                    if not source.is_relative_to(filestore):
+                        raise ValueError("Ruta de adjunto fuera del filestore")
+                    destination = Path(dump_dir) / "filestore" / filename
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, destination)
             with open(tmp_target, "wb") as stream:
                 # dump.sql el primero dentro del zip: es lo que espera el
                 # restaurador de Odoo para no tener que leerlo entero.
                 zip_dir(dump_dir, stream, include_dir=False,
                         fnct_sort=lambda name: name != "dump.sql")
+        with zipfile.ZipFile(tmp_target) as archive:
+            if archive.testzip() or archive.getinfo("dump.sql").file_size == 0:
+                raise ValueError("La comprobación del archivo ZIP ha fallado")
         os.replace(tmp_target, target)
         return os.path.getsize(target)
 
@@ -168,18 +200,25 @@ class MgsBackup(models.Model):
     def _mgs_run_backup(self, kind="auto"):
         """Hace una copia y deja constancia (también si falla)."""
         config = self.env["mgs.config"]._mgs_get()
+        self.env.cr.execute("SELECT pg_try_advisory_xact_lock(hashtextextended(%s, 0))",
+                            ["mgs-backup:" + self.env.cr.dbname])
+        if not self.env.cr.fetchone()[0]:
+            return self.browse()
         stamp = fields.Datetime.context_timestamp(self, fields.Datetime.now())
-        name = "%s-%s.zip" % (self.env.cr.dbname, stamp.strftime("%Y%m%d-%H%M"))
+        name = "%s-%s-%s.zip" % (self.env.cr.dbname, stamp.strftime("%Y%m%d-%H%M%S"), uuid4().hex[:8])
         try:
             directory = self._mgs_dir(config)
             target = os.path.join(directory, name)
             size = self._mgs_write_zip(target)
+            checksum = self._mgs_checksum(target)
+            Path(target + ".sha256").write_text(checksum + "  " + name + "\n", encoding="ascii")
             # Copia con nombre fijo: SIEMPRE el estado más reciente, para que
             # la tarea que sincroniza con el disco externo tenga una ruta
             # estable a la que apuntar.
             latest = self._mgs_latest_path(config)
             shutil.copyfile(target, latest + ".part")
             os.replace(latest + ".part", latest)
+            Path(latest + ".sha256").write_text(checksum + "  " + Path(latest).name + "\n", encoding="ascii")
         except Exception as err:  # noqa: BLE001 - se registra, no tumba el cron
             _logger.exception("mi_gestor_stock: falló la copia de seguridad")
             return self.sudo().create({
@@ -191,6 +230,7 @@ class MgsBackup(models.Model):
         backup = self.sudo().create({
             "name": name, "path": target, "size": size, "kind": kind,
             "state": "done",
+            "checksum": checksum,
             "message": _("Copia completa (base de datos + adjuntos). "
                          "Archivo permanente: %s", latest),
         })
@@ -198,28 +238,82 @@ class MgsBackup(models.Model):
             "backup_last_date": fields.Datetime.now(),
             "backup_last_path": target,
         })
+        backup._mgs_replicate(config)
         self._mgs_purge(config)
         return backup
 
     @api.model
     def _mgs_purge(self, config=None):
-        """Conserva solo las N copias con fecha más recientes."""
+        """Retención por días, únicamente archivos propios dentro de destinos activos."""
         config = config or self.env["mgs.config"]._mgs_get()
-        keep = max(1, config.backup_keep or 14)
-        old = self.sudo().search([("state", "=", "done")], order="date desc")[keep:]
+        cutoff = fields.Datetime.now() - timedelta(days=max(1, config.backup_retention_days or 30))
+        old = self.sudo().search([("state", "=", "done"), ("date", "<", cutoff)])
         for backup in old:
-            if backup.path and os.path.isfile(backup.path):
+            removed = True
+            for filename, directory in [(backup.path, self._mgs_dir(config)),
+                                        (backup.replica_path, config.backup_ssd_dir)]:
+                if not filename:
+                    continue
+                if not directory or not Path(directory).is_dir():
+                    removed = False
+                    continue
+                path = Path(filename).resolve()
+                if not directory or path.parent != Path(directory).resolve() or path.name != backup.name:
+                    removed = False
+                    continue
+                if not path.name.startswith(self.env.cr.dbname + "-") or path.suffix != ".zip":
+                    removed = False
+                    continue
                 try:
-                    os.remove(backup.path)
-                except OSError as err:
-                    _logger.warning("mi_gestor_stock: no se pudo borrar %s (%s)",
-                                    backup.path, err)
-        # Los registros con error se quedan como aviso hasta que se resuelvan.
-        old.unlink()
+                    path.unlink(missing_ok=True)
+                    Path(str(path) + ".sha256").unlink(missing_ok=True)
+                except OSError:
+                    removed = False
+                    _logger.exception("No se pudo aplicar la retención a %s", path)
+            if removed:
+                backup.unlink()
+
+    def _mgs_replicate(self, config=None):
+        self.ensure_one()
+        config = config or self.env["mgs.config"]._mgs_get()
+        if not config.backup_ssd_dir:
+            return
+        destination = Path(config.backup_ssd_dir).resolve()
+        try:
+            if not destination.is_dir():
+                raise OSError("El SSD o su carpeta no están disponibles")
+            if destination == Path(self.path).resolve().parent:
+                raise ValueError("La copia local y la réplica SSD necesitan carpetas diferentes")
+            target = destination / self.name
+            temporary = Path(str(target) + ".part")
+            shutil.copyfile(self.path, temporary)
+            if self._mgs_checksum(temporary) != self.checksum:
+                raise ValueError("La réplica SSD no coincide con la copia local")
+            os.replace(temporary, target)
+            Path(str(target) + ".sha256").write_text(self.checksum + "  " + self.name + "\n", encoding="ascii")
+            self.sudo().write({"replica_state": "done", "replica_path": str(target),
+                              "message": _("Copia local y réplica SSD verificadas.")})
+        except Exception as err:
+            self.sudo().write({"replica_state": "error", "message":
+                _("Copia local correcta. Réplica SSD pendiente: %s", str(err))})
+            _logger.warning("Réplica SSD pendiente: %s", err)
 
     # ------------------------------------------------------------------
     # Cron (data/mgs_hardware_data.xml)
     # ------------------------------------------------------------------
+    @api.model
+    def _mgs_backup_closed_sessions(self):
+        if not self.env["mgs.config"]._mgs_get().backup_enabled:
+            return False
+        sessions = self.env["pos.session"].sudo().search([
+            ("state", "=", "closed"), ("mgs_backup_pending", "=", True)])
+        if not sessions:
+            return False
+        backup = self._mgs_run_backup(kind="close")
+        if backup and backup.state == "done":
+            sessions.write({"mgs_backup_pending": False})
+        return backup
+
     @api.model
     def _mgs_cron_backup(self):
         """Se ejecuta cada hora y decide si toca copia.
@@ -232,6 +326,12 @@ class MgsBackup(models.Model):
         config = self.env["mgs.config"]._mgs_get()
         if not config.backup_enabled:
             return False
+        # Recupera réplicas fallidas, con un límite para no saturar el inicio.
+        for backup in self.sudo().search([("state", "=", "done"), ("replica_state", "=", "error")], limit=5):
+            backup._mgs_replicate(config)
+        closed_backup = self._mgs_backup_closed_sessions()
+        if closed_backup:
+            return closed_backup
         every = max(1, config.backup_every_hours or 6)
         last = self.sudo().search([("state", "=", "done")], order="date desc", limit=1)
         if last and last.date > fields.Datetime.now() - timedelta(hours=every):
@@ -239,9 +339,30 @@ class MgsBackup(models.Model):
         return self._mgs_run_backup(kind="auto")
 
     @api.model
+    def _mgs_status_warning(self):
+        config = self.env["mgs.config"]._mgs_get()
+        if not config.backup_enabled:
+            return _("Las copias automáticas están desactivadas.")
+        last = self.sudo().search([], order="date desc, id desc", limit=1)
+        if not last or last.state == "error":
+            return _("No hay una copia reciente correcta. Revisa el historial de copias.")
+        if last.date < fields.Datetime.now() - timedelta(hours=max(1, config.backup_every_hours or 6) + 1):
+            return _("La última copia tiene más antigüedad de la prevista. Revisa las copias.")
+        if not config.backup_ssd_dir:
+            return _("La réplica en el SSD todavía no está configurada.")
+        if last.replica_state != "done":
+            return _("La copia local está guardada; falta comprobar la réplica en el SSD.")
+        return False
+
+    @api.model
     def action_mgs_backup_now(self):
+        from .mgs_permissions import require_manager
+        require_manager(self.env)
         """Botón «Hacer copia ahora» de la lista de copias."""
         backup = self._mgs_run_backup(kind="manual")
+        if not backup:
+            return {"type": "ir.actions.client", "tag": "display_notification",
+                    "params": {"type": "warning", "message": _("Ya hay una copia en curso.")}}
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",

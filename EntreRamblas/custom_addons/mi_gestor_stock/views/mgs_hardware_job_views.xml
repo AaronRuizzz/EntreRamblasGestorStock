@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mgs_hardware_job_company_rule" model="ir.rule">
+        <field name="name">Hardware de la empresa activa</field>
+        <field name="model_id" ref="model_mgs_hardware_job"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+    </record>
+    <record id="mgs_hardware_job_user_rule" model="ir.rule">
+        <field name="name">Solicitudes del operador</field>
+        <field name="model_id" ref="model_mgs_hardware_job"/>
+        <field name="groups" eval="[(4,ref('group_mgs_user'))]"/>
+        <field name="domain_force">[('user_id','=',user.id)]</field>
+    </record>
+    <record id="mgs_hardware_job_manager_rule" model="ir.rule">
+        <field name="name">Responsable: registro completo de hardware</field>
+        <field name="model_id" ref="model_mgs_hardware_job"/>
+        <field name="groups" eval="[(4,ref('group_mgs_manager'))]"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+    </record>
+    <record id="view_mgs_hardware_job_list" model="ir.ui.view">
+        <field name="name">mgs.hardware.job.list</field><field name="model">mgs.hardware.job</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false" decoration-warning="state in ['sending','uncertain']">
+                <field name="create_date"/><field name="kind"/><field name="state"/>
+                <field name="user_id"/><field name="session_id"/><field name="order_id"/>
+                <field name="reason"/><field name="message"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_mgs_hardware_jobs" model="ir.actions.act_window">
+        <field name="name">Impresiones y aperturas</field><field name="res_model">mgs.hardware.job</field>
+        <field name="view_mode">list</field><field name="view_id" ref="view_mgs_hardware_job_list"/>
+    </record>
+    <record id="ir_cron_mgs_hardware" model="ir.cron">
+        <field name="name">Floristería: enviar solicitudes pendientes de hardware</field>
+        <field name="model_id" ref="model_mgs_hardware_job"/>
+        <field name="state">code</field><field name="code">model._cron_dispatch()</field>
+        <field name="interval_number">1</field><field name="interval_type">minutes</field>
+        <field name="user_id" ref="base.user_root"/>
+    </record>
+</odoo>

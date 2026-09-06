@@ -21,6 +21,7 @@ from odoo.exceptions import UserError
 from odoo.tools import formatLang
 
 from . import mgs_escpos as escpos
+from .mgs_permissions import require_manager, require_operator
 
 _logger = logging.getLogger(__name__)
 
@@ -130,7 +131,10 @@ class MgsConfig(models.Model):
         "Carpeta de las copias",
         default=lambda self: self.env["mgs.backup"]._mgs_default_dir())
     backup_every_hours = fields.Integer("Hacer una copia cada (horas)", default=6)
-    backup_keep = fields.Integer("Copias con fecha que se conservan", default=14)
+    backup_keep = fields.Integer("Copias conservadas (ajuste antiguo)", default=14)
+    backup_retention_days = fields.Integer("Días de conservación", default=30)
+    backup_ssd_dir = fields.Char("Carpeta de réplica en SSD",
+        help="Carpeta existente del disco externo. Se mantiene también la copia local.")
     backup_last_date = fields.Datetime("Última copia", readonly=True)
     backup_last_path = fields.Char("Archivo de la última copia", readonly=True)
     backup_latest_name = fields.Char(
@@ -159,6 +163,7 @@ class MgsConfig(models.Model):
     @api.model
     def action_mgs_open(self):
         """Abre la pantalla de configuración sobre el registro único."""
+        require_manager(self.env)
         config = self._mgs_get()
         return {
             "type": "ir.actions.act_window",
@@ -190,6 +195,7 @@ class MgsConfig(models.Model):
     @api.model
     def mgs_clean_scan(self, barcode):
         """Limpia una lectura: espacios, retornos y prefijo/sufijo programados."""
+        require_operator(self.env)
         code = (barcode or "").strip().strip("\r\n\t")
         if not code:
             return ""
@@ -205,6 +211,7 @@ class MgsConfig(models.Model):
     @api.model
     def mgs_next_internal_barcode(self):
         """Genera un EAN-13 interno válido y libre, para productos sin código."""
+        require_manager(self.env)
         config = self._mgs_get()
         prefix = "".join(ch for ch in (config.internal_prefix or "") if ch.isdigit())
         prefix = prefix[:6] or DEFAULT_INTERNAL_PREFIX
@@ -270,6 +277,7 @@ class MgsConfig(models.Model):
     # Botones de la pantalla de configuración
     # ==================================================================
     def action_mgs_test_print(self):
+        require_manager(self.env)
         self.ensure_one()
         doc = self._mgs_doc()
         self._mgs_company_header(doc)
@@ -294,12 +302,17 @@ class MgsConfig(models.Model):
         return self._mgs_notify(_("Ticket de prueba enviado a la impresora."))
 
     def action_mgs_open_drawer(self):
+        require_manager(self.env)
         self.ensure_one()
         self.mgs_open_drawer()
         return self._mgs_notify(_("Pulso enviado al cajón."))
 
     def mgs_open_drawer(self):
         """Dispara el pulso del RJ11. El cajón no recibe datos, solo corriente."""
+        require_manager(self.env)
+        return self._mgs_open_drawer()
+
+    def _mgs_open_drawer(self):
         self.ensure_one()
         if not self.drawer_enabled:
             raise UserError(_(
@@ -312,10 +325,15 @@ class MgsConfig(models.Model):
         return self._mgs_send(doc.to_bytes(), _("Apertura de cajón"))
 
     def action_mgs_backup_now(self):
+        require_manager(self.env)
         self.ensure_one()
         backup = self.env["mgs.backup"].sudo()._mgs_run_backup(kind="manual")
+        if not backup:
+            return self._mgs_notify(_("Ya hay una copia en curso."), "warning")
         if backup.state != "done":
-            raise UserError(backup.message or _("La copia de seguridad ha fallado."))
+            return self._mgs_notify(backup.message or _("La copia de seguridad ha fallado."), "danger")
+        if backup.replica_state == "error":
+            return self._mgs_notify(backup.message, "warning")
         return self._mgs_notify(_("Copia guardada en %s", backup.path))
 
     def _mgs_notify(self, message, kind="success"):
@@ -328,7 +346,7 @@ class MgsConfig(models.Model):
     # ==================================================================
     # Etiquetas de producto
     # ==================================================================
-    def mgs_print_labels(self, products, copies=None):
+    def _mgs_print_labels(self, products, copies=None):
         """Etiqueta de 80 mm: nombre, precio y código de barras impreso.
 
         La impresora dibuja las barras por su cuenta (comando GS k), así que
@@ -368,6 +386,7 @@ class MgsConfig(models.Model):
     @api.model
     def mgs_pos_hardware_info(self):
         """Qué hardware hay activo. El TPV lo consulta una vez, al abrir."""
+        require_operator(self.env)
         config = self._mgs_get()
         return {
             "escpos_receipt": bool(config.pos_autoprint and config.printer_mode != "disabled"),
@@ -379,11 +398,12 @@ class MgsConfig(models.Model):
     def mgs_pos_open_drawer(self):
         """Abre el cajón desde el TPV. Nunca lanza: una venta no se puede
         quedar bloqueada porque el cajón no responda."""
+        require_operator(self.env)
         config = self._mgs_get()
         if not (config.drawer_enabled and config.drawer_on_sale):
             return {"ok": False, "message": "cajón desactivado"}
         try:
-            config.mgs_open_drawer()
+            config._mgs_open_drawer()
         except Exception as err:  # noqa: BLE001 - se informa, no se propaga
             _logger.warning("mi_gestor_stock: no se pudo abrir el cajón: %s", err)
             return {"ok": False, "message": str(err)}
@@ -396,10 +416,17 @@ class MgsConfig(models.Model):
         Devuelve False si no se ha podido: el TPV vuelve entonces a su
         impresión por navegador, así que una venta nunca se queda sin ticket.
         """
+        require_operator(self.env)
+        order = self.env["pos.order"].browse(order_id).exists()
+        order.check_access("read")
+        if not order or order.company_id != self.env.company:
+            raise UserError(_("La venta no pertenece a esta tienda."))
+        if order.state not in ("paid", "done", "invoiced"):
+            raise UserError(_("Solo se puede imprimir una venta confirmada."))
         config = self._mgs_get()
         if not config.pos_autoprint or config.printer_mode == "disabled":
             return False
-        order = self.env["pos.order"].sudo().browse(order_id).exists()
+        order = order.sudo()
         if not order:
             return False
         try:

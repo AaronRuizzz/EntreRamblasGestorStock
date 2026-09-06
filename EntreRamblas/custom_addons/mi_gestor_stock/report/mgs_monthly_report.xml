@@ -7,17 +7,20 @@
         <field name="arch" type="xml">
             <form string="Informe mensual">
                 <p class="text-muted">
-                    Genera un PDF con lo vendido, el stock que queda y el balance
-                    entre ventas y reposición del periodo elegido.
+                    Ventas y margen del periodo, con costes históricos. El inventario
+                    mostrado corresponde al momento de consultar el informe.
                 </p>
                 <group>
                     <field name="date_from"/>
                     <field name="date_to"/>
+                    <field name="category_id"/>
                 </group>
                 <footer>
                     <button name="action_print" type="object" string="Generar PDF"
                             class="btn-primary"/>
                     <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    <button name="action_export_csv" type="object" string="Exportar ventas CSV"/>
+                    <button name="action_export_all_csv" type="object" string="Exportar estadísticas (ZIP de CSV)"/>
                 </footer>
             </form>
         </field>
@@ -48,6 +51,12 @@
                 <t t-call="web.external_layout">
                     <t t-set="d" t-value="doc.mgs_get_report_data()"/>
                     <div class="page">
+                        <style>
+                            h3 { page-break-after: avoid; }
+                            table { page-break-inside: avoid; }
+                            tr { page-break-inside: avoid; }
+                            th, td { padding: 4px 6px !important; }
+                        </style>
                         <h2>Informe de stock y ventas</h2>
                         <p>
                             Del <strong t-esc="d['date_from']"/>
@@ -55,10 +64,14 @@
                         </p>
 
                         <h3 class="mt-4">Resumen</h3>
+                        <p t-if="d['missing_costs']" class="text-danger">
+                            Hay operaciones sin coste histórico registrado. Los costes y márgenes del periodo están incompletos.
+                        </p>
+                        <p t-if="d['category']">Categoría: <strong t-esc="d['category']"/></p>
                         <table class="table table-sm">
                             <tbody>
                                 <tr>
-                                    <td>Ingresos por ventas</td>
+                                    <td>Ventas netas sin impuestos</td>
                                     <td class="text-end">
                                         <span t-esc="d['total_revenue']"
                                               t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
@@ -72,28 +85,28 @@
                                     </td>
                                 </tr>
                                 <tr class="fw-bold">
-                                    <td>Beneficio bruto</td>
+                                    <td>Margen bruto (no equivale a beneficio neto)</td>
                                     <td class="text-end">
                                         <span t-esc="d['gross_profit']"
                                               t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>Gasto en reposición (mercancía recibida)</td>
+                                    <td>Valor de mercancía recibida (no implica pago)</td>
                                     <td class="text-end">
                                         <span t-esc="d['purchases']"
                                               t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
                                     </td>
                                 </tr>
                                 <tr class="fw-bold">
-                                    <td>Balance del periodo (ventas − reposición)</td>
+                                    <td>Impuestos de las ventas</td>
                                     <td class="text-end">
-                                        <span t-esc="d['balance']"
+                                        <span t-esc="d['taxes']"
                                               t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>Valor del stock restante (a coste)</td>
+                                    <td>Valor del stock actual (a coste)</td>
                                     <td class="text-end">
                                         <span t-esc="d['stock_value']"
                                               t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
@@ -101,6 +114,58 @@
                                 </tr>
                             </tbody>
                         </table>
+
+                        <h3>Actividad y mermas</h3>
+                        <p>Tickets con venta: <strong t-esc="d['sale_ticket_count']"/>.
+                           Tickets con devolución: <strong t-esc="d['refund_ticket_count']"/>.</p>
+                        <p class="text-muted">El ticket medio incluye impuestos y solo las líneas vendidas,
+                            antes de devoluciones. Si hay filtro, cuenta el importe de esa categoría por ticket afectado.</p>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr t-foreach="[('Ventas antes de devoluciones, con impuestos', 'gross_sales_including_tax'), ('Devoluciones, con impuestos', 'refunds_including_tax'), ('Ticket medio de venta', 'average_sale_ticket'), ('Coste de mermas', 'scrap_cost'), ('Margen después de mermas (no es beneficio neto)', 'margin_after_scrap')]" t-as="metric">
+                                    <td t-esc="metric[0]"/>
+                                    <td class="text-end"><span t-esc="d[metric[1]]" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h3>Cobros registrados</h3>
+                        <p class="text-muted">Por fecha de pago. Incluyen impuestos; las salidas incluyen
+                            cambios en efectivo y reembolsos. No representan la conciliación bancaria del datáfono.</p>
+                        <p t-if="not d['payments_available']">Elimina el filtro de categoría para consultar los cobros completos.</p>
+                        <table t-elif="d['payment_rows']" class="table table-sm">
+                            <thead><tr><th>Método</th><th>Entradas</th><th>Salidas</th><th>Neto</th></tr></thead>
+                            <tbody><tr t-foreach="d['payment_rows']" t-as="row">
+                                <td t-esc="row['name']"/>
+                                <td><span t-esc="row['received']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                <td><span t-esc="row['returned']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                <td><span t-esc="row['received'] - row['returned']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                            </tr></tbody>
+                        </table>
+                        <p t-else="">No hay cobros registrados en este periodo.</p>
+
+                        <h3 style="page-break-before: always;">Ventas por día (Europe/Madrid)</h3>
+                        <table t-if="d['daily_rows']" class="table table-sm">
+                            <thead><tr><th>Fecha</th><th>Ventas netas sin impuestos</th><th>Coste</th><th>Impuestos</th></tr></thead>
+                            <tbody><tr t-foreach="d['daily_rows']" t-as="row">
+                                <td t-esc="row['date']"/>
+                                <td><span t-esc="row['revenue']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                <td><span t-esc="row['cost']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                <td><span t-esc="row['taxes']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                            </tr></tbody>
+                        </table>
+                        <p t-else="">No hay ventas en este periodo.</p>
+
+                        <h3>Detalle de mermas</h3>
+                        <table t-if="d['scrap_rows']" class="table table-sm">
+                            <thead><tr><th>Producto</th><th>Partida</th><th>Motivo</th><th>Cantidad</th><th>Coste</th></tr></thead>
+                            <tbody><tr t-foreach="d['scrap_rows']" t-as="row">
+                                <td t-esc="row['product']"/><td t-esc="row['lot']"/><td t-esc="row['reason']"/>
+                                <td><t t-esc="row['quantity']"/> <t t-esc="row['uom']"/></td>
+                                <td><span t-esc="row['cost']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                            </tr></tbody>
+                        </table>
+                        <p t-else="">No hay mermas registradas en este periodo.</p>
 
                         <h3 class="mt-4">Productos vendidos</h3>
                         <table class="table table-sm" t-if="d['sold_rows']">

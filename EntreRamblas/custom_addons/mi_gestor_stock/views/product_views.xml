@@ -146,7 +146,7 @@
                 <filter string="Bajo mínimo" name="filter_mgs_low_stock"
                         domain="[('mgs_low_stock','=',True)]"/>
                 <filter string="Caducados" name="filter_mgs_expired"
-                        domain="[('mgs_expiry_date','&lt;',context_today().strftime('%Y-%m-%d'))]"/>
+                        domain="[('mgs_expired','=',True)]"/>
                 <separator/>
                 <filter string="Archivados" name="inactive" domain="[('active','=',False)]"/>
                 <group expand="1" string="Agrupar por">
