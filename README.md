@@ -231,115 +231,23 @@ IVA 21/10/4, plan PYMEs, validación NIF), `point_of_sale`, `contacts`, `stock_s
 
 ---
 
-## 4. Credenciales y accesos
+## 4. Acceso e instalación actuales
 
-| Qué | Valor |
-|---|---|
-| URL | http://localhost:8069 |
-| Base de datos | `mi_base_stock` |
-| **Usuario administrador** | `entreramblasclavelyazahar@gmail.com` |
-| **Contraseña** | `gestionDeStockNani2026` |
+La configuración con credenciales se guarda en un archivo privado `odoo.local`,
+ignorado por Git. `odoo.conf` es una plantilla sin secretos para pruebas.
+Las instalaciones nuevas generan una contraseña única en un archivo local
+`<base>-first-access.secret`. El módulo no cambia contraseñas existentes.
 
-> Estas credenciales las **fija el módulo** (`_mgs_setup_spanish` en
-> `res_company.py`) al crear la BD desde cero. Si el cliente cambia la contraseña
-> en producción, un `-u` posterior **no** la vuelve a pisar (solo actúa mientras
-> el login siga siendo `admin`).
+## 5. Arranque, actualización y recuperación
 
-| Contraseña maestra (crear/borrar BD) | `admin` (en `odoo.conf`, `admin_passwd`) — el gestor de BD está **desactivado** por `list_db = False` |
-| PostgreSQL superusuario | `postgres` / `postgres` |
-| PostgreSQL rol Odoo | `odoo` / `odoo` |
+Consulta [INSTALACION.md](INSTALACION.md) para los comandos actuales y
+[IMPLEMENTACION.md](IMPLEMENTACION.md) para la evidencia y los pendientes.
+Los comandos y notas históricas del resto de este documento describen versiones
+anteriores; la guía de instalación actual prevalece sobre ellos.
 
-> El login de Odoo es **100% local**: valida contra la tabla `res.users` de PostgreSQL
-> (hash pbkdf2). No hay ninguna llamada a internet. El navegador puede guardar la
-> contraseña localmente (autocompletar), sin internet.
-
----
-
-## 5. Cómo arrancar / trabajar
-
-### La base de datos SALE DEL REPOSITORIO (no se sube a git)
-
-La BD `mi_base_stock` **no se versiona**. Es un producto derivado del módulo
-`mi_gestor_stock`: toda la personalización (marca, idioma español, estilos,
-vistas, ajustes, apps instaladas) vive como código/datos dentro del módulo.
-Cualquier equipo la reconstruye idéntica con **`bootstrap.ps1`**.
-
-```powershell
-cd ...\EntreRamblasGestorStock\EntreRamblas
-
-# --- PRIMERA VEZ en un equipo (crea venv, deps y la BD desde cero) ---
-.\bootstrap.ps1
-
-# --- Arrancar el servidor ---
-.\start-odoo.ps1
-
-# --- Recrear la BD desde cero (borra la actual) ---
-.\bootstrap.ps1 -Reset
-```
-
-### Flujo de trabajo entre compañeros (push / pull)
-
-| Situación | Qué hacer |
-|---|---|
-| Cambié **SCSS / JS / QWeb** y hago push | El compañero: `git pull` → Ctrl+F5 en el navegador. Nada más. |
-| Cambié **vistas XML / modelos Python / datos** (`data/*.xml`) y hago push | El compañero: `git pull` → `.\start-odoo.ps1 -Update mi_gestor_stock` |
-| Añadí una **app nueva** (la puse en `depends` del `__manifest__.py`) | El compañero: `git pull` → `.\start-odoo.ps1 -Update mi_gestor_stock` (instala la nueva dependencia) |
-| La BD local quedó inconsistente | `.\bootstrap.ps1 -Reset` (se pierde solo lo tecleado a mano, no la config del módulo) |
-
-> ⚠️ Lo que se teclea **a mano** en Odoo (productos reales, configuración del
-> almacén, métodos de pago del TPV…) **NO viaja por git**. Si hay que compartirlo,
-> se convierte en datos del módulo (`data/*.xml` o `.csv`) o se pasa un dump de la
-> BD aparte. La marca, el idioma y los estilos SÍ viajan porque son del módulo.
-
-```powershell
-# Instalar un módulo suelto sin tocar el manifest (ej. uno de la OCA):
-.\start-odoo.ps1 -Init web_ir_actions_client_scan
-```
-
-- El servidor está en **modo desarrollo** (`dev_mode = reload,qweb,xml` en `odoo.conf`).
-- **SCSS / JS / QWeb**: se recargan al refrescar el navegador (Ctrl+F5). No hace falta reiniciar.
-- **Vistas XML nuevas / modelos Python / datos**: requieren `-Update mi_gestor_stock`.
-- Modo desarrollador de Odoo: Ajustes → Activar modo desarrollador.
-
-### ⚠️ Gotcha importante: instalar/actualizar módulos por línea de comandos
-
-Al usar `-i` (instalar) o `-u` (actualizar) con `--stop-after-init` hay que pasar
-**`-d mi_base_stock` explícito**. El `dbfilter` de `odoo.conf` solo afecta al enrutado
-HTTP, no al destino de los comandos CLI: sin `-d`, Odoo arranca, detecta wkhtmltopdf y
-se apaga ("Initiating shutdown") **sin tocar la base de datos**.
-
-```powershell
-.\venv\Scripts\python.exe .\odoo\odoo-bin -c odoo.conf -d mi_base_stock -i <modulo> --stop-after-init
-.\venv\Scripts\python.exe .\odoo\odoo-bin -c odoo.conf -d mi_base_stock -u mi_gestor_stock --stop-after-init
-```
-
-> ✅ **Ya resuelto**: `start-odoo.ps1` añade `-d mi_base_stock` automáticamente en
-> `-Init` / `-Update` (parámetro `-Database` para cambiarlo), lanza el paso con
-> `--stop-after-init` y luego arranca el servidor normal. `bootstrap.ps1` hace lo
-> mismo al crear la BD.
-
-Además, al lanzar desde PowerShell 5.1 **no uses `2>&1`** con Odoo: envuelve cada línea
-de log como error y puede abortar el arranque. Redirige a fichero con
-`Start-Process ... -RedirectStandardError`.
-
-### Comandos útiles
-
-```powershell
-# Consola Python de Odoo (para tocar datos directamente)
-.\venv\Scripts\python.exe .\odoo\odoo-bin shell -c odoo.conf -d mi_base_stock --no-http
-
-# Copia de seguridad manual de la BD, a pelo (el módulo ya las hace solo, ver §11.4:
-# un único .zip con base de datos + filestore, y restore-backup.ps1 para volver atrás)
-$env:PGPASSWORD='odoo'
-& "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe" -U odoo -h localhost -Fc mi_base_stock -f backup_mi_base_stock.dump
-# + copiar la carpeta .odoo_data\ (filestore: imágenes y adjuntos)
-
-# Restaurar una copia del módulo (con el servidor parado)
-.\restore-backup.ps1 -Lista
-.\restore-backup.ps1
-```
-
----
+No se ofrece un borrado automático de bases. La recuperación usa una base nueva
+para conservar la original. El instalador comprueba la revisión Odoo fijada y
+usa `requirements-windows.lock`.
 
 ## 6. Estructura del módulo `custom_addons\mi_gestor_stock\`
 
@@ -434,7 +342,7 @@ static/src/
 >   `oe_login_form` sin `d-none` (ese componente era quien destapaba el formulario).
 > - **Credenciales del admin** ahora las fija el módulo (`_mgs_setup_spanish` en
 >   `res_company.py`): en una BD nueva el login pasa de `admin` a
->   `entreramblasclavelyazahar@gmail.com` / `gestionDeStockNani2026`. En cuanto el
+>   `entreramblasclavelyazahar@gmail.com` / `[credencial local retirada]`. En cuanto el
 >   login deja de ser `admin`, un `-u` posterior ya no toca la contraseña.
 
 | Elemento | Estado |
