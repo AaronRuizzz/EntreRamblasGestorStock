@@ -1,104 +1,57 @@
-# ============================================================
-#  bootstrap.ps1  ·  Entre Ramblas · Clavel & Azahar (Odoo 18)
-# ============================================================
-#  Deja el equipo listo para trabajar A PARTIR DEL REPOSITORIO:
-#
-#    1. Crea el entorno virtual (venv) si no existe e instala las
-#       dependencias de Odoo.
-#    2. Comprueba que el codigo fuente de Odoo 18 esta en .\odoo\.
-#    3. Crea la base de datos `mi_base_stock` DESDE CERO (sin datos
-#       demo) e instala el modulo `mi_gestor_stock`, que arrastra
-#       todas las apps del proyecto (Inventario, TPV, Contactos,
-#       localizacion espanola) y aplica marca, idioma y estilos.
-#
-#  La base de datos NO se versiona en git: es un producto derivado
-#  del modulo. Cualquiera que clone el repo ejecuta este script una
-#  vez y obtiene EXACTAMENTE el mismo Odoo.
-#
-#  Uso:
-#    .\bootstrap.ps1            -> crea la BD si no existe
-#    .\bootstrap.ps1 -Reset     -> BORRA la BD y la vuelve a crear
-#    .\bootstrap.ps1 -Database otra_bd
-#
-#  Requisitos previos (una sola vez, ver README §3):
-#    - Python 3.12  ·  PostgreSQL 16 con rol  odoo / odoo  (CREATEDB)
-#    - wkhtmltopdf en "C:\Program Files\wkhtmltopdf\bin"
-# ============================================================
+# Instala la revisión fijada, dependencias bloqueadas y una base nueva sin demo.
+# Conserva cualquier base existente. Requiere PostgreSQL y configuración privada.
 param(
-    [switch]$Reset,
-    [string]$Database = "mi_base_stock"
+    [ValidatePattern('^[a-z][a-z0-9_]{0,62}$')][string]$Database = 'entre_ramblas',
+    [string]$Config = (Join-Path $PSScriptRoot 'odoo.local')
 )
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
-
-$python  = Join-Path $PSScriptRoot "venv\Scripts\python.exe"
-$odooBin = Join-Path $PSScriptRoot "odoo\odoo-bin"
-$odooReq = Join-Path $PSScriptRoot "odoo\requirements.txt"
-
-# ---- 1. Codigo fuente de Odoo -------------------------------------------------
-if (-not (Test-Path -LiteralPath $odooBin -PathType Leaf)) {
-    Write-Host "No se encuentra el codigo fuente de Odoo 18 en '.\odoo\'." -ForegroundColor Yellow
-    Write-Host "Clonalo (necesita internet, una sola vez):" -ForegroundColor Yellow
-    Write-Host "  git clone --depth 1 --branch 18.0 https://github.com/odoo/odoo.git odoo" -ForegroundColor Cyan
-    throw "Falta .\odoo\"
+if (-not (Test-Path -LiteralPath $Config -PathType Leaf)) { throw 'Prepara la configuración privada e indícala con -Config.' }
+$Config = (Resolve-Path -LiteralPath $Config).Path
+$revision = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'odoo-revision.txt') -Raw).Trim()
+if ($revision -notmatch '^[a-f0-9]{40}$') { throw 'Revisión Odoo no válida.' }
+$source = Join-Path $PSScriptRoot 'odoo'
+$odooBin = Join-Path $source 'odoo-bin'
+if (-not (Test-Path -LiteralPath $source)) {
+    & git init $source
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar el código Odoo.' }
+    & git -C $source remote add origin https://github.com/odoo/odoo.git
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo configurar el origen Odoo.' }
+    & git -C $source fetch --depth 1 origin $revision
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar la revisión Odoo fijada.' }
+    & git -C $source checkout --detach FETCH_HEAD
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo seleccionar la revisión Odoo.' }
 }
-
-# ---- 2. Entorno virtual + dependencias --------------------------------------
+if (-not (Test-Path -LiteralPath $odooBin)) { throw 'La carpeta Odoo existe pero está incompleta. Revísala antes de continuar.' }
+$actual = (& git -C $source rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $actual -ne $revision) { throw 'La revisión Odoo no coincide. No se modifica el checkout existente.' }
+$python = Join-Path $PSScriptRoot 'venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
-    Write-Host "Creando entorno virtual en .\venv ..." -ForegroundColor Cyan
-    py -3.12 -m venv venv
-    if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { python -m venv venv }
-    & $python -m pip install --upgrade pip wheel
-    # gevent y python-ldap no traen wheel para Windows y no hacen falta en local
-    (Get-Content $odooReq) |
-        Where-Object { $_ -notmatch '^\s*(gevent|python-ldap)' } |
-        Set-Content (Join-Path $env:TEMP "odoo-req-win.txt") -Encoding utf8
-    & $python -m pip install -r (Join-Path $env:TEMP "odoo-req-win.txt")
-    & $python -m pip install libsass  # compilador SCSS que usa Odoo
-} else {
-    Write-Host "venv ya existe -> se reutiliza." -ForegroundColor DarkGray
+    & py -3.12 -m venv (Join-Path $PSScriptRoot 'venv')
+    if ($LASTEXITCODE -ne 0) { throw 'Instala Python 3.12 antes de continuar.' }
 }
-
-# ---- 3. PostgreSQL ----------------------------------------------------------
-if (-not (Test-NetConnection -ComputerName localhost -Port 5432 -InformationLevel Quiet)) {
-    throw "PostgreSQL no responde en localhost:5432. Arranca el servicio 'postgresql-x64-16'."
-}
-$env:PGPASSWORD = "odoo"
-$psql = Get-ChildItem "C:\Program Files\PostgreSQL\*\bin\psql.exe" -ErrorAction SilentlyContinue |
-        Select-Object -Last 1
-function DbExists {
-    if ($psql) {
-        return ((& $psql.FullName -U odoo -h localhost -d postgres -tAc `
-            "SELECT 1 FROM pg_database WHERE datname='$Database'") -eq "1")
-    }
-    return $false
-}
-
-# ---- 4. Reset opcional ----------------------------------------------------
-if ($Reset -and (DbExists)) {
-    Write-Host "Borrando base de datos '$Database' ..." -ForegroundColor Yellow
-    & $psql.FullName -U odoo -h localhost -d postgres -c `
-        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$Database'" | Out-Null
-    & $psql.FullName -U odoo -h localhost -d postgres -c "DROP DATABASE `"$Database`"" | Out-Null
-    $fs = Join-Path $PSScriptRoot ".odoo_data\filestore\$Database"
-    if (Test-Path $fs) { Remove-Item -Recurse -Force $fs }
-}
-
-if (DbExists) {
-    Write-Host "La base de datos '$Database' ya existe." -ForegroundColor Green
-    Write-Host "  - Para RECREARLA desde cero:      .\bootstrap.ps1 -Reset"
-    Write-Host "  - Para aplicar cambios del modulo: .\start-odoo.ps1 -Update mi_gestor_stock"
+& $python -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3,12) else 1)'
+if ($LASTEXITCODE -ne 0) { throw 'El entorno requiere Python 3.12.' }
+& $python -m pip install --disable-pip-version-check -r (Join-Path $PSScriptRoot 'requirements-windows.lock')
+if ($LASTEXITCODE -ne 0) { throw 'No se han instalado las dependencias fijadas.' }
+& $python -m pip check
+if ($LASTEXITCODE -ne 0) { throw 'Hay dependencias incompatibles.' }
+$state = & $python tools/install_database.py exists --config $Config --database $Database
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo comprobar PostgreSQL. Revisa la configuración privada.' }
+if ($state -contains 'exists') {
+    if (Test-Path -LiteralPath ($Config + '.pending')) { throw 'Existe una instalación incompleta. No se borra ni se reinicia automáticamente.' }
+    Write-Output "La base '$Database' existe y se conserva. Para actualizar usa start-odoo.ps1 -Config <archivo> -Database $Database -Update mi_gestor_stock."
     return
 }
-
-# ---- 5. Crear la BD e instalar el modulo -----------------------------------
-$wk = "C:\Program Files\wkhtmltopdf\bin"
-if ((Test-Path $wk) -and ($env:Path -notlike "*wkhtmltopdf*")) { $env:Path = "$wk;$env:Path" }
-
-Write-Host "Creando '$Database' e instalando mi_gestor_stock (sin datos demo)..." -ForegroundColor Cyan
-& $python $odooBin -c (Join-Path $PSScriptRoot "odoo.conf") `
-    -d $Database -i mi_gestor_stock --without-demo=all --stop-after-init
-
-Write-Host ""
-Write-Host "Listo. Arranca el servidor con:  .\start-odoo.ps1" -ForegroundColor Green
-Write-Host "  URL: http://localhost:8069   BD: $Database"
+if ($state -notcontains 'new') { throw 'Respuesta inesperada al comprobar la base.' }
+& (Join-Path $PSScriptRoot 'install-pdf.ps1') -Config $Config
+$env:Path = (Join-Path (Split-Path $Config -Parent) 'tools/wkhtmltox/bin') + ';' + $env:Path
+if (Test-Path -LiteralPath ($Config + '.pending')) { throw 'Ya hay una instalación pendiente con esta configuración.' }
+[System.IO.File]::WriteAllText($Config + '.pending', $Database)
+& $python tools/install_database.py reserve --config $Config --database $Database
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo reservar una base nueva. No se instala sobre un destino existente.' }
+& $python $odooBin -c $Config -d $Database -i mi_gestor_stock --without-demo=all --stop-after-init --no-http
+if ($LASTEXITCODE -ne 0) { throw 'La instalación ha fallado. Se conserva el marcador pendiente; no arranques esta base.' }
+& $python tools/install_database.py provision --config $Config --database $Database
+if ($LASTEXITCODE -ne 0) { throw 'El alta inicial no se completó. Se mantiene bloqueado el arranque.' }
+Write-Output "Instalación completada. Arranque: start-odoo.ps1 -Config <archivo> -Database $Database"

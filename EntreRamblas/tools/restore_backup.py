@@ -1,62 +1,69 @@
-# -*- coding: utf-8 -*-
-"""Restaura una copia de seguridad .zip creada por el Gestor de Stock.
-
-Se ejecuta con el SERVIDOR PARADO (no se puede restaurar una base de datos
-que esta en uso). Lo normal es lanzarlo desde restore-backup.ps1, que ya
-comprueba que el puerto 8069 este libre.
-
-    venv\\Scripts\\python.exe tools\\restore_backup.py copia.zip -d mi_base_stock
-
-El .zip lleva dentro dump.sql + filestore/ + manifest.json, que es el formato
-nativo de Odoo: tambien se puede restaurar desde el gestor de bases de datos
-de cualquier Odoo 18.
-"""
+"""Restaura una copia verificada en una base NUEVA, conservando la original."""
 import argparse
-import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
 import sys
+import tempfile
+import zipfile
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-PROJECT = os.path.dirname(HERE)
-# El codigo fuente de Odoo vive en EntreRamblas\odoo\ (ver README §3).
-sys.path.insert(0, os.path.join(PROJECT, "odoo"))
+PROJECT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT / "odoo"))
+import odoo
+from backup_archive import validate_archive
 
-import odoo  # noqa: E402 - despues de tocar sys.path
+
+def restore_archive(filename, database, allow_legacy=False):
+    if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", database):
+        raise ValueError("Nombre de base inválido: usa letras minúsculas, números y guion bajo")
+    manifest = validate_archive(filename, allow_legacy)
+    from odoo.service import db as dbservice
+    from odoo.tools.misc import exec_pg_environ, find_pg_tool
+    from odoo.modules.registry import Registry
+    odoo.tools.config["list_db"] = True
+    if dbservice.exp_db_exist(database):
+        raise ValueError("La base destino ya existe. Elige otro nombre; se conserva la base original")
+    target = Path(odoo.tools.config.filestore(database)).resolve()
+    filestore_root = Path(odoo.tools.config["data_dir"]).resolve() / "filestore"
+    if target.parent != filestore_root or target.exists():
+        raise ValueError("El destino del filestore no es nuevo o no está dentro de la carpeta prevista")
+    dbservice._create_empty_database(database)
+    with tempfile.TemporaryDirectory(prefix="mgs-restore-") as folder:
+        with zipfile.ZipFile(filename) as archive:
+            archive.extractall(folder)
+        # Sin ON_ERROR_STOP psql puede ocultar errores y aparentar éxito.
+        subprocess.run([find_pg_tool("psql"), "--dbname=" + database, "--set=ON_ERROR_STOP=1",
+                        "--single-transaction", "-q", "-f", str(Path(folder) / "dump.sql")],
+                       env=exec_pg_environ(), stdout=subprocess.DEVNULL,
+                       stderr=subprocess.PIPE, check=True, timeout=1800)
+        source = Path(folder) / "filestore"
+        if source.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, target)
+    with Registry.new(database).cursor() as cr:
+        env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+        env["ir.config_parameter"].init(force=True)
+        env["ir.cron"].search([]).write({"active": False})
+        config = env["mgs.config"]._mgs_get()
+        config.write({"backup_enabled": False, "pos_autoprint": False})
+        env["mgs.hardware.job"].search([("state", "in", ["pending", "sending"])]).write({
+            "state": "uncertain", "message": "Recuperada desde copia: comprobar resultado antes de repetir"})
+        cr.commit()
+    return manifest
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Restaura una copia del Gestor de Stock.")
-    parser.add_argument("archivo", help="Ruta del .zip de la copia")
-    parser.add_argument("-c", "--config", default=os.path.join(PROJECT, "odoo.conf"))
-    parser.add_argument("-d", "--database", default="mi_base_stock")
-    parser.add_argument("--force", action="store_true",
-                        help="Borra la base de datos actual antes de restaurar")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("archivo")
+    parser.add_argument("-c", "--config", default=str(PROJECT / "odoo.conf"))
+    parser.add_argument("-d", "--database", required=True, help="Nombre NUEVO para la base recuperada")
+    parser.add_argument("--allow-legacy", action="store_true", help="Aceptar copia antigua sin SHA-256")
     args = parser.parse_args()
-
-    archivo = os.path.abspath(args.archivo)
-    if not os.path.isfile(archivo):
-        sys.exit("No existe el archivo: %s" % archivo)
-
     odoo.tools.config.parse_config(["-c", args.config])
-    # dump_db / restore_db / exp_drop llevan el decorador
-    # check_db_management_enabled, que las bloquea cuando list_db = False
-    # (asi esta odoo.conf, para ocultar el gestor de BD en el navegador).
-    # Aqui, en local y con el servidor parado, se levanta a proposito.
-    odoo.tools.config["list_db"] = True
-
-    from odoo.service import db as dbservice  # noqa: PLC0415 - tras parse_config
-
-    if dbservice.exp_db_exist(args.database):
-        if not args.force:
-            sys.exit(
-                "La base de datos '%s' ya existe.\n"
-                "Vuelve a lanzarlo con --force para reemplazarla "
-                "(se pierde todo lo que no este en la copia)." % args.database)
-        print("Borrando la base de datos '%s'..." % args.database)
-        dbservice.exp_drop(args.database)
-
-    print("Restaurando '%s' desde %s ..." % (args.database, archivo))
-    dbservice.restore_db(args.database, archivo, copy=False)
-    print("Listo. Arranca el servidor con  .\\start-odoo.ps1")
+    restore_archive(str(Path(args.archivo).resolve()), args.database, args.allow_legacy)
+    print("Restauración completada en", args.database)
+    print("Antes del uso: comprobar datos y dispositivos, configurar copias y reactivar tareas automáticas.")
 
 
 if __name__ == "__main__":
