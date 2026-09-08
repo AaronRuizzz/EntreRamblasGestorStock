@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mgs_pricelist_campaign_form" model="ir.ui.view">
+        <field name="name">mgs.pricelist.campaign.form</field>
+        <field name="model">mgs.pricelist.campaign</field>
+        <field name="arch" type="xml">
+            <form string="Tarifa de campaña">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Ej. San Valentín 2027"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date_start"/>
+                            <field name="date_end"/>
+                            <field name="categ_id" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="compute_price" widget="radio"/>
+                            <field name="percent_price" invisible="compute_price != 'discount'"/>
+                            <field name="fixed_price" invisible="compute_price != 'fixed'"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_create" string="Crear tarifa" type="object" class="btn-primary"/>
+                    <button string="Cancelar" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mgs_pricelist_campaign" model="ir.actions.act_window">
+        <field name="name">Tarifa de campaña</field>
+        <field name="res_model">mgs.pricelist.campaign</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Ver/editar/desactivar las tarifas ya creadas. La lista es propia,
+         solo para meter el botón de cabecera que abre el asistente — antes
+         era un menú aparte ("Nueva tarifa de campaña"); el formulario que se
+         abre al hacer clic en una fila es el nativo de product.pricelist,
+         sin redefinir nada: ya es sencillo tal cual. -->
+    <record id="view_mgs_pricelist_list" model="ir.ui.view">
+        <field name="name">product.pricelist.list.mgs</field>
+        <field name="model">product.pricelist</field>
+        <field name="arch" type="xml">
+            <list string="Tarifas de campaña">
+                <header>
+                    <button name="%(action_mgs_pricelist_campaign)d" type="action"
+                            string="Nueva tarifa de campaña" class="btn-primary"/>
+                </header>
+                <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mgs_pricelists" model="ir.actions.act_window">
+        <field name="name">Tarifas de campaña</field>
+        <field name="res_model">product.pricelist</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_mgs_pricelist_list')})]"/>
+    </record>
+</odoo>
