@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mgs_purchase_forecast_form" model="ir.ui.view">
+        <field name="name">mgs.purchase.forecast.form</field>
+        <field name="model">mgs.purchase.forecast</field>
+        <field name="arch" type="xml">
+            <form string="Previsión de compra" js_class="mgs_clean_form" create="false">
+                <header>
+                    <button name="action_compute" string="Calcular" type="object" class="btn-primary"/>
+                    <button name="action_create_purchase_order" string="Crear pedido" type="object"
+                            invisible="not line_ids" class="btn-secondary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="campaign"/>
+                            <field name="years_back" invisible="campaign == 'custom'"/>
+                            <field name="date_from" invisible="campaign != 'custom'"/>
+                            <field name="date_to" invisible="campaign != 'custom'"/>
+                        </group>
+                        <group>
+                            <field name="safety_factor"/>
+                            <field name="years_used" invisible="not years_used" readonly="1"/>
+                        </group>
+                    </group>
+                    <p class="text-muted" invisible="has_history or not line_ids">
+                        No hay datos de años anteriores para esta campaña todavía.
+                        La propuesta de más abajo solo resta lo que ya hay en la tienda.
+                    </p>
+                    <field name="line_ids">
+                        <list create="0" delete="0" open_form_view="0">
+                            <field name="product_id"/>
+                            <field name="history"/>
+                            <field name="max_qty"/>
+                            <field name="usable_qty"/>
+                            <field name="proposed_qty"/>
+                            <field name="supplier_id"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mgs_purchase_forecast" model="ir.actions.act_window">
+        <field name="name">Previsión de compra</field>
+        <field name="res_model">mgs.purchase.forecast</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>
