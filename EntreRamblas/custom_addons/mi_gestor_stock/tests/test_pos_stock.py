@@ -1,10 +1,12 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 import base64
 import csv
 import io
 import zipfile
 from uuid import uuid4
 from unittest.mock import patch
+
+import pytz
 
 from odoo import Command, fields
 from odoo.exceptions import UserError
@@ -166,8 +168,12 @@ class TestPosStock(TestPointOfSaleCommon):
         refund._create_order_picking()
         refund.lines._compute_total_cost(refund.picking_ids.move_ids)
         refund.state = "paid"
+        # Día de Madrid, no de UTC (ver mgs_monthly_report._mgs_period): cerca
+        # de la medianoche española un pedido fechado "ahora mismo" quedaría
+        # fuera de la ventana del informe si aquí se usara fields.Date.today().
+        today = datetime.now(pytz.timezone("Europe/Madrid")).date()
         report = self.env["mgs.monthly.report"].create({
-            "date_from": fields.Date.today(), "date_to": fields.Date.today(),
+            "date_from": today, "date_to": today,
             "category_id": self.report_category.id,
         })
         data = report.mgs_get_report_data()
@@ -294,3 +300,33 @@ class TestPosStock(TestPointOfSaleCommon):
         first = config.mgs_pos_open_drawer(order.id)
         second = config.mgs_pos_open_drawer(order.id)
         self.assertEqual(first["id"], second["id"])
+
+    def test_ticket_carries_the_simplified_invoice_details(self):
+        """Contenido del artículo 7 del RD 1619/2012 que sí depende de nosotros.
+
+        Lo que la ley pide y el ticket tiene que decir: identificación y NIF de
+        la tienda, número, fecha, descripción, tipo impositivo, total, y en las
+        rectificativas la referencia al ticket rectificado."""
+        self.receive(5, 2, 3)
+        tax = self.env["account.tax"].create({
+            "name": "21% G", "amount": 21.0, "amount_type": "percent",
+            "type_tax_use": "sale", "company_id": self.env.company.id,
+        })
+        self.env.company.write({"vat": "ESB12345674", "street": "Calle de prueba 1", "city": "Madrid"})
+        sale = self.order(2)
+        sale.lines.write({"tax_ids": [Command.set(tax.ids)], "price_subtotal": 20,
+                          "price_subtotal_incl": 24.2})
+        config = self.env["mgs.config"]._mgs_get()
+        ticket = config._mgs_pos_ticket(sale).to_bytes().decode("cp858", errors="replace")
+        self.assertIn(self.env.company.name, ticket)
+        self.assertIn("ESB12345674", ticket)
+        self.assertIn(sale.name, ticket)
+        self.assertIn("Rosa TPV", ticket)
+        # El tipo impositivo, no el nombre interno del impuesto de l10n_es.
+        self.assertIn("IVA 21%", ticket)
+        self.assertNotIn("21% G", ticket)
+        self.assertNotIn("Rectifica", ticket)
+
+        refund = self.order(-1, sale.lines)
+        refund_ticket = config._mgs_pos_ticket(refund).to_bytes().decode("cp858", errors="replace")
+        self.assertIn("Rectifica el ticket %s" % sale.name, refund_ticket)
