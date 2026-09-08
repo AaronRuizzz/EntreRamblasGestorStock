@@ -7,6 +7,13 @@
 EntreRamblas/odoo/
 odoo/
 
+# wkhtmltopdf vendorizado (binario de terceros, ~130 MB): se descarga con
+# install-pdf.ps1, no se sube al repo.
+EntreRamblas/tools/wkhtmltox/
+EntreRamblas/tools/wkhtmltox-*.7z
+**/tools/wkhtmltox/
+**/tools/wkhtmltox-*.7z
+
 # Odoo: datos locales, filestore, sesiones, logs y runtime
 EntreRamblas/.odoo_data/
 .odoo_data/

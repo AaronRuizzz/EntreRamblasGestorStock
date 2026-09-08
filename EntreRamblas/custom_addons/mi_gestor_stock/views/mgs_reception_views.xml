@@ -14,6 +14,7 @@
                      aquí cualquier escaneo hecho en toda la pantalla, tenga
                      o no el foco puesto en un campo. No marcar invisible. -->
                 <field name="_barcode_scanned" widget="barcode_handler"/>
+                <field name="company_id" invisible="1"/>
                 <header>
                     <button name="action_confirm" string="Guardar en almacén" type="object"
                             class="btn-primary" invisible="not line_ids"/>
@@ -25,7 +26,17 @@
                             invisible="not line_ids"/>
                 </header>
                 <sheet>
-                    <group><field name="supplier_id"/><field name="picking_id" invisible="not picking_id"/></group>
+                    <group>
+                        <group>
+                            <field name="purchase_id" options="{'no_create': True}"/>
+                            <field name="supplier_id"/>
+                        </group>
+                        <group>
+                            <field name="supplier_ref" placeholder="Nº de albarán del proveedor"/>
+                            <field name="document_date"/>
+                            <field name="picking_id" invisible="not picking_id"/>
+                        </group>
+                    </group>
                     <div class="mgs-mode-switch">
                         <field name="mode" widget="radio" options="{'horizontal': true}"
                                nolabel="1"/>
