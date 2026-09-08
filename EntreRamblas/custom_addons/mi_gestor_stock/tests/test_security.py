@@ -47,3 +47,19 @@ class TestSecurity(TransactionCase):
     def test_staff_cannot_apply_inventory_adjustments(self):
         with self.assertRaises(AccessError):
             self.env["stock.quant"].with_user(self.staff)._apply_inventory()
+
+    def test_staff_reads_config_but_not_backups(self):
+        """La ACL de mgs.config estaba mal etiquetada: se llamaba 'user' pero
+        apuntaba a group_mgs_manager, asi que la dependienta no tenia ninguna
+        regla propia y todo pasaba por el .sudo() interno de _mgs_get(). Esta
+        prueba fija una lectura SIN sudo, y que las copias siguen siendo cosa
+        solo de la duena."""
+        config = self.env["mgs.config"]._mgs_get()
+        # No debe hacer falta sudo: group_mgs_user ya tiene su propia regla.
+        config.with_user(self.staff).read(["printer_mode"])
+        with self.assertRaises(AccessError):
+            config.with_user(self.staff).write({"printer_mode": "disabled"})
+        with self.assertRaises(AccessError):
+            self.env["mgs.backup"].with_user(self.staff).search([])
+        with self.assertRaises(AccessError):
+            self.env["mgs.backup"].with_user(self.staff).create({})
