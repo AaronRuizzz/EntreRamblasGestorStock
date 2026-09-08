@@ -13,10 +13,19 @@ Datáfono independiente (registro manual de tarjeta). Sin ramos, encargos ni nub
 - [X] Devoluciones vinculadas y reversión de costes; mermas trazables; recuentos y reposición sugerida.
 - [X] TPV: efectivo, tarjeta y pagos mixtos; caja y aperturas manuales auditadas.
 - [X] Hardware: autorización RPC, impresión separada de venta, errores inciertos y reimpresión explícita.
-- [ ] Informes: coste histórico, ventas netas e impuestos, margen, mermas, filtros, PDF y CSV, Europe/Madrid.
-- [ ]  Arranque automático Windows y datos fuera de carpetas sincronizadas.
+- [X] Informes: coste histórico, ventas netas e impuestos, margen, mermas, filtros, PDF y CSV, Europe/Madrid.
+      PDF de dos y de ocho páginas y descarga del ZIP comprobados en navegador.
+- [ ] Arranque automático Windows y datos fuera de carpetas sincronizadas.
+      **Falta registrar el servicio con consola elevada**: el supervisor arranca y
+      para bien, pero nunca se ha instalado en el SCM.
 - [ ] Copias locales cada 6 horas y cierre, réplica SSD, 30 días, avisos y restauración ensayada.
-- [ ] Catálogo inicial, manual de tienda y recuperación; comprobación de requisitos de facturación antes de uso comercial.
+      **Falta el SSD físico**: desconexión, reconexión, espacio insuficiente y
+      restauración desde el disco externo.
+- [X] Catálogo inicial (asistente de alta con comprobación previa) y manual de tienda
+      y recuperación (`MANUAL_TIENDA.md`, `APERTURA.md`).
+- [ ] Requisitos de facturación comprobados en AEAT/BOE (`FACTURACION.md`), pero
+      **el programa no es un SIF conforme al RD 1007/2023** y quedan decisiones de
+      régimen, IVA por artículo y numeración para la gestoría.
 - [ ] Jornada física completa con lectores, impresora y cajón. No sustituible por simulaciones.
 
 ## Evidencia inicial
@@ -306,3 +315,319 @@ línea original 217 y coste -2,50 €. Una única merma SP/00017, estado done,
 motivo return, cantidad 1, movimiento devuelto 1334 y autor 62, coste 2,50 €.
 Procedimiento de tienda en `DEVOLUCIONES.md`. Impresión simulada en archivo;
 ningún pago real ni cambio en la base principal.
+
+## Avance verificado (2026-09-06, existencias iniciales corregidas)
+
+El bloque que quedó fallando en el traspaso está corregido y verde. El fallo
+`AssertionError: 0.0 != 8` escondía **dos** defectos distintos:
+
+1. **Duplicación real de existencias.** `action_apply` confirmaba el movimiento y
+   después añadía a mano una `stock.move.line` con el lote, pero `_action_confirm`
+   ya había generado su propia línea sin lote. Cada apertura dejaba el doble de
+   stock: quants medidos en el diagnóstico, 8 sin lote + 5 + 3 con lote = 16 en
+   una apertura de 8. Ahora se usa el ajuste de inventario nativo
+   (`stock.quant` en `inventory_mode` + `_apply_inventory()`), el mismo camino que
+   el recuento físico: un movimiento `is_inventory` con **una** línea y su partida.
+2. **La aserción medía cero por la ubicación de la prueba.** `qty_available` solo
+   suma quants que cuelgan de la ubicación vista de un almacén
+   (`product._get_domain_locations`); la ubicación de prueba se creó sin padre y
+   quedaba fuera. La prueba usa ahora una ubicación bajo `WH/Stock` y el modelo
+   **rechaza** ubicaciones internas fuera del almacén, que guardarían existencias
+   que el informe ve y el panel/TPV no.
+
+Defecto adicional encontrado al corregir: una línea **sin fecha de caducidad**
+nacía caducada, porque `product_expiry` calcula una caducidad desde hoy cuando el
+campo no viaja en el `create`. Ahora se pasa explícitamente.
+
+La caducidad de la prueba usaba el año 2080: pytz no tiene transiciones tan lejos
+y devuelve horario de invierno, así que la aserción original (`21:59:59`) no podía
+cumplirse. Las pruebas usan ahora fechas cercanas y comprueban **los dos** horarios
+de Madrid: verano `21:59:59` UTC e invierno `22:59:59` UTC.
+
+Concurrencia (era una duda explícita del traspaso): la apertura tomaba un candado
+sobre `product_product` que **ningún otro flujo tomaba**. La recepción toma ahora
+el mismo candado, en el mismo orden. `tools/check_opening_concurrency.py` lo
+demuestra con dos conexiones reales y `lock_timeout`, en los tres cruces
+(recepción→apertura, apertura→recepción y apertura→apertura), y no deja rastro.
+Integrado en `test.ps1`.
+
+### Aceptación en navegador (2026-09-06, 13:28 UTC)
+
+`mgs_validation`, cuenta sintética propietaria. Apertura 45 sobre `WH/Stock`:
+12 unidades a 1,80 € con caducidad 31/12/2027. Tras aplicar: estado Aplicado,
+autor «Prueba owner» y fecha registrados, formulario en solo lectura y botón
+Aplicar oculto. En base: `qty_available` 12 (no 24), partida `INI-45-65`,
+caducidad `2027-12-31 22:59:59` UTC = fin del día de Madrid en invierno, un único
+movimiento `is_inventory` desde ajuste de inventario a `WH/Stock` con una línea y
+coste 1,80 € congelado, quant único de 12 con su partida. Sin errores de consola.
+
+## Avance verificado (2026-09-06, alta de catálogo)
+
+Nuevo asistente **Stock → Alta de catálogo** (`mgs.catalog.import`): plantilla CSV
+descargable, comprobación completa antes de crear nada y alta en bloque. Si una
+fila está mal **no se importa ninguna**. Detecta nombres y códigos repetidos
+dentro de la hoja y contra el catálogo, importes no numéricos o negativos, IVA
+fuera de 0/4/10/21 y categorías o unidades inexistentes. Ceros y categorías
+nuevas exigen confirmación explícita por casilla. El código puede ir vacío: se
+genera un EAN-13 interno imprimible. Los productos se crean como los crea la
+recepción (almacenable, TPV, partidas automáticas, caducidad).
+
+El IVA **no se elige por defecto**: se exige por fila, porque el tipo aplicable lo
+decide la dueña con su gestoría (ver `FACTURACION.md`).
+
+Aceptación en navegador (13:39 UTC): hoja con 6 filas y errores buscados —
+código repetido, nombre repetido, precio a cero e IVA 7 — señalados uno a uno y
+sin crear nada; hoja corregida de 4 filas importada con categorías nuevas
+anunciadas antes de crearlas. En base: códigos internos `2800000000035/42/59`
+generados, `Docenas` resuelto a la unidad correcta, impuestos `10% G` y `21% G`,
+todos con partidas automáticas y caducidad. Procedimiento en `APERTURA.md`.
+
+## Avance verificado (2026-09-06, informes y facturación)
+
+- **ZIP de estadísticas descargado desde el navegador** (era un pendiente
+  explícito): respuesta 200, `application/zip`, `content-disposition` de
+  descarga y los seis CSV dentro (resumen, ventas, ventas diarias, mermas, stock
+  actual, cobros).
+- **PDF largo**: `tools/check_report_pdf_long.py` monta un mes sintético de 45
+  productos con nombres largos y mermas, dentro de una transacción que no se
+  confirma. Resultado: **8 páginas**, 46 mermas, 48 filas de stock, sin páginas en
+  blanco, nombres largos completos y cabecera de tabla repetida en cada página.
+  Evidencia en `.odoo_data/output/pdf/informe-validacion-largo.pdf`.
+- **Facturación** (`FACTURACION.md`): consultadas AEAT y BOE. Los plazos SIF /
+  VERI\*FACTU se ampliaron por el RDL 15/2025 a **1-1-2027** (Impuesto sobre
+  Sociedades) y **1-7-2027** (resto). El programa **no es hoy un SIF conforme**:
+  no encadena huellas, no firma, no lleva registro de eventos ni imprime QR. La
+  factura electrónica B2B del RD 238/2026 **no afecta** a las ventas a consumidor
+  final ni a las simplificadas de minorista.
+- Dos huecos del ticket frente al artículo 7 del RD 1619/2012, corregidos: ahora
+  imprime el **tipo impositivo** (`IVA 21%`) en vez del nombre interno de l10n_es
+  (`21% G`), y las devoluciones remiten al ticket rectificado. Con prueba.
+
+Suite completa tras estos bloques, por `test.ps1`: **45 pruebas Odoo, 0 fallos y
+0 errores**, más archivo de copia, transacción de hardware y concurrencia de
+apertura. Base principal `mi_base_stock` intacta.
+
+## Avance verificado (2026-09-06, devolución mixta y cierre de caja en TPV)
+
+Últimas aceptaciones de navegador que faltaban del flujo de tienda, en
+`mgs_validation`, TPV 12, cuenta sintética propietaria. Sin dinero real ni
+hardware físico: impresión simulada en archivo.
+
+**Venta** `TPV prueba floristería/0004`, 26,62 € en efectivo: dos líneas de rosa
+y una de jarrón.
+
+**Devolución mixta por líneas** sobre ese mismo ticket, −20,57 €: el TPV preguntó
+**una vez por cada línea** («Estado de la devolución: Rosa roja · prueba» y
+después «Jarrón · prueba»). Se eligió **recuperable** para la rosa y
+**deteriorada** para el jarrón, en la misma devolución.
+
+Comprobado en base:
+
+- Pedido de devolución vinculado al original (`refunded_order_id`), línea 308
+  rosa con `mgs_damaged_return` falso y línea 309 jarrón con la marca verdadera.
+- Albarán `WH/POS/00006`: los **dos** productos vuelven de cliente a `WH/Stock`
+  con su partida original (0000157 y 0000159) y su coste histórico (2,50 € y
+  6,00 €), no el coste actual.
+- Una **única** merma `SP/00111` del jarrón: 1 unidad, motivo `return`, estado
+  done, partida 0000159, autor «Prueba owner». La rosa **no** genera merma.
+- Existencias: rosa 22 → vende 2 → 20 → devuelve 1 → **21**. Jarrón 24 → vende 1
+  → 23 → devuelve 1 → 24 → merma 1 → **23**. La deteriorada no queda vendible.
+
+**Cierre de caja** de la sesión `POS/00001`: esperado 117,10 € (100 de apertura +
+17,10 de cobros), contado 117,10 €, **diferencia 0,00 €**, tarjeta 9,52 € sin
+diferencia, nota de cierre guardada, sesión en estado `closed` a las 11:57:43 UTC
+y sesión nueva creada a continuación. `mgs_backup_pending` quedó en falso, que es
+lo correcto: en esta base `backup_enabled` está desactivado, y la marca solo se
+pone cuando las copias están configuradas (cubierto por
+`test_close_marks_backup_pending_until_success`).
+
+Se borraron de la base de validación los dos productos y ubicaciones que dejó un
+intento fallido de la prueba de concurrencia. Las aperturas ya aplicadas **no** se
+pudieron borrar, que es exactamente la protección que se pedía.
+
+## Avance verificado (2026-09-07, ramos a medida y bodas con alquiler)
+
+Ampliación de alcance pedida por el usuario: la tienda hace **boda y día a día**,
+así que la pantalla de vender tenía que cubrir desde un ramo momentáneo hasta una
+boda con sus muebles. Esto **deroga** la decisión anterior «sin ramos ni encargos»
+del traspaso, que queda anulada.
+
+Se acordaron tres cosas antes de construir nada, porque cada respuesta llevaba a
+un trabajo distinto: los muebles **se alquilan o se venden según el artículo**, el
+ramo **descuenta cada flor** y las bodas van por **presupuesto → señal → entrega →
+cobro**.
+
+### Ramo a medida en el TPV (`models/mgs_bouquet.py`)
+
+El producto de la composición **no es almacenable**: no mueve stock por sí mismo.
+Lo que mueve stock son sus componentes, cada uno con su `stock.move` enlazado a la
+**misma** línea del TPV (`mgs_pos_line_id`). Con eso, todo lo que ya existía
+funciona sin tocarlo: reserva FEFO por caducidad y antigüedad, coste histórico
+congelado por partida, y `_compute_total_cost`, que suma los movimientos de la
+línea sin importar de qué producto son. El ticket enseña una línea; el almacén
+descuenta cada tallo.
+
+El navegador manda el contenido como JSON en `mgs_bouquet_spec`. El servidor lo
+valida con **el mismo parser** en la comprobación previa al cobro y al crear la
+línea, para que lo que pasa el control sea exactamente lo que se puede grabar: un
+ramo inválido falla **antes** de cobrar, no después.
+
+Defecto que habría pasado desapercibido: sin ampliar `mgs_check_stock`, se
+comprobaba el stock del producto «Ramo» —que no tiene ninguno— y se podía cobrar
+un ramo sin flores suficientes.
+
+**9 pruebas**: descuento por tallo con una sola línea de ticket, FEFO repartiendo
+entre dos partidas, varios ramos iguales multiplicando material, comprobación de
+stock contra las flores, seis formas de contenido inválido rechazadas antes de
+cobrar, producto normal que no puede llevar materiales, composición que no puede
+tener existencias propias, contenido congelado tras cobrar y flor caducada
+rechazada.
+
+### Bodas y alquiler (`models/mgs_event.py`)
+
+Recorrido `draft → confirmed → delivered → returned → done`, con cancelación.
+Dos ideas que sostienen el diseño:
+
+- **Reservar no es entregar.** Aceptar un presupuesto compromete el material para
+  esas fechas pero no mueve una sola unidad. Por eso la disponibilidad no se puede
+  mirar con `qty_available`: se cuenta la flota entera (tienda + lo que está fuera)
+  y se le resta lo comprometido en fechas que **se solapan**.
+- **Lo alquilado sigue siendo nuestro.** Sale a una ubicación de **tránsito**, no a
+  «cliente»: no está en la tienda (no se puede vender) pero no se ha vendido. Lo
+  que vuelve entero regresa al almacén; lo roto se da de baja como merma con motivo
+  *rotura* y su coste real; lo que no vuelve se queda a la vista para reclamarlo.
+
+Confirmar toma el **mismo candado sobre `product_product`** que recepción y
+apertura: sin él, dos bodas confirmadas a la vez podrían prometer el mismo arco.
+
+Los cobros (señal y final) se registran en el propio evento y **no pasan por la
+caja del TPV**: mezclarlos con el arqueo del día daría cifras que no cuadran,
+porque una señal de marzo es dinero de marzo. En el informe mensual van en su
+**propio apartado** por fecha de evento; el material roto sí aparece en las mermas.
+
+**16 pruebas**, incluidas: el mismo arco no va a dos bodas solapadas, el solape se
+mira en todo el rango y no solo el día, la entrega separa venta de alquiler, la
+devolución parcial con roto genera merma, no se puede devolver más de lo que salió,
+no se cierra con material fuera ni con dinero pendiente, y el informe no cuenta dos
+veces.
+
+### Fallo encontrado en navegador y corregido
+
+Anotar la devolución desde el formulario **no funcionaba**: la pantalla guarda el
+evento entero con un comando sobre `line_ids`, y el `write` del evento lo rechazaba
+por no estar en borrador. Las pruebas no lo veían porque escribían directamente
+sobre la línea, que es otra ruta. Corregido admitiendo únicamente comandos de
+actualización sobre las casillas de devolución de líneas existentes —mismo patrón
+que el recuento físico— y **con una prueba que usa la ruta del formulario**, para
+que no vuelva a escaparse.
+
+### Aceptación en navegador (2026-09-07)
+
+`BODA/2026/0034`, arco de alquiler con fianza de 60 €, evento 12/06/2027 y
+devolución 14/06/2027. El `onchange` marcó «se alquila» y trajo el precio y la
+fianza solos. Tras entregar: movimiento `WH/Stock → Alquiler en curso`. Se anotó
+una unidad rota y tras registrar la devolución: movimiento de vuelta, merma
+`SP/00120` en estado done con motivo `breakage` y su partida, arco de 2 a **1** en
+tienda y flota **1**, estado «Material devuelto» y aviso de pendiente retirado.
+
+Suite completa por `test.ps1`: **70 pruebas Odoo, 0 fallos y 0 errores**, exit 0.
+
+### Aceptación del ramo en el TPV real (2026-09-07)
+
+`TPV prueba floristería/0005`: se montó un ramo con 7 rosas y 2 gerberas desde la
+pantalla táctil. El precio sugerido salió solo (7×5 + 2×3,50 = **42 €**) y se
+cobró a **48 €** para incluir el montaje. Comprobado en base: el ticket lleva
+**una sola línea** («Ramo a medida», 48 €), el contenido quedó guardado
+(7 rosas + 2 gerberas), el almacén repartió los tallos entre **dos partidas por
+FEFO** —6 del lote 0000157, que caduca antes, y 1 del 0000158— más 2 gerberas del
+lote INI-45-65, y el **coste de la línea es 21,10 €**, el real de las flores, no
+el precio de venta. Existencias: rosa 21→14, gerbera 12→10.
+
+## Avance verificado (2026-09-07, compras, consumo, caducados, recetas, previsión y tarifas)
+
+Seis bloques más, cerrados en la misma tanda tras ramos y bodas. Cada uno resuelve
+un hueco distinto que dejó abierto lo anterior: saber qué falta por llegar, cuánta
+flor se gasta de verdad, qué hacer con lo caducado, repetir un ramo sin tener que
+recordarlo, cuánto pedir para una fecha señalada y cobrar distinto en campaña sin
+tocar la ficha del producto a mano.
+
+### Pedidos a proveedor (`models/mgs_purchase.py`)
+
+Deliberadamente **sin** el módulo nativo `purchase`/`purchase_stock`: sus
+albaranes de entrada nacen por rutas de almacén, sin pasar por
+`mgs.reception.action_confirm`, que es el único sitio donde una partida congela
+`mgs_unit_cost` / `mgs_supplier_id` / `mgs_cost_recorded`. Con el módulo nativo
+esos lotes llegarían sin coste histórico y el margen del informe mensual
+empezaría a mentir en silencio — además de traer su propio menú raíz, facturas
+de proveedor y un flujo completo que aquí sobra. Un pedido no mueve stock por sí
+mismo: eso solo pasa al recibirlo de verdad por `mgs.reception`, como siempre.
+
+**11 pruebas.**
+
+### Consumo real de flor (`models/mgs_consumption.py`)
+
+Vista SQL de solo lectura sobre `stock.move.line`, que es donde ya está todo
+unificado con su coste histórico congelado — una rosa suelta, una rosa de un ramo
+y una rosa de un centro de un evento son, todas, líneas de movimiento. Filtrar por
+`location_dest_id.usage = 'customer'` basta para quedarse solo con lo que de
+verdad ha salido de la tienda: fuera mermas, devoluciones y el material de
+alquiler que vuelve. Al ser una vista sobre otras tablas, `search()` fuerza
+`flush_all()` antes de preguntar, para no perderse una escritura de la misma
+transacción que todavía no se ha volcado.
+
+**5 pruebas.**
+
+### Baja asistida de caducados (`models/mgs_expiry.py`)
+
+El automatismo detecta, la persona confirma: `stock.scrap.do_scrap()` es
+irreversible y un PC de tienda puede llevar días sin abrirse, así que un cron que
+diera de baja por su cuenta sería peligroso. El cron de `mgs_stock_alert.py` solo
+genera o refresca una **propuesta** por tienda —siempre la misma mientras siga
+abierta— con el coste que se va a perder a la vista antes de confirmar; confirmar
+vuelve a comprobar que el stock no ha cambiado desde que se generó, mismo patrón
+que el recuento físico.
+
+**8 pruebas.**
+
+### Recetas de ramo (`models/mgs_bouquet.py`)
+
+Un punto de partida guardado, no un candado: la dependienta sigue pudiendo sumar,
+quitar y cambiar el precio antes de cobrar. `spec_json` se valida con el mismo
+parser que usa el cobro (`_mgs_parse_components`), así que una receta guardada
+nunca puede contener algo que el TPV luego rechace. En un evento, una composición
+sin receta no se puede añadir a la línea: se rechaza antes de guardar, para no
+perder la merma de flor en silencio.
+
+**3 pruebas** (`test_recipe_validates_against_the_same_parser_as_checkout`,
+`test_only_the_owner_manages_recipes`, `test_recipe_spec_json_updates_when_lines_change`).
+
+### Previsión de compra (`models/mgs_purchase_forecast.py`)
+
+«Cuánto pedir para San Valentín» dejó de ser una corazonada. Mira el mismo
+periodo de años anteriores usando el consumo real hasta la flor (no unidades de
+«Ramo a medida» vendidas, que no dicen nada de cuántos tallos hicieron falta),
+propone el máximo histórico con un margen de seguridad y resta lo que ya hay en
+tienda sin caducar. Es una propuesta: «Crear pedido» solo rellena un
+`mgs.purchase.order` en borrador, que se revisa y confirma como cualquier otro.
+
+**9 pruebas.**
+
+### Tarifas de campaña (`models/mgs_pricelist_campaign.py`)
+
+Se apoya en `product.pricelist` nativo, ya soportado por el TPV de serie: el
+asistente es solo una capa simple encima para que la propietaria nunca vea el
+formulario nativo con sus cuatro modos de cálculo ni la base recursiva de otra
+tarifa. Comprobado que no interfiere con lo que ya existe: el margen sigue
+mirando el coste histórico de la partida, nunca el precio de venta; el ramo a
+medida conserva su precio manual (`pos_store.js` marca `price_type: "manual"` en
+cuanto la línea trae un `price_unit` propio); y el ticket fiscal recalcula el IVA
+desde los subtotales reales de cada línea, tarifa o descuento aparte.
+
+**7 pruebas.**
+
+### Pendiente de esta tanda
+
+**121 pruebas Odoo en verde** por `test.ps1` al cerrar los seis bloques. Queda
+pendiente la **aceptación en navegador** de los seis flujos (no solo las pruebas
+automáticas): es una sesión de pantalla con la propietaria delante, y no se ha
+hecho todavía — ver `TRASPASO_IA.md`.

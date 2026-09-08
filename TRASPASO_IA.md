@@ -1,22 +1,40 @@
-# Traspaso a otra IA — gestor de stock Entre Ramblas
+# Estado del proyecto — gestor de stock Entre Ramblas
 
-Fecha: 6 de septiembre de 2026. El usuario ha pedido detener el desarrollo,
-documentar los pendientes y cerrar el goal para continuar con otra IA.
-**Este cierre es administrativo: el proyecto NO está terminado ni listo para
-producción. El último bloque añadido tiene una prueba fallida.**
+Última revisión: **7 de septiembre de 2026**. Sustituye al traspaso anterior:
+esta sesión ejecutó un plan de continuación completo (8 fases: correcciones,
+quitar la marca Odoo, compras y proveedores, consumo real de flor, caducidad
+asistida, recetas de ramo, previsión de compra y tarifas de campaña — ver
+sección 3). **El proyecto sigue sin estar listo para producción**, pero por
+motivos concretos y acotados que se enumeran en la sección 5: falta hardware
+físico, falta el servicio de Windows instalado con permisos de administrador y
+falta el cumplimiento SIF/VERI\*FACTU antes de sus plazos. Nada de eso es
+código: es puesta en marcha real, fuera del alcance de una sesión de agente.
 
 ## 1. Objetivo y decisiones que se deben conservar
 
-Odoo 18 Community para una floristería, un PC Windows local. Stock por partidas,
-caducidad, costes históricos, recepción, TPV, devoluciones, mermas, recuentos,
+Gestor de stock a medida (sobre Odoo 18 Community, aunque la marca Odoo está
+deliberadamente oculta de la interfaz — ver sección 3, Fase 1) para una
+floristería, un PC Windows local, sin nube. Stock por partidas, caducidad,
+costes históricos congelados, recepción, TPV, devoluciones, mermas, recuentos,
 reposición, estadísticas, roles y copias recuperables. Interfaz en español y
 periodos Europe/Madrid. Hardware acordado: Honeywell 1472g, lector PcCom,
-Approx appPOS80AM, cajón CASH01 y SSD Corsair. Datáfono independiente: Odoo
-registra tarjeta, no cobra/reembolsa por API. Sin ramos, encargos ni nube.
+Approx appPOS80AM, cajón CASH01 y SSD Corsair. Datáfono independiente: el
+programa registra tarjeta, no cobra/reembolsa por API.
 
-El usuario eligió Astra con razonamiento medio por los límites de su plan.
-No necesita que se vuelva a negociar el plan. Continuar desde los archivos
-actuales, conservando el trabajo y verificando las afirmaciones anteriores.
+**Alcance ampliado el 7-9-2026 por el usuario**: la tienda trabaja boda y día a
+día. El programa cubre **ramos y composiciones a medida** (con recetas
+guardables) y **bodas con material de alquiler** (incluidas composiciones
+dentro de una boda, vía receta). Decisiones acordadas: los muebles se alquilan
+o se venden **según el artículo**, el ramo **descuenta cada flor** de su
+partida, y las bodas van por **presupuesto → aceptado → entregado → material
+devuelto → cobrado**, con sus cobros en un apartado propio del informe (no
+pasan por la caja del TPV).
+
+Más tarde el mismo día, el usuario pidió un **plan de continuación** con lo que
+faltara, y un punto explícito para **quitar la marca Odoo** de todo lo que ve
+la dueña, sustituyéndola por «Gestor de Stock» (dentro del programa) o «Entre
+Ramblas» (de cara a la clienta). Ese plan se ejecutó completo en esta misma
+sesión (detalle en la sección 3).
 
 ## 2. Rutas, entorno y protección de datos
 
@@ -27,211 +45,241 @@ actuales, conservando el trabajo y verificando las afirmaciones anteriores.
 - Odoo: `EntreRamblas/odoo`, checkout ignorado por Git, revisión fijada
   `167e83374756c4c38bc46eb96763dfbd8cb8de6f`.
 - PostgreSQL 18: `C:/Program Files/PostgreSQL/18/bin`.
-- Base principal `mi_base_stock` en puerto 5432: **no se ha actualizado ni borrado**.
-  No actualizarla para probar estos cambios.
+- Base principal `mi_base_stock` en puerto 5432: **no se ha tocado en ningún
+  momento** de esta sesión, ni para probar ni para nada.
 - Base de pruebas `mgs_validation`, clúster aislado en
   `EntreRamblas/.odoo_data/validation-postgres`, puerto 55432, usuario `mgs_test`.
   Autenticación trust restringida al localhost, solo para datos sintéticos.
+  **Se reseteó una vez esta sesión** (contenía el rastro de pruebas manuales de
+  una sesión anterior que falseaba un test; ver sección 4) — es una base
+  desechable por diseño, recrearla es seguro y esperado.
 - `.odoo_data` contiene logs, filestore y evidencias ignorados por Git.
 - `odoo.conf` es una plantilla sin secretos. Conserva filtro `^mi_base_stock$`:
   al iniciar HTTP de pruebas hay que pasar explícitamente el filtro correcto.
-- Configuración privada anterior en `odoo.local` ignorado. No copiar credenciales
-  a documentación, Git o archivos de traspaso.
-- Instalaciones privadas de ensayo bajo `$env:LOCALAPPDATA/EntreRamblasValidation`;
-  algunas rutas se redirigen por el paquete MSIX de Codex. Localizar las rutas
-  reales antes de usarlas. Bases de ensayo: `mgs_install_validation` y
-  `mgs_install_validation_v2` en 55432.
-- Hay muchos archivos modificados y nuevos **sin commit**. Son la implementación
-  actual. No ejecutar reset/clean ni descartar los archivos sin seguimiento.
-  No se han encontrado instrucciones AGENTS.md en las revisiones anteriores.
+- Configuración privada anterior en `odoo.local`, ignorado. No copiar
+  credenciales a documentación, Git o archivos de traspaso.
+- **Instalación limpia detectada como incompleta**: una base de datos
+  realmente nueva instala la compañía con el plan contable **genérico**
+  (`generic_coa`), no el español (`es_pymes`), aunque `l10n_es` esté entre las
+  dependencias — Odoo no lo hace automático. Sin el plan español no hay tipos
+  de IVA reales (0/4/10/21), y el alta de catálogo y las pruebas que dependen
+  de impuestos fallan. Se cargó a mano para esta sesión
+  (`env['account.chart.template'].try_loading('es_pymes', company)`), pero
+  **el addon no lo hace solo todavía**: es un hueco real para la instalación
+  limpia (punto 6 de la sección 5), no una decisión de la gestoría — el
+  régimen fiscal y la numeración sí lo son y siguen pendientes (punto 3).
+- Esta sesión son **~55 rutas sin commit** (`git status --short` las lista):
+  modelos, vistas, datos, tests y documentación nuevos y modificados. No
+  ejecutar reset/clean ni descartar los archivos sin seguimiento. `venv/`,
+  `odoo/`, `.odoo_data/` y `odoo.local` están ignorados, comprobado con
+  `git check-ignore`. Comprobado también que ningún secreto entra en el commit
+  (el único hallazgo del grep fue el nombre del campo `admin_passwd` dentro de
+  una recomendación de seguridad en `README.md`, no un valor).
 
-Documentación adicional: `IMPLEMENTACION.md` (cronología y evidencias),
-`INSTALACION.md`, `INFORMES.md`, `RECUENTOS.md`, `DEVOLUCIONES.md`, `README.md`.
-Las casillas iniciales de IMPLEMENTACION son un resumen histórico; los apartados
-posteriores y las limitaciones de este traspaso prevalecen sobre un simple [X].
+Documentación: `MANUAL_TIENDA.md` (manual general de tienda y recuperación),
+`APERTURA.md` (catálogo y existencias iniciales), `EVENTOS.md` (ramos a medida,
+recetas, bodas y alquiler), `RECUENTOS.md`, `DEVOLUCIONES.md`, `INFORMES.md`
+(incluye consumo de flor, bajas de caducados y previsión de compra),
+`FACTURACION.md`, `INSTALACION.md`, `IMPLEMENTACION.md` (cronología y
+evidencias) y `README.md`.
 
-## 3. Punto exacto de interrupción: existencias iniciales, FALLANDO
+## 3. El plan de continuación, ejecutado esta sesión
 
-Se han añadido, sin terminar:
+Ocho fases, cada una verificada con `test.ps1` en verde antes de pasar a la
+siguiente. **121 pruebas Odoo del módulo, 0 fallos, 0 errores** al cierre
+(partiendo de 70 al empezar esta sesión).
 
-- `models/mgs_opening_stock.py`: modelos persistentes `mgs.opening.stock` y línea.
-- `views/mgs_opening_stock_views.xml`: formulario/lista y reglas de compañía.
-- Menú Stock → Existencias iniciales; ACL para propietaria; imports y manifest.
-- `tests/test_opening_stock.py`: dos pruebas, importadas en tests/__init__.py.
+### Fase 0 — Correcciones
 
-Intención: registrar stock de apertura con partidas automáticas y coste/caducidad,
-como ajuste de inventario (origen inventory), sin compras ficticias. Exige revisión
-por línea, cantidades positivas y costes finitos no negativos. Crea un lote por
-línea, guarda enlace a movimiento, autor/fecha; segunda aplicación idempotente.
-Rechaza productos con movimientos terminados o quants no nulos en la compañía.
-Bloquea edición/borrado tras aplicar. Actualmente solo admite productos del
-catálogo con tracking lot y mgs_auto_lots, no crea catálogo ni importa CSV.
+- **Mojibake en `mgs_reception.py`**: 42 líneas de texto con UTF-8 doblemente
+  codificado (`"RecepciÃ³n"`, etc.), visibles en la pantalla que más se usa a
+  diario. Arreglado por transformación de bytes determinista
+  (`s.encode('cp1252').decode('utf-8')`), verificado con AST y `git diff`
+  línea a línea: solo cambiaron cadenas y comentarios, ninguna línea de código.
+  Guardián nuevo, `tools/check_encoding.py`, enganchado en `test.ps1`.
+- **Un ramo dentro de una boda no descontaba nada** (`mgs_event.py`): una
+  composición sin receta se podía añadir a una boda y `action_deliver()` la
+  saltaba en silencio, sin sacar ni una flor del almacén. Corregido con un
+  dominio en el campo, una restricción (`@api.constrains`) y el rechazo en
+  `_check_valid()`. Se cierra del todo en la Fase 5, con recetas.
+- **Código muerto** en `mgs_config.py` (~50 líneas: apertura de cajón e
+  impresión de ticket síncronas, sustituidas hace tiempo por el outbox
+  transaccional de `mgs_hardware_job.py` sin que nadie las borrara) y el campo
+  zombi `backup_keep`: eliminados.
+- **ACL mal etiquetada**: dos filas de `ir.model.access.csv` se llamaban
+  `_user` pero apuntaban al grupo manager, dejando a la dependienta sin ACL
+  propia sobre `mgs.config` (funcionaba de rebote por `.sudo()`). Corregida.
+- **Fijado con test, no arreglado**: la devolución de un ramo NO reingresa las
+  flores al stock (están cortadas y montadas) — es la decisión ya documentada
+  en `EVENTOS.md`, ahora con una prueba que impide que alguien la "corrija" sin
+  darse cuenta de por qué existe. Igual con la convivencia de los dos parches
+  de `_create_move_from_pos_order_lines` (`mgs_bouquet.py` / `mgs_pos_stock.py`):
+  probada con un ticket mixto ramo + producto suelto, no solo con el orden de
+  import.
 
-Último comando desde runtime:
+### Fase 1 y 1B — Quitar la marca Odoo, y lo que sobra en una tienda de dos personas
 
-```powershell
-.\test.ps1 -Tags /mi_gestor_stock:TestOpeningStock
-```
+Todo por herencia de plantillas QWeb/OWL, sin tocar rutas técnicas
+(`odoo/`, `odoo-bin`, `odoo.conf`, imports): pestaña y favicon del backend y
+del TPV, «Powered by Odoo» del recibo en pantalla, menú de usuario (quita
+Documentación/Soporte/Cuenta de Odoo.com/Instalar aplicación), nombre del
+acceso directo PWA, título de los PDF, diálogo de sesión caducada, y las 5
+cadenas propias que nombraban a Odoo en tooltips y avisos. Se descartó
+expresamente la vía de traducción por catálogo `es_ES`: en Python solo lee el
+`.po` del propio módulo, y en JS el orden de aplicación depende de un `set()`
+— no determinista, cambiaría de un arranque a otro.
 
-Resultado real, log 2026-09-06 01:33:54 UTC:
+Además: **«Vender» entra directo al TPV** (antes abría el kanban nativo de
+cajas registradoras, pensado para varios puntos de venta) — con un campo
+nuevo (`mgs.config.pos_config_id`) para elegir la caja si algún día hubiera
+más de una. Se añadió **Informes → Cierres de caja** para no perder el único
+sitio desde donde se veían las sesiones pasadas. Se quitó el reloj de
+actividades del systray (avisaba de un cron que nunca existió,
+`_mgs_cron_stock_alerts` — comentario obsoleto corregido) y el chatter de
+Mermas (seguidores, mensajes): esto lo usan dos personas, no un equipo.
 
-```text
-FAIL: TestOpeningStock.test_opening_is_inventory_and_idempotent
-tests/test_opening_stock.py, line 24
-self.assertEqual(self.product.qty_available, 8)
-AssertionError: 0.0 != 8
-1 failed, 0 error(s) of 2 tests
-```
+### Fase 2 — Compras y proveedores
 
-La instalación de XML/modelos sí terminó. El test de permisos/revisión pasó.
-No se ha diagnosticado aún la causa del cero: inspeccionar movimientos, líneas,
-quants y contexto de ubicación del producto; no cambiar la aserción sin demostrar
-las existencias reales. La ubicación de ensayo es interna creada sin almacén:
-también comprobar si qty_available está limitado por contexto de almacén. Es una
-hipótesis, no un diagnóstico. No se han ejecutado aún las aserciones posteriores
-de ese test, ni se ha probado el formulario en navegador.
+**Decisión: modelo propio (`mgs.purchase.order`), no el módulo nativo
+`purchase`.** Sus rutas de almacén no pasan por `mgs_reception.action_confirm`,
+que es donde nace el coste congelado de cada partida — instalarlo habría
+degradado el margen de todo lo comprado, en silencio. Pedido → confirmado →
+recibido en parte/del todo, con candado sobre la fila del pedido (mismo orden
+que el candado de producto que ya usan recepción y apertura, para que dos
+recepciones a la vez contra el mismo pedido no se pisen). La recepción sigue
+siendo `mgs.reception`, ahora con `purchase_id`/`supplier_ref`/`document_date`
+opcionales — no obligatorios, para no estorbar una compra de urgencia. Nueva
+pantalla **Stock → Partidas**, que expone `mgs_supplier_id`/`mgs_received_at`
+(se grababan y no se veían en ningún sitio).
 
-Antes de cerrar este bloque: corregir el fallo, comprobar ajuste/coste/lotes,
-caducidad Madrid, exclusión de compras en informe, dos aplicaciones y dos
-aperturas distintas del mismo producto, permisos y compañía, rechazo de datos
-inválidos, carreras con recepción/venta y persistencia en formulario. La exclusión
-de productos con stock previo debe funcionar también bajo concurrencia; el
-bloqueo actual de product_product no demuestra por sí solo que los otros flujos
-usen el mismo bloqueo. Revisar esa coordinación.
+### Fase 3 — Consumo real de flor
 
-## 4. Lo implementado y evidencia disponible
+Un ramo de 12 rosas contaba, en «Productos más vendidos», como 1 unidad de
+«Ramo a medida» — el dato que hace falta para comprar (cuántas rosas se
+gastan) se perdía. Vista SQL nueva (`mgs.flower.consumption`) sobre
+`stock.move.line`, que ya tiene todo unificado con el coste histórico
+congelado; un filtro por `location_dest_id.usage = 'customer'` basta para
+quedarse con lo realmente vendido (excluye mermas, devoluciones y alquiler
+que vuelve). **Hallazgo de plataforma documentado en el propio modelo**: una
+vista `_auto=False` no vuelca sola las escrituras pendientes de las tablas que
+lee (`search()`/`search_count()`/`read_group()` bypasean el volcado
+automático); se corrige forzando `self.env.flush_all()` dentro de `_search()`
+— el único punto por el que pasan los cuatro caminos.
 
-### Stock y TPV
+### Fase 4 — Caducidad: baja asistida, no automática
 
-- `mgs_reception.py`, `mgs_stock_lot.py`: recepción nativa, partida por línea,
-  proveedor/fecha/coste congelados, protección de doble confirmación. Rechaza
-  activar lotes cuando queda stock sin lote. No convertir datos viejos a ciegas.
-- `mgs_pos_stock.py`: FEFO y después antigüedad, bloqueos de quant, rechazo de
-  caducados/insuficientes, coste histórico, retornos originales parciales limitados.
-  Movimientos en tiempo real. Venta de dependienta usando sudo interno controlado.
-- `pos_validation.js`: comprobación de stock antes del cobro y al validar;
-  confirmación de datáfono; resultado incierto conserva UUID y evita repetir cobro.
-- `mgs_scrap.py`: baja nativa, motivo, lote, actor, costes y límites de disponible.
-- `mgs_inventory_count.py`: foto de quants conocidos, cantidad/revisión explícitas,
-  rechazo si cambia stock/reservas, ajuste solo de diferencias, cancelación auditada.
-  No cuenta lotes nuevos nunca registrados, paquetes ni mercancía de terceros.
-- Reposición sugerida configurable, excluye caducados; no genera compras.
+**El automatismo detecta, la persona confirma** — `stock.scrap.do_scrap()` es
+irreversible, y un PC de tienda puede llevar días sin abrirse. Cron diario que
+genera o refresca una única propuesta abierta (`mgs.expiry.writeoff`) con lo
+caducado más allá de un margen configurable (`mgs.config.expiry_grace_days`,
+2 días por defecto). Confirmar vuelve a comprobar que el stock no cambió desde
+que se vio la propuesta (mismo patrón que el recuento físico) y dobla como
+candado contra doble clic. El valor de stock del informe mensual se separa
+ahora en vendible y caducado.
 
-### Devolución deteriorada: implementada y probada en UI
+### Fase 5 — Recetas de ramo, y cierre de la Fase 0
 
-`mgs_damaged_return.py` añade campo por línea y merma ligada a cada movimiento
-devuelto, en la misma transacción. Coste original incluso sin lote. Protección de
-duplicación y bloqueo de cambio posterior de la marca. En TPV pregunta al validar
-por cada línea negativa de stock si es recuperable o deteriorada.
+`mgs.bouquet.recipe`: «Ramo novia clásico = 12 rosas + 3 eucalipto», con
+`spec_json` precalculado en el servidor y validado contra el MISMO parser que
+usa el cobro (`_mgs_parse_components`) — una receta guardada nunca puede
+contener algo que luego el TPV rechace. En el TPV, un botón por receta
+precarga el diálogo; **sigue pudiéndose ajustar antes de cobrar**, no es un
+candado. Cierra la Fase 0: una composición **con receta** ya puede ir en una
+boda — se entrega descontando cada componente de la receta, multiplicado por
+la cantidad de la línea, nunca la composición en sí (que no tiene existencias).
 
-Pruebas: varias partidas, devolución parcial, coste, reintentos, rollback ante
-fallo de merma; prueba adicional con dependienta y producto sin lote.
+### Fase 6 — Previsión de compra por campaña
 
-UI 6/9, 01:30 UTC: venta sintética 6,05 €; retorno `Pedido 00012-002-0004`, paid,
-qty -1, deteriorada=true, origen línea 217, coste -2,50 €. Merma única SP/00017,
-done, motivo return, movimiento 1334, usuario 62, coste 2,50 €. Lote 157 pasó
-cliente→stock→mermas en esa transacción. Rosa quedó en 22 unidades tras la venta
-y devolución deteriorada. Ningún pago real ni hardware físico.
+`mgs.purchase.forecast`: San Valentín / Día de la Madre (primer domingo de
+mayo, calculado) / Todos los Santos / fechas libres. Mira el consumo real
+(Fase 3) del mismo periodo en años anteriores, propone el máximo histórico con
+un margen de seguridad menos el stock que ya hay sin caducar, y «Crear pedido»
+rellena un `mgs.purchase.order` en borrador agrupado por el proveedor más
+frecuente de cada producto (según las partidas ya recibidas). Lo que no tenga
+proveedor conocido se queda fuera, avisando cuál es — no bloquea el resto.
 
-### Roles y hardware
+### Fase 7 — Tarifas de campaña y descuentos
 
-- Propietaria y dependienta; costes/catalogación/informes/configuración protegidos
-  en servidor, no solo ocultos por UI. Ver mgs_permissions/mgs_security.
-- `mgs_hardware_job.py`, `pos_hardware.js`: trabajos duraderos tras commit,
-  pending/sending/sent/uncertain, no reenvío automático de resultado incierto,
-  reimpresión explícita y apertura manual con motivo. Prueba de dos conexiones
-  demuestra que no se imprime antes del commit; reinicio/reintento ensayados.
-- Ventas UI previas: efectivo 6,05 € y mixto 14,52 € (5 efectivo + 9,52 tarjeta).
-- Dispositivos simulados en `.odoo_data/ui-printer.bin`. Ningún ensayo físico.
+**Tarifas: `product.pricelist` nativo, envuelto en un asistente simple**
+(`mgs.pricelist.campaign`) para que la dueña no vea nunca el formulario nativo.
+Comprobados y descartados los tres riesgos: el margen sigue viniendo del coste
+histórico, nunca del precio (`_compute_total_cost`); el ramo a medida conserva
+su precio manual al cambiar de tarifa (nace con `price_type: "manual"` porque
+siempre lleva `price_unit`, y el POS solo recalcula las líneas `"original"`);
+el ticket sigue recalculando el IVA desde los subtotales reales. **Descuentos:
+ya funcionaban** (`manual_discount` viene activado de serie); se activó
+`restrict_price_control` para que solo la propietaria los cambie.
+**Fidelización: no se instaló** `loyalty`/`pos_loyalty` — inyectan líneas de
+recompensa que atraviesan el prechequeo de stock y podrían bloquear un cobro
+por falta de existencias del regalo; para dos personas, la tarjeta de cartón
+sellada basta.
 
-### Informes
+## 4. Estado de las pruebas
 
-- `mgs_monthly_report.py` y QWeb: ventas netas/impuestos, coste histórico, margen,
-  merma y margen después de merma, tickets/media, días Madrid, categoría,
-  cobros por fecha de pago, crédito de cliente separado, stock actual valorado.
-- CSV de ventas y nuevo ZIP de resumen/ventas/días/mermas/stock/cobros. Omite
-  cobros con categoría (no atribuir pagos mixtos arbitrariamente), protege fórmulas.
-  Tests abren ZIP y leen valores reales. Falta probar clic/descarga ZIP en navegador.
-- PDF nativo dos páginas A4 renderizado e inspeccionado; se corrigió título
-  huérfano. Evidencia `.odoo_data/output/pdf/informe-validacion.pdf`, sintética.
-  Falta muestra con muchas mermas, textos largos y varias páginas.
-- `install-pdf.ps1`: wkhtmltopdf 0.12.6 patched Qt portátil, descarga oficial con
-  SHA fijado; integrado en instalación/arranque. test.ps1 no pone su ruta en PATH,
-  por eso el log de tests puede avisar que no encuentra wkhtmltopdf. Ese aviso
-  no sustituye la prueba específica real de PDF.
+`.\test.ps1` termina con código 0 y ejecuta, en este orden:
 
-### Instalación, servicio y copias
+1. Pruebas del archivo de copia (3).
+2. Guardián de codificación (`tools/check_encoding.py`) — nuevo esta sesión.
+3. **121 pruebas Odoo del módulo, 0 fallos y 0 errores.**
+4. Prueba transaccional de hardware.
+5. Prueba de concurrencia de apertura y recepción.
 
-- Bootstrap fija core/dependencias, Python/pip check, reserva DB vacía, preserva
-  existentes, marca instalación pendiente, configuración privada fuera de OneDrive,
-  ACL Windows, contraseña inicial aleatoria. Probado dos veces reutilizando
-  checkout y venv existentes. Falta instalación desde máquina vacía realmente.
-- `service.ps1`, tools/windows_service.py/service_process.py/service_worker.py:
-  LocalService, automático retrasado, dependencia PG, rutas explícitas, recuperación
-  y parada por pipe. Supervisor real arrancó HTTP8077 y paró código 0/puerto libre.
-  **No se registró servicio SCM**: usuario no elevado. Falta instalar con elevación,
-  verificar permisos efectivos, reinicio, apagado y recuperación por fallo.
-- Copia SQL+filestore coherente, ZIP+SHA, réplica SSD, retención 30 días, cierre
-  de sesión marca backup pendiente tras commit, reintentos por cron y avisos.
-  Restore ensayado en DB nueva; no sobrescribe existentes, verifica archivo,
-  desactiva cron/hardware en restaurada. Varias restauraciones reales sintéticas
-  pasaron. Falta SSD físico, desconexión/reconexión, espacio insuficiente y aceptación
-  temporal del calendario/cierre. Ver scripts check_backup_restore/backup_archive.
+Los logs se acumulan en `.odoo_data/mgs-validation.log`: mirar la última
+ejecución, no una línea verde antigua.
 
-## 5. Orden recomendado de trabajo pendiente
+**Nota sobre falsos fallos ya resueltos, por si vuelven a aparecer**: la base
+de pruebas `mgs_validation` acumula datos reales de sesiones de validación
+manual en el navegador; un test que asume «no hay ventas hoy» puede fallar por
+eso, no por una regresión — comprobar antes de asumir lo peor, y resetear la
+base (es desechable) si hace falta. Y una vista de solo lectura (`_auto=False`)
+sobre una tabla que se acaba de escribir en la MISMA transacción puede no ver
+los datos sin `flush_all()` explícito (ver Fase 3): si se añade otra vista así,
+recordar este patrón.
 
-1. Corregir y completar apertura de stock (sección 3); ejecutar suite completa.
-2. Completar catálogo inicial: obtener listado real de productos/códigos/unidades,
-   precios/costes/categorías/IVA y partidas existentes. Preparar plantilla/importación
-   con validación previa, duplicados y tratamiento de ceros. No inventar catálogo
-   real ni cargar datos de demostración en producción. Aclarar impuestos con dueña.
-3. Probar UI de apertura y descarga ZIP; completar PDF largo y pruebas de ambos
-   roles, retorno recuperable/deteriorado mixto por líneas y cierre de caja.
-4. Auditar cambios completos y concurrencia, transacciones, RPC, compañías y
-   reintentos. Los tests actuales no prueban todos los caminos de Odoo nativo.
-   Revisar especialmente posibilidad de modificar/borrar trazas desde rutas RPC
-   alternativas y que datos POS personalizados sobrevivan a recarga/offline.
-5. Instalación realmente limpia con descarga y nuevo venv; actualizar DB aislada
-   representativa y volver a probar restauración. No usar mi_base_stock sin un
-   plan concreto de migración y copia previa autorizada.
-6. Servicio real Windows en consola elevada y datos fuera de OneDrive, reinicio,
-   preapagado, recuperación, permisos LocalService e impresora por cuenta servicio.
-7. Conectar SSD y verificar programación 6 horas/cierre, réplica, retención,
-   avisos y restauración desde SSD en DB distinta. Registrar rutas/volúmenes reales.
-8. Manual general de tienda y recuperación integrando los manuales parciales:
-   apertura, recepción, venta, tarjeta externa, errores, devolución, merma,
-   recuento, cierre, backup/restauración y mantenimiento.
-9. Comprobar requisitos de facturación españoles vigentes en fuentes oficiales
-   AEAT/BOE y según régimen de la tienda. No está investigado ni demostrado aquí.
-   Odoo Community + l10n_es no prueba por sí solo cumplimiento comercial; confirmar
-   facturas simplificadas/rectificativas, numeración, impuestos y requisitos SIF
-   aplicables/plazos actuales antes de producción. No inventar fechas legales.
-10. Jornada física: lectores HID (Enter/prefijos/sufijos), Bluetooth/reconexión,
-    impresora 80mm/etiquetas/acentos/cortes, cajón, datáfono manual, pago mixto,
-    merma/retorno/recuento/cierre, desconexiones, reinicio y restauración.
-    Registrar evidencia real; simulaciones no satisfacen este punto.
-11. Actualizar checklist según evidencias, revisar secretos/diffs, preparar commits
-    sin incluir runtime privado, y entregar estado final sin proclamar controles
-    físicos/fiscales completos si no se han realizado.
+## 5. Lo que sigue pendiente, y por qué
 
-## 6. Comandos y pruebas para retomar
+Por orden de lo que bloquea la puesta en producción:
+
+1. **Servicio Windows registrado en el SCM.** El supervisor arranca y para
+   bien, pero **nunca se ha registrado como servicio**: hace falta una consola
+   con permisos de administrador, que esta sesión no tiene. Falta también
+   comprobar reinicio, apagado, recuperación ante fallo, permisos efectivos de
+   LocalService y la impresora bajo esa cuenta.
+2. **SSD físico.** Falta conectar el disco y comprobar réplica, retención de
+   30 días, desconexión y reconexión, espacio insuficiente y una restauración
+   real desde el disco externo. Las restauraciones ensayadas son locales.
+3. **Cumplimiento SIF / VERI\*FACTU** antes de los plazos de `FACTURACION.md`
+   (1-1-2027 / 1-7-2027): elegir vía, y cerrar con la gestoría el régimen, los
+   tipos de IVA por familia y la serie de numeración.
+4. **Jornada física completa**: lectores HID reales, impresora de 80 mm,
+   cajón, datáfono manual, pago mixto, merma, devolución, recuento y cierre de
+   caja, con desconexiones y un reinicio por medio. Las simulaciones no valen.
+5. **Catálogo real.** El asistente de alta está hecho y probado, pero los
+   datos los tiene que dar la dueña.
+6. **Instalación realmente limpia**: descarga y venv nuevos en una máquina sin
+   nada previo, **y el plan contable español cargado a mano** (ver sección 2 —
+   hoy no es automático y una instalación limpia real lo necesita para que el
+   IVA funcione).
+7. **Aceptación de UI de lo más nuevo**: los flujos de esta sesión
+   (compras, consumo de flor, bajas de caducados, recetas, previsión de
+   compra, tarifas de campaña) están verificados por test pero no recorridos
+   en el navegador uno a uno, a diferencia de las fases anteriores.
+8. **Auditoría de caminos RPC alternativos**: queda por barrer sistemáticamente
+   si alguna ruta RPC permite modificar o borrar trazas, y si los datos propios
+   del TPV sobreviven a recarga y a trabajo sin conexión.
+9. **Commits.** El trabajo de esta sesión sigue sin commit, a la espera de que
+   lo revises. Comprobado que no hay secretos en lo que entraría y que el
+   runtime privado (`odoo.local`, `.odoo_data`, `venv`, `odoo/`) está ignorado.
+
+## 6. Comandos
 
 Desde `EntreRamblas` (PowerShell):
 
 ```powershell
+.\test.ps1                 # suite completa
+.\test.ps1 -Restore        # añade copia y restauración reales
 .\test.ps1 -Tags /mi_gestor_stock:TestOpeningStock
-.\test.ps1
-.\test.ps1 -Restore
 ```
-
-test.ps1 gestiona PG aislado si no está arrancado, ejecuta archivo backup (3 tests),
-actualiza/ejecuta tests Odoo y prueba transaccional de hardware. El restore es
-opcional. Logs acumulados en `.odoo_data/mgs-validation.log`: mirar la última
-ejecución, no una línea verde antigua.
-
-Última suite COMPLETA verde: 29 pruebas a las 01:25 UTC, antes de apertura.
-Después pasó una prueba adicional dirigida de devolución con dependienta.
-La suite actual incluye además dos tests de apertura: **no está verde**.
 
 HTTP de pruebas (sin cron; no usar como producción):
 
@@ -240,25 +288,20 @@ HTTP de pruebas (sin cron; no usar como producción):
 ```
 
 Login: `http://127.0.0.1:8075/web/login?db=mgs_validation`.
-TPV sintético: `http://127.0.0.1:8075/pos/ui?config_id=12`.
-Usuarios sintéticos propietaria/dependienta y contraseñas están en
-`.odoo_data/ui-validation.json`; no copiarlas a Git. prepare_ui_validation.py
-regenera contraseñas y datos: leer antes de ejecutarlo; no hacerlo solo para
-consultar credenciales existentes. Después de un cambio de Python reiniciar el
-servidor de prueba; después de campos/vistas actualizar addon y recargar assets.
+Usuarios sintéticos y contraseñas en `.odoo_data/ui-validation.json`; no
+copiarlas a Git. `prepare_ui_validation.py` **regenera** contraseñas y datos:
+leerlo antes de ejecutarlo, no lanzarlo solo para consultar credenciales.
 
-Herramientas adicionales: tools/check_report_pdf.py, check_service_worker.py,
-check_backup_restore.py, check_hardware_outbox.py. Leer sus rutas/puertos antes
-de ejecutar. Pueden depender del HTTP de pruebas o del runtime privado anterior.
+Herramientas: `tools/check_report_pdf.py`, `check_report_pdf_long.py`
+(requieren el HTTP de pruebas levantado), `check_service_worker.py`,
+`check_backup_restore.py`, `check_hardware_outbox.py`,
+`check_opening_concurrency.py`, `check_encoding.py` (sin requisitos, revisa
+`custom_addons/` directamente).
 
-## 7. Condiciones del traspaso
+## 7. Condiciones
 
-No se deja un servidor HTTP de pruebas intencionadamente en ejecución. El último
-servidor 8075 se detuvo tras la aceptación de devolución; el test fallido terminó
-con apagado normal. PostgreSQL aislado puede seguir escuchando en 55432:
-comprobar procesos/puertos, no asumir que una sesión antigua sigue viva.
-No detener el PostgreSQL principal. No se ha hecho despliegue final ni commit.
-
-El usuario continuará con otra IA por disponibilidad de tokens. No iniciar nuevas
-iteraciones automáticas en este goal. La siguiente IA debe retomar el alcance
-completo y usar este documento como mapa, no como sustituto de inspección del código.
+No se deja ningún servidor HTTP de pruebas en ejecución a propósito. PostgreSQL
+aislado puede seguir escuchando en 55432: comprobar procesos y puertos, no
+asumir que una sesión antigua sigue viva. **No detener el PostgreSQL
+principal.** No se ha hecho despliegue final ni commit. La base principal
+`mi_base_stock` no se ha tocado en ningún momento.

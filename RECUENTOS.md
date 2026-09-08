@@ -26,5 +26,8 @@ la persona y fecha de cancelación. Los recuentos iniciados se conservan.
 
 Este flujo cuenta existencias propias ya registradas en ubicaciones internas;
 excluye paquetes y mercancía de terceros. Las compras reales entran por recepción.
-La carga inicial de catálogo y existencias es un flujo separado pendiente de
-implementación: no registres compras ficticias para introducir el stock inicial.
+La carga inicial de catálogo y existencias tiene sus propias pantallas
+(**Stock → Alta de catálogo** y **Stock → Existencias iniciales**, ver
+[APERTURA.md](APERTURA.md)): no registres compras ficticias para introducir el
+stock inicial ni uses el recuento para dar de alta partidas que nunca se
+registraron.

@@ -2,6 +2,106 @@
 
 > Documento de traspaso entre sesiones. Recoge todo lo hecho hasta **2026-09-05**.
 > Léelo entero antes de continuar.
+>
+> ⚠️ **Estado actual (2026-09-06): [TRASPASO_IA.md](TRASPASO_IA.md).** Ese documento
+> manda sobre el apartado 9 «Pendiente» de este, que es histórico. Manual de tienda
+> en [MANUAL_TIENDA.md](MANUAL_TIENDA.md), puesta en marcha en
+> [APERTURA.md](APERTURA.md) y facturación española en
+> [FACTURACION.md](FACTURACION.md).
+
+---
+
+## 0quinquies. Cambios recientes (2026-09-07) — compras, consumo, caducados, recetas, previsión y tarifas
+
+Seis bloques cerrados en la misma tanda, cada uno con sus pruebas propias
+(121 en verde al terminar). Se documentan aquí juntos porque se diseñaron
+juntos, pero son independientes entre sí.
+
+- **Pedidos a proveedor** (`models/mgs_purchase.py`, menú **Compras → Pedidos a
+  proveedor**): qué se ha pedido y qué sigue sin llegar, nada más. Deliberadamente
+  NO usa el módulo nativo `purchase`/`purchase_stock`: sus albaranes nacen por
+  rutas de almacén sin pasar por `mgs.reception.action_confirm`, que es el único
+  sitio donde una partida congela `mgs_unit_cost`/`mgs_supplier_id`/
+  `mgs_cost_recorded` — con `purchase_stock` esos lotes llegarían sin coste
+  histórico y el margen del informe mensual mentiría en silencio. Un pedido no
+  mueve stock por sí mismo: eso solo pasa al recibirlo de verdad por recepción.
+- **Consumo real de flor** (`models/mgs_consumption.py`, menú **Informes → Consumo
+  de flor**): cuántos tallos se gastan de verdad, no cuántos «Ramo a medida» se
+  han vendido (un ramo de 12 rosas es 1 unidad vendida, pero 12 tallos consumidos).
+  Es una vista SQL de solo lectura sobre `stock.move.line` filtrada por
+  `location_dest_id.usage = 'customer'`: así entra lo vendido suelto, lo que
+  llevan los ramos y lo entregado en eventos, con su coste histórico ya
+  congelado, y quedan fuera mermas, devoluciones y el material de alquiler que
+  vuelve. Las mermas no se duplican aquí: ya tienen su propio apartado.
+- **Baja asistida de caducados** (`models/mgs_expiry.py`, menú **Stock → Bajas de
+  caducados**): el automatismo DETECTA, la persona CONFIRMA. Un cron nunca da de
+  baja por su cuenta (`stock.scrap.do_scrap()` es irreversible y el PC de tienda
+  puede llevar días sin abrirse); en su lugar genera o refresca una única
+  propuesta por tienda con el coste que se va a perder, y confirmarla revuelve a
+  comprobar que el stock no ha cambiado desde que se generó — mismo patrón que
+  el recuento físico.
+- **Recetas de ramo** (`models/mgs_bouquet.py`, menú **Stock → Recetas de ramo**):
+  un punto de partida guardado («Ramo novia clásico = 12 rosas + 3 eucalipto +
+  papel»), no un candado — la dependienta sigue pudiendo sumar, quitar y cambiar
+  el precio antes de cobrar. `spec_json` se valida con el MISMO parser que usa el
+  cobro, así que una receta guardada nunca puede contener algo que el TPV luego
+  rechace. Un evento con una composición sin receta no se puede añadir: se
+  rechaza antes de guardar la línea, para no perder la merma de flor en silencio.
+- **Previsión de compra** (`models/mgs_purchase_forecast.py`, menú **Stock →
+  Previsión de compra**): «cuánto pedir para San Valentín» dejó de ser una
+  corazonada. Mira el mismo periodo de años anteriores con el consumo real hasta
+  la flor (no unidades de producto vendido), propone el máximo histórico con un
+  margen de seguridad y resta lo que ya hay en tienda sin caducar. Es una
+  PROPUESTA: «Crear pedido» solo rellena un `mgs.purchase.order` en borrador, que
+  se revisa y confirma como cualquier otro.
+- **Tarifas de campaña** (`models/mgs_pricelist_campaign.py`, menú **Stock →
+  Tarifas de campaña**): la rosa cuesta distinto en San Valentín sin tocar la
+  ficha del producto a mano. Se apoya en `product.pricelist` nativo (ya
+  soportado por el TPV de serie); el asistente es solo una capa simple encima,
+  para que la propietaria nunca vea el formulario nativo con sus cuatro modos de
+  cálculo. Comprobado que no rompe nada alrededor: el margen sigue mirando el
+  coste histórico, no el precio de venta; el ramo a medida conserva su precio
+  manual; y el ticket fiscal recalcula el IVA desde los subtotales reales,
+  tarifa o descuento aparte.
+
+---
+
+## 0ante. Cambios recientes (2026-09-07) — ramos a medida y eventos
+
+- **Ramo a medida en el TPV** (`models/mgs_bouquet.py`, `static/src/js/pos_bouquet.js`):
+  el producto de la composición no es almacenable; lo que mueve stock son sus
+  componentes, con un `stock.move` por material colgando de la MISMA línea del TPV
+  (`mgs_pos_line_id`). Así el ticket enseña una línea y el almacén descuenta cada
+  tallo por FEFO con su coste real — `_compute_total_cost` ya sumaba todos los
+  movimientos de la línea, no hizo falta tocarlo.
+- **Eventos y encargos con alquiler** (`models/mgs_event.py`): presupuesto → señal →
+  entrega → devolución → cobro. Vale para bodas, bautizos, comuniones, eventos de
+  empresa o cualquier encargo grande. Reservar no mueve stock: la disponibilidad se
+  calcula sobre la flota entera menos lo comprometido en **fechas solapadas**. Lo
+  alquilado sale a una ubicación de **tránsito** (sigue siendo nuestro); lo que
+  vuelve roto se da de baja como merma. Menú **Eventos y encargos**, con numeración
+  `EVENTO/2026/0001`.
+- Marca **«Se alquila para eventos»** por artículo en la ficha de producto: unos se
+  alquilan y otros se venden.
+- Procedimiento de tienda en [EVENTOS.md](EVENTOS.md).
+
+---
+
+## 0bis. Cambios recientes (2026-09-06) — puesta en marcha y facturación
+
+- **Existencias iniciales corregidas** (`models/mgs_opening_stock.py`): usaba un
+  movimiento construido a mano que duplicaba el stock; ahora hace el ajuste de
+  inventario nativo, igual que el recuento. Rechaza ubicaciones internas fuera del
+  almacén, porque `qty_available` no las ve. Recepción y apertura comparten ahora
+  el mismo candado sobre `product_product` (prueba de concurrencia con dos
+  conexiones en `tools/check_opening_concurrency.py`).
+- **Alta de catálogo** (`models/mgs_catalog_import.py`): asistente de importación
+  CSV con comprobación previa completa; si una fila está mal no se importa
+  ninguna. Menú **Stock → Alta de catálogo**.
+- **Ticket**: imprime el tipo impositivo (`IVA 21%`) en vez del nombre interno de
+  l10n_es, y las devoluciones remiten al ticket rectificado (artículo 7 del
+  RD 1619/2012). Ver [FACTURACION.md](FACTURACION.md): el programa **no es** hoy un
+  SIF conforme al RD 1007/2023.
 
 ---
 
@@ -552,6 +652,9 @@ La localización fiscal española (`l10n_es`) ya estaba instalada (§3).
 ---
 
 ## 9. Pendiente (por orden sugerido)
+
+> **Histórico.** La lista de pendientes vigente está en
+> [TRASPASO_IA.md](TRASPASO_IA.md) §5. Varios puntos de aquí ya están hechos.
 
 ### En desarrollo (PC actual)
 0. ~~Añadir `-d mi_base_stock` a `start-odoo.ps1`~~ ✅ hecho (§5).

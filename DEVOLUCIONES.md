@@ -24,5 +24,5 @@ Si se pierde la conexión después de validar, restablece el servidor y vuelve a
 validar el mismo pedido; no crees otro reembolso ni repitas la entrega de dinero.
 Los reintentos conservan la operación y no duplican la merma.
 
-El datáfono es independiente: registrar tarjeta en Odoo no devuelve el dinero en
-el terminal. Tramita el reembolso en el datáfono y comprueba su resultado.
+El datáfono es independiente: registrar tarjeta en el programa no devuelve el
+dinero en el terminal. Tramita el reembolso en el datáfono y comprueba su resultado.
