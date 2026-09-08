@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Partidas: hoy se graban proveedor, fecha y coste de cada lote al
+         recibirlo (mgs_reception.py), pero no había ninguna pantalla que
+         los mostrara. Responde «¿de qué proveedor vino esta partida de
+         rosas?» y «qué caduca la semana que viene», que antes solo se
+         podían ver en el Panel (≤3 días) o consultando la base de datos. -->
+    <record id="view_mgs_lot_list" model="ir.ui.view">
+        <field name="name">stock.lot.list.mgs</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <list string="Partidas" create="0" default_order="expiration_date">
+                <field name="product_id"/>
+                <field name="name" string="Lote"/>
+                <field name="expiration_date"/>
+                <field name="product_qty" string="Existencias"/>
+                <field name="mgs_supplier_id"/>
+                <field name="mgs_supplier_ref"/>
+                <field name="mgs_received_at"/>
+                <field name="mgs_unit_cost"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mgs_lot_search" model="ir.ui.view">
+        <field name="name">stock.lot.search.mgs</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="mgs_supplier_id"/>
+                <field name="mgs_supplier_ref"/>
+                <filter name="expiring_soon" string="Caduca en 7 días"
+                        domain="[('expiration_date', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59')),
+                                 ('expiration_date', '!=', False)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_by_supplier" string="Proveedor" context="{'group_by': 'mgs_supplier_id'}"/>
+                    <filter name="group_by_product" string="Producto" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mgs_lots" model="ir.actions.act_window">
+        <field name="name">Partidas</field>
+        <field name="res_model">stock.lot</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_mgs_lot_list"/>
+        <field name="search_view_id" ref="view_mgs_lot_search"/>
+        <field name="domain">[('product_qty', '>', 0)]</field>
+    </record>
+</odoo>

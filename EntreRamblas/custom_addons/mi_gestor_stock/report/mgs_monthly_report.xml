@@ -208,6 +208,50 @@
                         </table>
                         <p t-else="" class="text-muted">No hubo ventas en este periodo.</p>
 
+                        <h3 class="mt-4" t-if="d['events_available'] and d['event_rows']">Eventos y encargos</h3>
+                        <p t-if="d['events_available'] and d['event_rows']" class="text-muted">
+                            Por fecha del evento. El dinero de un evento no pasa por la caja
+                            del TPV: no está sumado en las ventas de arriba. El material roto
+                            que volvió sí aparece en las mermas.
+                        </p>
+                        <table class="table table-sm" t-if="d['events_available'] and d['event_rows']">
+                            <thead>
+                                <tr>
+                                    <th>Referencia</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Cobrado</th>
+                                    <th class="text-end">Pendiente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="d['event_rows']" t-as="row" t-key="row['name']">
+                                    <td><span t-esc="row['name']"/></td>
+                                    <td>
+                                        <span t-esc="row['partner']"/>
+                                        <span t-if="row['pending_return']" class="text-muted"> · material sin devolver</span>
+                                    </td>
+                                    <td><span t-esc="row['date']"/></td>
+                                    <td><span t-esc="row['state']"/></td>
+                                    <td class="text-end"><span t-esc="row['total']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                    <td class="text-end"><span t-esc="row['paid']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                    <td class="text-end"><span t-esc="row['due']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4">Total comprometido en eventos del periodo</th>
+                                    <th class="text-end"><span t-esc="d['event_total']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></th>
+                                    <th class="text-end" colspan="2">
+                                        Cobrado en el periodo:
+                                        <span t-esc="d['event_collected']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+
                         <h3 class="mt-4">Stock restante</h3>
                         <table class="table table-sm" t-if="d['stock_rows']">
                             <thead>
@@ -233,6 +277,37 @@
                             </tbody>
                         </table>
                         <p t-else="" class="text-muted">No queda stock registrado.</p>
+
+                        <h3 class="mt-4">Consumo de flor y material</h3>
+                        <p class="text-muted">
+                            Cuánto se ha gastado de verdad de cada material, sea vendido
+                            suelto, dentro de un ramo a medida o entregado en un evento.
+                            Es informativo: el coste ya está contado en el margen de
+                            arriba, dentro de la línea que se cobró (el ramo, no sus
+                            flores por separado), así que no se suma otra vez.
+                        </p>
+                        <table class="table table-sm" t-if="d['consumption_rows']">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Cantidad</th>
+                                    <th class="text-end">Coste histórico</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="d['consumption_rows']" t-as="row">
+                                    <td t-esc="row['name']"/>
+                                    <td class="text-end">
+                                        <t t-esc="row['qty']"/> <t t-esc="row['uom']"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-esc="row['cost']"
+                                              t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-else="" class="text-muted">No hay consumo registrado en el periodo.</p>
                     </div>
                 </t>
             </t>

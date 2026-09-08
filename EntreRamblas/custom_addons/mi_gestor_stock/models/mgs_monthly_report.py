@@ -59,7 +59,11 @@ class MgsMonthlyReport(models.TransientModel):
                 ('Tickets con venta', 'sale_ticket_count'), ('Tickets con devolución', 'refund_ticket_count'),
                 ('Ticket medio de venta con impuestos', 'average_sale_ticket'),
                 ('Entradas de proveedor a coste', 'purchases'),
-                ('Valor de stock actual', 'stock_value'), ('Registros sin coste histórico', 'missing_costs'),
+                ('Valor de stock actual', 'stock_value'),
+                ('Valor de stock vendible', 'stock_value_usable'),
+                ('Valor de stock caducado', 'stock_value_expired'),
+                ('Registros sin coste histórico', 'missing_costs'),
+                ('Coste histórico del consumo de flor (informativo)', 'consumption_cost'),
             ]
             if data['payments_available']:
                 metrics += [('Cobros netos', 'payments_net'), ('Cuenta cliente neta no cobrada', 'payments_deferred_net')]
@@ -77,6 +81,8 @@ class MgsMonthlyReport(models.TransientModel):
                   [[r[k] for k in ('product', 'lot', 'reason', 'quantity', 'uom', 'cost')] for r in data['scrap_rows']])
             table('stock_actual', ['Producto', 'Cantidad', 'Unidad', 'Valor'],
                   [[r[k] for k in ('name', 'qty', 'uom', 'value')] for r in data['stock_rows']])
+            table('consumo_flor', ['Producto', 'Cantidad consumida', 'Unidad', 'Coste histórico'],
+                  [[r[k] for k in ('name', 'qty', 'uom', 'cost')] for r in data['consumption_rows']])
             if data['payments_available']:
                 table('cobros', ['Método', 'Entradas', 'Salidas (cambio y reembolso)', 'Neto', 'Cuenta cliente no cobrada'],
                       [[r['name'], r['received'], r['returned'], r['received'] - r['returned'],
@@ -232,6 +238,12 @@ class MgsMonthlyReport(models.TransientModel):
             ([("categ_id", "child_of", self.category_id.id)] if self.category_id else []))
         stock_rows = []
         stock_value = 0.0
+        stock_value_expired = 0.0
+        # Mismo criterio de "caducado" que usa el TPV para no ofrecerlo en
+        # venta (mgs_pos_stock.py): expiration_date < ahora, sin ajuste de
+        # huso horario. Así el valor de aquí y lo que de verdad se puede
+        # vender coinciden.
+        now = fields.Datetime.now()
         for tmpl in products.sorted(key=lambda p: p.name or ""):
             quants = self.env["stock.quant"].search([
                 ("product_id.product_tmpl_id", "=", tmpl.id),
@@ -241,7 +253,12 @@ class MgsMonthlyReport(models.TransientModel):
             qty = sum(quants.mapped("quantity"))
             value = sum(q.quantity * (q.lot_id.mgs_unit_cost if q.lot_id.mgs_cost_recorded
                                      else q.product_id.standard_price) for q in quants)
+            expired_value = sum(
+                q.quantity * (q.lot_id.mgs_unit_cost if q.lot_id.mgs_cost_recorded
+                             else q.product_id.standard_price)
+                for q in quants if q.lot_id.expiration_date and q.lot_id.expiration_date < now)
             stock_value += value
+            stock_value_expired += expired_value
             if qty:
                 stock_rows.append({
                     "name": tmpl.name,
@@ -284,4 +301,82 @@ class MgsMonthlyReport(models.TransientModel):
             "balance": total_revenue - purchases,
             "stock_rows": stock_rows,
             "stock_value": stock_value,
+            "stock_value_expired": stock_value_expired,
+            "stock_value_usable": stock_value - stock_value_expired,
+            **self._mgs_event_data(start, end),
+            **self._mgs_consumption_data(start, end),
+        }
+
+    def _mgs_consumption_data(self, start, end):
+        """Cuánta flor se ha consumido de verdad en el periodo, por producto,
+        sobre mgs.flower.consumption (ver models/mgs_consumption.py).
+
+        Es solo informativo: NO se suma a total_revenue ni a total_cost_sold.
+        Ese coste ya está contado dentro de line.total_cost de la línea de
+        venta (la del ramo, no la de sus flores); sumarlo aquí lo contaría
+        dos veces. Mismo razonamiento que ya usa _mgs_event_data para no
+        mezclar los eventos con las ventas de mostrador."""
+        domain = [("company_id", "=", self.env.company.id),
+                  ("date", ">=", start), ("date", "<", end)]
+        if self.category_id:
+            domain.append(("categ_id", "child_of", self.category_id.id))
+        by_product = {}
+        for row in self.env["mgs.flower.consumption"].search(domain):
+            entry = by_product.setdefault(row.product_id.id, {
+                "name": row.product_id.display_name, "qty": 0.0, "cost": 0.0,
+                "uom": row.uom_id.name,
+            })
+            entry["qty"] += row.quantity
+            entry["cost"] += row.cost
+        consumption_rows = sorted(by_product.values(), key=lambda r: r["qty"], reverse=True)
+        return {
+            "consumption_rows": consumption_rows,
+            "consumption_cost": sum(r["cost"] for r in consumption_rows),
+        }
+
+    def _mgs_event_data(self, start, end):
+        """Eventos y encargos del periodo.
+
+        El dinero de un evento NO pasa por la caja del TPV (se cobra por señal y
+        cobro final, ver mgs_event.py), así que va en su propio apartado: sumarlo
+        a las ventas de mostrador contaría dos veces las que sí pasan por caja y
+        mezclaría cobros de fechas distintas. Las mermas del material roto sí
+        aparecen ya en el apartado de mermas, porque son mermas de verdad.
+
+        Se filtra por FECHA DEL EVENTO, no por fecha de cobro: es lo que la dueña
+        busca cuando mira «qué eventos hubo en junio». Los cobros del periodo van
+        aparte, porque una señal de marzo es dinero de marzo."""
+        if self.category_id:
+            # Un evento mezcla categorías; repartirlo sería inventar.
+            return {"event_rows": [], "event_total": 0.0, "event_collected": 0.0,
+                    "events_available": False, "event_pending_return": 0}
+        # `event_date` es una fecha, no un instante: se compara con las fechas
+        # del asistente (ambas incluidas), no con los límites UTC de _mgs_period,
+        # que sirven para los campos de fecha y hora.
+        events = self.env["mgs.event"].search([
+            ("company_id", "=", self.env.company.id),
+            ("state", "!=", "cancelled"),
+            ("event_date", ">=", self.date_from),
+            ("event_date", "<=", self.date_to),
+        ], order="event_date")
+        rows = [{
+            "name": event.name,
+            "partner": event.partner_id.display_name,
+            "date": event.event_date,
+            "state": dict(event._fields["state"].selection).get(event.state, event.state),
+            "total": event.amount_total,
+            "paid": event.amount_paid,
+            "due": event.amount_due,
+            "pending_return": event.pending_return,
+        } for event in events]
+        collected = sum(self.env["mgs.event.payment"].search([
+            ("company_id", "=", self.env.company.id),
+            ("date", ">=", start), ("date", "<", end),
+        ]).mapped("amount"))
+        return {
+            "event_rows": rows,
+            "event_total": sum(event.amount_total for event in events),
+            "event_collected": collected,
+            "events_available": True,
+            "event_pending_return": sum(1 for event in events if event.pending_return),
         }
