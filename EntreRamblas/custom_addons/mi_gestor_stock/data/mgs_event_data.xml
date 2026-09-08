@@ -1,0 +1,27 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Numeración de eventos y encargos. -->
+        <record id="seq_mgs_event" model="ir.sequence">
+            <field name="name">Eventos y encargos</field>
+            <field name="code">mgs.event</field>
+            <field name="prefix">EVENTO/%(year)s/</field>
+            <field name="implementation">standard</field>
+            <field name="padding">4</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Dónde vive el material que está fuera, en un evento.
+
+             usage="transit" a propósito: NO es «cliente» (no se ha vendido, sigue
+             siendo nuestro y vuelve) pero tampoco es interna (no está en la
+             tienda, así que no puede venderse ni contar como existencias
+             disponibles). Ver models/mgs_event.py -> mgs_rental_fleet. -->
+        <record id="stock_location_rental" model="stock.location">
+            <field name="name">Alquiler en curso</field>
+            <field name="usage">transit</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+    </data>
+</odoo>

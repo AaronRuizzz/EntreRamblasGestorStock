@@ -46,6 +46,14 @@
                     <field name="standard_price" string="Precio de coste (€)" widget="monetary"
                            options="{'currency_field': 'cost_currency_id', 'field_digits': True}"/>
                     <field name="categ_id" string="Categoría"/>
+                    <!-- Ramo/composición: el TPV pregunta de qué está hecho y
+                         descuenta cada material (models/mgs_bouquet.py). -->
+                    <field name="mgs_is_composition" string="Ramo o composición a medida"/>
+                    <!-- Alquiler para eventos: sale y vuelve (models/mgs_event.py). -->
+                    <field name="mgs_rental_ok" string="Se alquila para eventos"/>
+                    <field name="mgs_rental_deposit" string="Fianza por unidad (€)"
+                           widget="monetary" options="{'currency_field': 'currency_id'}"
+                           invisible="not mgs_rental_ok"/>
                     <!-- Campos técnicos necesarios para lógica interna en modo invisible -->
                     <field name="type" invisible="1"/>
                     <field name="is_storable" invisible="1"/>

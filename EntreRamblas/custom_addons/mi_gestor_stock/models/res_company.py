@@ -98,6 +98,73 @@ class ResCompany(models.Model):
             wh.name = COMPANY_NAME
 
     # ------------------------------------------------------------------
+    # Tarifas de campana: activa el uso de tarifas en las cajas ya
+    # configuradas, sin exigir ninguna concreta. Si no hay ninguna caja
+    # todavia (instalacion nueva), no hace nada; se aplica solo al volver a
+    # ejecutar esto en el siguiente `-u`, ya con la caja creada.
+    # ------------------------------------------------------------------
+    def _mgs_apply_pos_pricelist_defaults(self):
+        configs = self.env["pos.config"].search([])
+        if configs:
+            configs.write({"use_pricelist": True, "restrict_price_control": True})
+
+    # ------------------------------------------------------------------
+    # Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.
+    # El <record> de data/mgs_event_data.xml vive en un bloque noupdate="1"
+    # (asi no se pierde la numeracion ya emitida en cada -u), asi que
+    # cambiar el prefijo ahi NO hace nada sobre una base ya instalada: hace
+    # falta escribirlo aqui, igual que _mgs_apply_branding hace con
+    # base.main_company por el mismo motivo. Solo se tocan `prefix` y
+    # `name`: nunca `number_next`, para no reiniciar el contador ni
+    # renumerar lo que ya se emitio con el prefijo antiguo.
+    # ------------------------------------------------------------------
+    def _mgs_apply_event_sequence(self):
+        seq = self.env.ref("mi_gestor_stock.seq_mgs_event", raise_if_not_found=False)
+        if seq and seq.prefix != "EVENTO/%(year)s/":
+            seq.write({"prefix": "EVENTO/%(year)s/", "name": "Eventos y encargos"})
+
+    # ------------------------------------------------------------------
+    # Plan contable espanol: una instalacion realmente nueva se queda con el
+    # plan GENERICO aunque l10n_es sea dependencia (Odoo solo lo autoinstala
+    # al CREAR la compania con pais ya puesto; aqui el pais se fija despues,
+    # por escritura, en _mgs_apply_branding). Sin el plan espanol no existen
+    # los IVA 0/4/10/21 que ALLOWED_VAT (mgs_catalog_import.py) da por
+    # hechos, y el alta de catalogo falla.
+    #
+    # Dos guardas, y son lo importante: esto se ejecuta en cada `-u`, TAMBIEN
+    # sobre una base con contabilidad real.
+    #   1. Si la compania YA tiene un plan espanol (chart_template empieza
+    #      por "es"), no se toca nada.
+    #   2. Si existe algun asiento contable de verdad (_existing_accounting,
+    #      el mismo metodo que usa el propio Odoo antes de recargar un plan
+    #      en Ajustes > Contabilidad), tampoco se toca nada: cargar un plan
+    #      encima de asientos existentes seria destructivo. Se avisa en el
+    #      log para que se cargue a mano y se sale sin lanzar.
+    # Todo dentro de un try/except: un fallo aqui nunca debe impedir instalar.
+    # ------------------------------------------------------------------
+    def _mgs_ensure_spanish_chart(self):
+        company = self.env.ref("base.main_company", raise_if_not_found=False)
+        if not company:
+            company = self.env["res.company"].search([], order="id", limit=1)
+        if not company:
+            return
+        if company.chart_template and company.chart_template.startswith("es"):
+            return
+        if company.sudo()._existing_accounting():
+            _logger.warning(
+                "mi_gestor_stock: %s ya tiene asientos contables con un plan "
+                "no espanol (%s); carga el plan contable espanol a mano desde "
+                "Contabilidad > Configuracion si hace falta.",
+                company.name, company.chart_template or "genérico",
+            )
+            return
+        try:
+            self.env["account.chart.template"].try_loading("es_pymes", company, install_demo=False)
+            _logger.info("mi_gestor_stock: plan contable espanol (es_pymes) cargado para %s", company.name)
+        except Exception:  # noqa: BLE001 - un fallo aqui no debe impedir instalar
+            _logger.exception("mi_gestor_stock: fallo al cargar el plan contable espanol")
+
+    # ------------------------------------------------------------------
     # Idioma: espanol (es_ES) para toda la interfaz
     # ------------------------------------------------------------------
     def _mgs_setup_spanish(self):

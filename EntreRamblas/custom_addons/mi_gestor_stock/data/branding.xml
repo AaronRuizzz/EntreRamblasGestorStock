@@ -12,8 +12,23 @@
          ============================================================ -->
     <function model="res.company" name="_mgs_apply_branding" eval="[[]]"/>
 
+    <!-- Plan contable espanol: una instalacion nueva se queda con el plan
+         generico aunque l10n_es sea dependencia (ver el comentario junto al
+         metodo, en models/res_company.py, con sus dos guardas). -->
+    <function model="res.company" name="_mgs_ensure_spanish_chart" eval="[[]]"/>
+
     <!-- Idioma: toda la interfaz en espanol (es_ES) -->
     <function model="res.company" name="_mgs_setup_spanish" eval="[[]]"/>
+
+    <!-- Tarifas de campana: activa su uso en las cajas ya configuradas
+         (ver models/mgs_purchase_forecast.py y mgs_pricelist_campaign.py). -->
+    <function model="res.company" name="_mgs_apply_pos_pricelist_defaults" eval="[[]]"/>
+
+    <!-- Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.
+         El registro vive en data/mgs_event_data.xml con noupdate="1", asi
+         que en una base ya instalada hay que forzarlo desde aqui (ver el
+         comentario junto al metodo, en models/res_company.py). -->
+    <function model="res.company" name="_mgs_apply_event_sequence" eval="[[]]"/>
 
     <!-- Sin registro publico de cuentas ("Don't have an account?"):
          solo el administrador crea usuarios. -->
@@ -21,4 +36,9 @@
               eval="('auth_signup.allow_uninvited', 'False')"/>
     <function model="ir.config_parameter" name="set_param"
               eval="('auth_signup.invitation_scope', 'b2b')"/>
+
+    <!-- Nombre del acceso directo que crea "Instalar aplicacion" (PWA).
+         Sin esto, web/controllers/webmanifest.py usa 'Odoo' de fallback. -->
+    <function model="ir.config_parameter" name="set_param"
+              eval="('web.web_app_name', 'Entre Ramblas')"/>
 </odoo>

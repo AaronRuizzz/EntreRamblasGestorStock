@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Cierra el resto de sitios donde "Odoo" seguía asomando pese a
+         `login_templates.xml`: la pestaña y el favicon del backend
+         (/odoo) y del TPV (/pos/ui), el título de los PDF, y las tres
+         páginas de acceso que no pasan por web.login (alta, restablecer
+         contraseña, "sesión iniciada").
+
+         Mismo patrón ya probado en login_templates.xml: insertar
+         `t-set="title"` / `t-set="x_icon"` / `t-set="disable_footer"`
+         COMO CONTENIDO del `t-call` que hereda cada plantilla, antes de
+         cualquier nodo con salida visible. QWeb evalúa el bloque del
+         `t-call` entero (side effects de t-set incluidos) antes de
+         renderizar la plantilla llamada, así que estos `t-set` sí llegan
+         a tiempo al `<head>` aunque aparezcan, en el XML, "después" del
+         `<t t-call>` de más arriba en la cadena de herencia.
+         ============================================================ -->
+
+    <!-- Alta de cuenta: hereda web.login_layout igual que web.login, pero
+         por una plantilla distinta que no pasa por mgs_login. -->
+    <template id="mgs_signup" inherit_id="auth_signup.signup">
+        <xpath expr="//form[hasclass('oe_signup_form')]" position="before">
+            <t t-set="title">Gestión de stock</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
+            <t t-set="disable_footer" t-value="True"/>
+        </xpath>
+    </template>
+
+    <!-- Restablecer contraseña: alcanzable desde el enlace del propio
+         login. Sin esto enseña "Manage Databases · Powered by Odoo". -->
+    <template id="mgs_reset_password" inherit_id="auth_signup.reset_password">
+        <xpath expr="//form[hasclass('oe_reset_password_form')]" position="before">
+            <t t-set="title">Gestión de stock</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
+            <t t-set="disable_footer" t-value="True"/>
+        </xpath>
+    </template>
+
+    <!-- Pantalla "sesión iniciada" (queda cuando se abre /web/login ya
+         autenticado). Rara de ver, pero por completar el mismo cierre. -->
+    <template id="mgs_login_successful" inherit_id="web.login_successful">
+        <xpath expr="//div[hasclass('oe_login_form')]" position="before">
+            <t t-set="title">Gestión de stock</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
+            <t t-set="disable_footer" t-value="True"/>
+        </xpath>
+    </template>
+
+    <!-- Backend (/odoo): sin esto, la pestaña dice "Odoo" durante toda la
+         carga inicial (title.js llega después, por JS) y el favicon es el
+         morado de Odoo — web.webclient_bootstrap no fija ninguno de los
+         dos. Se insertan dentro del MISMO t-call que ya fija head_web,
+         por la misma razón de orden de evaluación explicada arriba. -->
+    <template id="mgs_webclient_bootstrap" inherit_id="web.webclient_bootstrap">
+        <xpath expr="//t[@t-set='head_web']" position="before">
+            <t t-set="title">Gestión de stock</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
+        </xpath>
+        <xpath expr="//meta[@name='theme-color']" position="attributes">
+            <attribute name="content">#1e3a5f</attribute>
+        </xpath>
+        <xpath expr="//link[@rel='apple-touch-icon']" position="attributes">
+            <attribute name="href">/mi_gestor_stock/static/src/img/favicon.png</attribute>
+        </xpath>
+    </template>
+
+    <!-- TPV (/pos/ui): plantilla independiente, no pasa por web.layout,
+         así que "Odoo POS" y el favicon morado van escritos literales. -->
+    <template id="mgs_pos_index" inherit_id="point_of_sale.index">
+        <xpath expr="//title" position="replace">
+            <title>Gestión de stock · TPV</title>
+        </xpath>
+        <xpath expr="//link[@rel='icon']" position="attributes">
+            <attribute name="href">/mi_gestor_stock/static/src/img/favicon.png</attribute>
+            <attribute name="type">image/png</attribute>
+        </xpath>
+    </template>
+
+    <!-- PDF (informe mensual, presupuesto de evento): sin esto, wkhtmltopdf
+         copia "Odoo Report" a los metadatos /Title del archivo, y es lo
+         que enseña el visor al abrirlo. web.report_layout es el que usa
+         web.html_container (la ruta real de nuestros informes);
+         report_preview_layout es solo la vista previa del backend. -->
+    <template id="mgs_report_layout" inherit_id="web.report_layout">
+        <xpath expr="//title" position="replace">
+            <title><t t-esc="title or 'Entre Ramblas · Clavel &amp; Azahar'"/></title>
+        </xpath>
+    </template>
+    <template id="mgs_report_preview_layout" inherit_id="web.report_preview_layout">
+        <xpath expr="//title" position="replace">
+            <title><t t-esc="title or 'Entre Ramblas · Clavel &amp; Azahar'"/></title>
+        </xpath>
+    </template>
+
+</odoo>

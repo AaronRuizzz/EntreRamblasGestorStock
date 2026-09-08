@@ -1,0 +1,203 @@
+<odoo>
+    <record id="event_company_rule" model="ir.rule">
+        <field name="name">Eventos por compañía</field>
+        <field name="model_id" ref="model_mgs_event"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="event_line_company_rule" model="ir.rule">
+        <field name="name">Partidas de evento por compañía</field>
+        <field name="model_id" ref="model_mgs_event_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <!-- Asistente de cobro: la señal y el cobro final -->
+    <record id="event_payment_wizard_form" model="ir.ui.view">
+        <field name="name">mgs.event.payment.wizard.form</field>
+        <field name="model">mgs.event.payment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Registrar cobro">
+                <group>
+                    <field name="event_id" readonly="1"/>
+                    <field name="amount_due" readonly="1"/>
+                    <field name="amount"/>
+                    <field name="method"/>
+                    <field name="note" placeholder="Señal, cobro final..."/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Registrar cobro"
+                            class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_event_payment_wizard" model="ir.actions.act_window">
+        <field name="name">Registrar cobro</field>
+        <field name="res_model">mgs.event.payment.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="event_form" model="ir.ui.view">
+        <field name="name">mgs.event.form</field>
+        <field name="model">mgs.event</field>
+        <field name="arch" type="xml">
+            <form string="Evento o encargo">
+                <header>
+                    <button name="action_confirm" type="object" string="Aceptar presupuesto"
+                            class="btn-primary" invisible="state != 'draft'"
+                            confirm="Se reservará el material de alquiler para estas fechas."/>
+                    <button name="action_deliver" type="object" string="Entregar"
+                            class="btn-primary" invisible="state != 'confirmed'"
+                            confirm="Va a salir el material de la tienda. Comprueba que está todo preparado."/>
+                    <button name="action_register_return" type="object"
+                            string="Registrar devolución" class="btn-primary"
+                            invisible="state not in ('delivered', 'returned') or not pending_return"/>
+                    <button name="action_done" type="object" string="Cerrar evento"
+                            invisible="state not in ('delivered', 'returned')"/>
+                    <button name="action_cancel" type="object" string="Cancelar"
+                            invisible="state not in ('draft', 'confirmed')"/>
+                    <button name="action_draft" type="object" string="Volver a presupuesto"
+                            invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,delivered,returned,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="not pending_return">
+                        Queda material de alquiler sin devolver. Anota abajo cuántas unidades
+                        vuelven enteras y cuántas rotas, y pulsa <b>Registrar devolución</b>.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="event_date" readonly="state != 'draft'"/>
+                            <field name="return_date" readonly="state != 'draft'"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="pending_return" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="amount_total" widget="monetary"/>
+                            <field name="amount_deposit" widget="monetary"
+                                   invisible="not amount_deposit"/>
+                            <field name="amount_paid" widget="monetary"/>
+                            <field name="amount_due" widget="monetary"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Partidas">
+                            <field name="line_ids" readonly="state not in ('draft', 'delivered', 'returned')">
+                                <list editable="bottom">
+                                    <field name="product_id"
+                                           readonly="parent.state != 'draft'"/>
+                                    <field name="product_is_composition" column_invisible="1"/>
+                                    <field name="recipe_id" readonly="parent.state != 'draft'"
+                                           options="{'no_create': True}"
+                                           invisible="not product_is_composition"/>
+                                    <field name="is_rental" readonly="parent.state != 'draft'"/>
+                                    <field name="quantity" readonly="parent.state != 'draft'"/>
+                                    <field name="unit_price" readonly="parent.state != 'draft'"/>
+                                    <field name="subtotal" readonly="1"/>
+                                    <field name="delivered_qty" readonly="1"
+                                           column_invisible="parent.state in ('draft', 'confirmed')"/>
+                                    <field name="returned_qty" readonly="1"
+                                           column_invisible="parent.state in ('draft', 'confirmed')"/>
+                                    <field name="damaged_qty" readonly="1"
+                                           column_invisible="parent.state in ('draft', 'confirmed')"/>
+                                    <field name="return_ok_qty"
+                                           column_invisible="parent.state not in ('delivered', 'returned')"/>
+                                    <field name="return_damaged_qty"
+                                           column_invisible="parent.state not in ('delivered', 'returned')"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cobros">
+                            <field name="payment_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="amount" widget="monetary"/>
+                                    <field name="method"/>
+                                    <field name="note"/>
+                                    <field name="user_id"/>
+                                </list>
+                            </field>
+                            <p class="text-muted">
+                                Los cobros de un evento no pasan por la caja del TPV: se
+                                registran aquí con el botón <b>Registrar cobro</b>. El
+                                datáfono sigue siendo independiente.
+                            </p>
+                            <button name="%(action_event_payment_wizard)d" type="action"
+                                    string="Registrar cobro" class="btn-primary"
+                                    invisible="state in ('draft', 'cancelled', 'done')"
+                                    context="{'default_event_id': id}"/>
+                        </page>
+                        <page string="Notas y material">
+                            <field name="note" placeholder="Colores, hora de montaje, dirección del salón..."/>
+                            <field name="move_ids" readonly="1" invisible="state == 'draft'">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="product_id"/>
+                                    <field name="quantity"/>
+                                    <field name="location_id"/>
+                                    <field name="location_dest_id"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="event_list" model="ir.ui.view">
+        <field name="name">mgs.event.list</field>
+        <field name="model">mgs.event</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="pending_return" decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="event_date"/>
+                <field name="amount_total" widget="monetary"/>
+                <field name="amount_due" widget="monetary"/>
+                <field name="state"/>
+                <field name="pending_return" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="event_search" model="ir.ui.view">
+        <field name="name">mgs.event.search</field>
+        <field name="model">mgs.event</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <filter name="filter_pending_return" string="Material sin devolver"
+                        domain="[('pending_return', '=', True)]"/>
+                <filter name="filter_due" string="Pendiente de cobro"
+                        domain="[('amount_due', '&gt;', 0), ('state', '!=', 'cancelled')]"/>
+                <filter name="filter_upcoming" string="Próximos"
+                        domain="[('event_date', '&gt;=', context_today().strftime('%Y-%m-%d')), ('state', 'in', ['draft', 'confirmed'])]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_month" string="Mes del evento" context="{'group_by': 'event_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mgs_events" model="ir.actions.act_window">
+        <field name="name">Eventos y encargos</field>
+        <field name="res_model">mgs.event</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_upcoming': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Prepara el primer presupuesto</p>
+            <p>Un evento o un encargo se prepara aquí: se presupuesta, se cobra la señal,
+               se entrega el material y se registra qué vuelve.</p>
+        </field>
+    </record>
+</odoo>
