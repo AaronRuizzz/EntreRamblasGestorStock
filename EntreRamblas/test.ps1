@@ -17,6 +17,8 @@ if ($startedHere) {
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar PostgreSQL de pruebas.' }
 }
 try {
+    & $python tools/check_encoding.py
+    if ($LASTEXITCODE -ne 0) { throw 'Hay texto mal codificado (mojibake) en el addon.' }
     & $python tools/test_backup_archive.py
     if ($LASTEXITCODE -ne 0) { throw 'Ha fallado la validación de archivos de copia.' }
     & $python tools/prepare_validation.py
@@ -29,6 +31,8 @@ try {
     Get-Content .odoo_data/mgs-validation.log -Tail 8
     & $python tools/check_hardware_outbox.py
     if ($LASTEXITCODE -ne 0) { throw 'Ha fallado la prueba transaccional de hardware.' }
+    & $python tools/check_opening_concurrency.py
+    if ($LASTEXITCODE -ne 0) { throw 'Ha fallado la prueba de concurrencia de apertura y recepción.' }
     if ($Restore) {
         & $python tools/check_backup_restore.py
         if ($LASTEXITCODE -ne 0) { throw 'Ha fallado la restauración de prueba.' }
