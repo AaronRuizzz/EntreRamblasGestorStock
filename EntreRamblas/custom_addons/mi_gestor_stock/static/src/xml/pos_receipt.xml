@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Quita "Powered by Odoo" de la pantalla de recibo tras cobrar. El
+     ticket que sale por la térmica ya está limpio (va por models/mgs_escpos.py);
+     esto es solo lo que se ve EN PANTALLA, incluido si se usa la impresión
+     por navegador cuando la térmica está desactivada. -->
+<templates id="template" xml:space="preserve">
+    <t t-name="mi_gestor_stock.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+        <xpath expr="//p[text()='Powered by Odoo']" position="replace"/>
+    </t>
+</templates>

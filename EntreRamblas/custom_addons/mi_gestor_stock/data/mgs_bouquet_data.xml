@@ -1,0 +1,28 @@
+<odoo>
+    <!-- Producto de partida para el ramo a medida del mostrador.
+
+         noupdate="1" a propósito: la dueña puede cambiarle el nombre, el precio
+         de salida o el IVA desde la ficha, y una actualización del módulo no se
+         lo pisa. Puede crear más composiciones (centro de mesa, corona, ramo de
+         novia) marcando «Ramo o composición a medida» en cualquier producto.
+
+         OJO CON EL IVA: se deja SIN impuesto puesto a propósito. El tipo que
+         corresponde a un ramo lo decide la dueña con su gestoría (ver
+         FACTURACION.md); el programa no lo inventa. -->
+    <data noupdate="1">
+        <record id="product_bouquet_custom" model="product.template">
+            <field name="name">Ramo a medida</field>
+            <field name="mgs_is_composition" eval="True"/>
+            <!-- Sin existencias propias: las existencias son las de las flores. -->
+            <field name="is_storable" eval="False"/>
+            <field name="type">consu</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="mgs_auto_lots" eval="False"/>
+            <field name="use_expiration_date" eval="False"/>
+            <field name="list_price">0.0</field>
+            <field name="taxes_id" eval="[(5, 0, 0)]"/>
+            <field name="description_sale">Se monta en el mostrador: elige las flores y el material, y el stock descuenta cada tallo de su partida.</field>
+        </record>
+    </data>
+</odoo>

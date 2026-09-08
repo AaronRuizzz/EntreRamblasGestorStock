@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- "Odoo Session Expired" es de los pocos diálogos de error que se ven
+     ENTEROS (no dentro de "Ver detalles técnicos"): sale cada vez que la
+     sesión caduca mientras se trabaja. Los demás ("Odoo Server Error",
+     "Odoo Client Error") quedan detrás de ese desplegable y no compensa
+     tocarlos. -->
+<templates id="template" xml:space="preserve">
+    <t t-name="mi_gestor_stock.SessionExpiredDialog" t-inherit="web.SessionExpiredDialog" t-inherit-mode="extension">
+        <xpath expr="//Dialog" position="attributes">
+            <attribute name="title.translate">Sesión caducada</attribute>
+        </xpath>
+        <xpath expr="//p[hasclass('text-prewrap')]" position="replace">
+            <p class="text-prewrap">
+                Tu sesión ha caducado. La página se va a recargar sola.
+            </p>
+        </xpath>
+    </t>
+</templates>
