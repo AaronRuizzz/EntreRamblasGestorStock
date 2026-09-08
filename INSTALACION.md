@@ -6,6 +6,33 @@ de la tienda sigue pendiente de completar la aceptación allí indicada.
 
 ## Preparar un equipo
 
+En un equipo nuevo, `preparar-equipo.ps1` encadena todos los pasos de este
+apartado: instala PostgreSQL 18 y Python 3.12 si faltan, crea el rol de base de
+datos, genera la configuración privada, descarga Odoo y ejecuta `bootstrap.ps1`.
+
+```powershell
+.\preparar-equipo.ps1 -Database entre_ramblas
+```
+
+Pide confirmación de Windows (UAC) al instalar PostgreSQL o Python, y muestra al
+final dónde queda el acceso inicial. Es repetible y no destructivo: conserva
+PostgreSQL, roles, configuración y bases que ya existan, y nunca cambia la
+contraseña de un rol existente. Si algo falla a medias, se puede volver a
+ejecutar. El resto de este apartado describe los mismos pasos a mano, que siguen
+siendo válidos y son la referencia cuando el script se detiene pidiendo una
+decisión.
+
+Dos detalles que el script resuelve y conviene conocer al hacerlo a mano:
+
+- **Python debe ser el instalador oficial, no el de la Microsoft Store.** El de
+  la Store se ejecuta en un contenedor que redirige `AppData\Local` a una carpeta
+  interna del paquete, así que `data_dir`, el registro y el servicio apuntarían a
+  rutas fantasma.
+- **`db_template = template1` en la configuración privada.** Partiendo de
+  `template0`, Odoo crea la base con `LC_COLLATE 'C'` y deja `LC_CTYPE` con el
+  locale del cluster; PostgreSQL en Windows rechaza las conexiones a una base con
+  esos dos valores distintos y la base nace inservible.
+
 Requisitos: Windows, Python 3.12, Git y PostgreSQL. La validación usa PostgreSQL
 18. El rol PostgreSQL de la aplicación debe tener contraseña propia y permiso
 CREATEDB para instalar/recuperar, sin ser superusuario. Los ensayos aislados en
