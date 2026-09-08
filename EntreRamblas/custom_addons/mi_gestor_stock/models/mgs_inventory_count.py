@@ -82,7 +82,7 @@ class InventoryCount(models.Model):
             raise UserError(_('No hay partidas registradas en esta ubicación. Registra primero la recepción.'))
         keys = [(q.product_id.id, q.location_id.id, q.lot_id.id) for q in quants]
         if len(set(keys)) != len(keys):
-            raise UserError(_('Hay existencias pendientes de consolidar por Odoo. Vuelve a preparar el recuento tras el mantenimiento de stock.'))
+            raise UserError(_('Hay existencias pendientes de consolidar por el programa. Vuelve a preparar el recuento tras el mantenimiento de stock.'))
         self.line_ids.sudo().unlink()
         self.env['mgs.inventory.count.line'].sudo().create([{
             'count_id': self.id, 'quant_id': q.id, 'product_id': q.product_id.id,
