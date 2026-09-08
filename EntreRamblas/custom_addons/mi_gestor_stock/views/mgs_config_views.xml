@@ -20,6 +20,11 @@
                         </p>
                     </div>
 
+                    <group>
+                        <field name="pos_config_id" options="{'no_create': True}"/>
+                        <field name="expiry_grace_days"/>
+                    </group>
+
                     <notebook>
                         <!-- ============ LECTORES ============ -->
                         <page string="Lectores de códigos" name="scanners">
@@ -28,7 +33,7 @@
                                 y PcCom por dongle 2,4 GHz) funcionan en <b>modo HID</b>:
                                 cada lectura se escribe como si se tecleara, terminada en
                                 Enter. No necesitan driver ni configuración en Windows.
-                                Odoo los reconoce solos en cualquier pantalla del programa
+                                El programa los reconoce solos en cualquier pantalla
                                 y en el TPV.
                             </div>
                             <group>
@@ -103,8 +108,8 @@
                                 Cada copia deja en el disco <b>un único archivo</b> con todo
                                 dentro: base de datos (productos, stock, ventas, usuarios,
                                 esta misma configuración) más las imágenes y adjuntos. Es el
-                                formato de copia nativo de Odoo, así que sirve para restaurar
-                                en este equipo o en otro.
+                                formato de copia nativo del programa, así que sirve para
+                                restaurar en este equipo o en otro.
                             </div>
                             <group>
                                 <group string="Automática">
@@ -151,6 +156,16 @@
         <field name="model_id" ref="model_mgs_config"/>
         <field name="state">code</field>
         <field name="code">action = model.action_mgs_open()</field>
+    </record>
+
+    <!-- «Vender» entra directo al TPV: sin esto abriría el kanban nativo de
+         cajas registradoras (pensado para varios puntos de venta), que en
+         una tienda con una sola caja es un clic de peaje que no decide nada. -->
+    <record id="action_mgs_open_pos" model="ir.actions.server">
+        <field name="name">Vender</field>
+        <field name="model_id" ref="model_mgs_config"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_mgs_open_pos()</field>
     </record>
 
     <!-- ============================================================

@@ -27,10 +27,16 @@
 
         <div class="mgs-home-grid">
           <button class="mgs-home-tile"
-                  t-on-click="() => this.open('point_of_sale.action_pos_config_kanban')">
+                  t-on-click="() => this.open('mi_gestor_stock.action_mgs_open_pos')">
             <i class="fa fa-shopping-basket" role="img"/>
             <span class="mgs-home-tile-name">Vender</span>
             <span class="mgs-home-tile-hint">Abrir caja y cobrar</span>
+          </button>
+          <button t-if="state.isManager" class="mgs-home-tile"
+                  t-on-click="() => this.open('mi_gestor_stock.action_mgs_events')">
+            <i class="fa fa-calendar" role="img"/>
+            <span class="mgs-home-tile-name">Eventos y encargos</span>
+            <span class="mgs-home-tile-hint">Presupuestos, alquiler y cobros</span>
           </button>
           <button t-if="state.isManager" class="mgs-home-tile"
                   t-on-click="() => this.open('mi_gestor_stock.action_mgs_reception')">
@@ -47,6 +53,12 @@
               <t t-if="state.products"><t t-esc="state.products"/> productos</t>
               <t t-else="">Existencias y avisos</t>
             </span>
+          </button>
+          <button class="mgs-home-tile"
+                  t-on-click="() => this.open('mi_gestor_stock.action_mgs_scrap')">
+            <i class="fa fa-trash-o" role="img"/>
+            <span class="mgs-home-tile-name">Mermas</span>
+            <span class="mgs-home-tile-hint">Dar de baja lo que se estropea</span>
           </button>
 
           <button t-if="state.isManager" class="mgs-home-tile"

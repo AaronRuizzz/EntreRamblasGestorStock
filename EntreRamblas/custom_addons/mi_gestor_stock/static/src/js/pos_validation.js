@@ -12,9 +12,19 @@ import { handleRPCError } from "@point_of_sale/app/errors/error_handlers";
 
 patch(PosStore.prototype, {
     async mgsCheckStock(order = this.get_order()) {
+        // De un ramo a medida hay que comprobar sus flores, no el ramo: el
+        // producto de la composición no tiene existencias propias. Se manda el
+        // contenido tal cual y el servidor lo valida (models/mgs_bouquet.py).
+        const lines = order.lines.map(line => {
+            const payload = { product_id: line.product_id.id, qty: line.qty };
+            if (line.mgs_bouquet_spec) {
+                payload.bouquet_spec = line.mgs_bouquet_spec;
+            }
+            return payload;
+        });
         return rpc("/web/dataset/call_kw/pos.order/mgs_check_stock", {
             model: "pos.order", method: "mgs_check_stock",
-            args: [this.session.id, order.lines.map(line => ({ product_id: line.product_id.id, qty: line.qty })), order.uuid],
+            args: [this.session.id, lines, order.uuid],
             kwargs: {},
         });
     },

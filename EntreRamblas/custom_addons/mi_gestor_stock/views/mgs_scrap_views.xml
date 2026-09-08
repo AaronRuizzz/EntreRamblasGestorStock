@@ -24,7 +24,11 @@
                         <field name="date_done" invisible="state != 'done'"/>
                     </group>
                 </sheet>
-                <chatter/>
+                <!-- Sin chatter a propósito: aquí trabajan la dueña y la
+                     dependienta, no un equipo que necesite mensajes ni
+                     seguidores. Quién dio de baja y cuándo ya están arriba
+                     como campos (mgs_validated_by, date_done), y la merma
+                     es inmutable en cuanto queda hecha. -->
             </form>
         </field>
     </record>

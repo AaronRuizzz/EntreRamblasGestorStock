@@ -41,13 +41,28 @@ class MgsConfig(models.Model):
 
     name = fields.Char(default="Configuración de la tienda", readonly=True)
 
+    # Qué caja abre el botón «Vender» del menú. Con una sola caja configurada
+    # (lo normal en esta tienda) no hace falta tocarlo: se elige sola.
+    pos_config_id = fields.Many2one(
+        "pos.config", string="Caja de la tienda",
+        help="El botón «Vender» del menú abre directamente esta caja. Solo "
+             "hay que elegirla a mano si alguna vez hay más de una configurada.")
+
+    # Baja de caducados (ver models/mgs_expiry.py): días de margen antes de
+    # proponer dar de baja algo caducado. Una rosa caducada ayer todavía se
+    # puede vender con descuento; una de hace tres días ya no.
+    expiry_grace_days = fields.Integer(
+        "Días de margen antes de proponer la baja", default=2,
+        help="El aviso de caducados no propone dar de baja nada hasta que "
+             "hayan pasado estos días desde la fecha de caducidad.")
+
     # ==================================================================
     # 1 y 2. Lectores de códigos de barras (HID: se comportan como teclado)
     # ==================================================================
     scan_max_delay_ms = fields.Integer(
         "Retardo máximo entre teclas (ms)", default=150,
-        help="Tiempo máximo entre dos caracteres para que Odoo considere que "
-             "es un escaneo y no un tecleo humano. El lector Bluetooth puede "
+        help="Tiempo máximo entre dos caracteres para que el programa considere "
+             "que es un escaneo y no un tecleo humano. El lector Bluetooth puede "
              "necesitar subirlo a 250 si se pierden lecturas.")
     scan_strip_prefix = fields.Char(
         "Prefijo a descartar",
@@ -56,7 +71,7 @@ class MgsConfig(models.Model):
     scan_strip_suffix = fields.Char(
         "Sufijo a descartar",
         help="Igual que el prefijo, pero al final. El Enter final NO se pone "
-             "aquí: es la marca de fin de lectura y Odoo ya lo consume.")
+             "aquí: es la marca de fin de lectura y el programa ya lo consume.")
     internal_prefix = fields.Char(
         "Prefijo de códigos internos", default=DEFAULT_INTERNAL_PREFIX,
         help="Para los productos que llegan sin código de barras (flores a "
@@ -131,7 +146,6 @@ class MgsConfig(models.Model):
         "Carpeta de las copias",
         default=lambda self: self.env["mgs.backup"]._mgs_default_dir())
     backup_every_hours = fields.Integer("Hacer una copia cada (horas)", default=6)
-    backup_keep = fields.Integer("Copias conservadas (ajuste antiguo)", default=14)
     backup_retention_days = fields.Integer("Días de conservación", default=30)
     backup_ssd_dir = fields.Char("Carpeta de réplica en SSD",
         help="Carpeta existente del disco externo. Se mantiene también la copia local.")
@@ -173,6 +187,30 @@ class MgsConfig(models.Model):
             "view_mode": "form",
             "target": "current",
         }
+
+    @api.model
+    def action_mgs_open_pos(self):
+        """«Vender» del menú: entra directo al TPV, sin pasar por el kanban
+        nativo de cajas (pensado para varios puntos de venta; aquí hay uno).
+
+        `pos.config.open_ui()` ya hace todo lo que hace falta: crea la sesión
+        si no hay una abierta, valida que la caja esté lista para vender, y
+        devuelve la URL de /pos/ui. No se reimplementa nada de eso aquí."""
+        pos_config = self._mgs_get().pos_config_id
+        if not pos_config:
+            candidates = self.env["pos.config"].search([])
+            if len(candidates) == 1:
+                pos_config = candidates
+            elif not candidates:
+                raise UserError(_(
+                    "No hay ninguna caja configurada. Pide a la propietaria "
+                    "que cree una en Ajustes → Punto de venta."))
+            else:
+                raise UserError(_(
+                    "Hay más de una caja configurada y no se ha dicho cuál es "
+                    "la de la tienda. Pide a la propietaria que elija una en "
+                    "Configuración → Dispositivos → «Caja de la tienda»."))
+        return pos_config.open_ui()
 
     def write(self, vals):
         res = super().write(vals)
@@ -301,29 +339,6 @@ class MgsConfig(models.Model):
         self._mgs_send(doc.to_bytes(), _("Prueba de impresión"))
         return self._mgs_notify(_("Ticket de prueba enviado a la impresora."))
 
-    def action_mgs_open_drawer(self):
-        require_manager(self.env)
-        self.ensure_one()
-        self.mgs_open_drawer()
-        return self._mgs_notify(_("Pulso enviado al cajón."))
-
-    def mgs_open_drawer(self):
-        """Dispara el pulso del RJ11. El cajón no recibe datos, solo corriente."""
-        require_manager(self.env)
-        return self._mgs_open_drawer()
-
-    def _mgs_open_drawer(self):
-        self.ensure_one()
-        if not self.drawer_enabled:
-            raise UserError(_(
-                "El cajón está marcado como no conectado en Configuración → "
-                "Dispositivos."))
-        doc = escpos.EscposDocument()
-        doc.open_drawer(pin=int(self.drawer_pin or "0"),
-                        on_ms=self.drawer_pulse_ms or 100,
-                        off_ms=(self.drawer_pulse_ms or 100) * 2)
-        return self._mgs_send(doc.to_bytes(), _("Apertura de cajón"))
-
     def action_mgs_backup_now(self):
         require_manager(self.env)
         self.ensure_one()
@@ -394,50 +409,6 @@ class MgsConfig(models.Model):
                            and config.printer_mode != "disabled"),
         }
 
-    @api.model
-    def mgs_pos_open_drawer(self):
-        """Abre el cajón desde el TPV. Nunca lanza: una venta no se puede
-        quedar bloqueada porque el cajón no responda."""
-        require_operator(self.env)
-        config = self._mgs_get()
-        if not (config.drawer_enabled and config.drawer_on_sale):
-            return {"ok": False, "message": "cajón desactivado"}
-        try:
-            config._mgs_open_drawer()
-        except Exception as err:  # noqa: BLE001 - se informa, no se propaga
-            _logger.warning("mi_gestor_stock: no se pudo abrir el cajón: %s", err)
-            return {"ok": False, "message": str(err)}
-        return {"ok": True}
-
-    @api.model
-    def mgs_pos_print_order(self, order_id):
-        """Imprime el ticket de un pedido del TPV en la térmica.
-
-        Devuelve False si no se ha podido: el TPV vuelve entonces a su
-        impresión por navegador, así que una venta nunca se queda sin ticket.
-        """
-        require_operator(self.env)
-        order = self.env["pos.order"].browse(order_id).exists()
-        order.check_access("read")
-        if not order or order.company_id != self.env.company:
-            raise UserError(_("La venta no pertenece a esta tienda."))
-        if order.state not in ("paid", "done", "invoiced"):
-            raise UserError(_("Solo se puede imprimir una venta confirmada."))
-        config = self._mgs_get()
-        if not config.pos_autoprint or config.printer_mode == "disabled":
-            return False
-        order = order.sudo()
-        if not order:
-            return False
-        try:
-            config._mgs_send(config._mgs_pos_ticket(order).to_bytes(),
-                             _("Ticket %s", order.name))
-        except Exception as err:  # noqa: BLE001 - se informa, no se propaga
-            _logger.warning("mi_gestor_stock: fallo al imprimir el ticket %s: %s",
-                            order.name, err)
-            return False
-        return True
-
     def _mgs_pos_ticket(self, order):
         """Construye el ticket ESC/POS de una venta del TPV."""
         self.ensure_one()
@@ -449,6 +420,11 @@ class MgsConfig(models.Model):
         doc.columns(order.name, date.strftime("%d/%m/%Y %H:%M"))
         if order.partner_id:
             doc.ln(_("Cliente: %s", order.partner_id.name))
+        # Una devolución es una factura rectificativa: el artículo 7 del RD
+        # 1619/2012 exige que remita a la factura rectificada. Sin esta línea el
+        # ticket negativo no dice de qué venta sale (ver FACTURACION.md).
+        if order.refunded_order_id:
+            doc.ln(_("Rectifica el ticket %s", order.refunded_order_id.name))
         doc.rule()
 
         # --- Líneas ---
@@ -468,9 +444,14 @@ class MgsConfig(models.Model):
         doc.size().bold(False)
 
         # --- Desglose de IVA (ticket simplificado español) ---
+        # El artículo 7 del RD 1619/2012 pide el TIPO IMPOSITIVO, así que se
+        # imprime el porcentaje ("IVA 21%") y no el nombre interno del impuesto
+        # de l10n_es ("21% G"), que a un cliente no le dice nada.
         taxes = {}
         for line in order.lines:
-            label = ", ".join(line.tax_ids.mapped("name")) or _("Sin IVA")
+            label = ", ".join(
+                _("IVA %g%%", tax.amount) if tax.amount_type == "percent" else tax.name
+                for tax in line.tax_ids) or _("Sin IVA")
             base, quota = taxes.get(label, (0.0, 0.0))
             taxes[label] = (base + line.price_subtotal,
                             quota + line.price_subtotal_incl - line.price_subtotal)

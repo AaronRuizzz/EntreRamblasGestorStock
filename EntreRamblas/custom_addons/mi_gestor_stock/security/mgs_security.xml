@@ -11,7 +11,7 @@
     <record id="group_mgs_manager" model="res.groups">
         <field name="name">Propietaria</field>
         <field name="category_id" ref="module_category_mgs"/>
-        <field name="implied_ids" eval="[(4,ref('group_mgs_user')),(4,ref('point_of_sale.group_pos_manager')),(4,ref('stock.group_stock_manager'))]"/>
+        <field name="implied_ids" eval="[(4,ref('group_mgs_user')),(4,ref('point_of_sale.group_pos_manager')),(4,ref('stock.group_stock_manager')),(4,ref('product.group_product_pricelist'))]"/>
         <field name="users" eval="[(4,ref('base.user_admin'))]"/>
     </record>
 </odoo>

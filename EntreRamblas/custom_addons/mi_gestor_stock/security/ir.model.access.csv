@@ -4,9 +4,8 @@ access_mgs_reception_line_user,mgs.reception.line user,model_mgs_reception_line,
 access_mgs_stock_alert_user,mgs.stock.alert user,model_mgs_stock_alert,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_stock_alert_notice_user,mgs.stock.alert.notice user,model_mgs_stock_alert_notice,base.group_user,1,1,1,1
 access_mgs_monthly_report_user,mgs.monthly.report user,model_mgs_monthly_report,mi_gestor_stock.group_mgs_manager,1,1,1,1
-access_mgs_config_user,mgs.config user,model_mgs_config,mi_gestor_stock.group_mgs_manager,1,0,0,0
+access_mgs_config_user,mgs.config user,model_mgs_config,mi_gestor_stock.group_mgs_user,1,0,0,0
 access_mgs_config_manager,mgs.config manager,model_mgs_config,mi_gestor_stock.group_mgs_manager,1,1,1,0
-access_mgs_backup_user,mgs.backup user,model_mgs_backup,mi_gestor_stock.group_mgs_manager,1,0,0,0
 access_mgs_backup_manager,mgs.backup manager,model_mgs_backup,mi_gestor_stock.group_mgs_manager,1,1,1,1
 
 access_mgs_alert_staff,mgs.alert staff,model_mgs_stock_alert,mi_gestor_stock.group_mgs_user,1,0,0,0
@@ -15,3 +14,25 @@ access_mgs_count_owner,mgs.count owner,model_mgs_inventory_count,mi_gestor_stock
 access_mgs_count_line_owner,mgs.count line owner,model_mgs_inventory_count_line,mi_gestor_stock.group_mgs_manager,1,1,1,0
 access_mgs_opening,mgs opening,model_mgs_opening_stock,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_opening_line,mgs opening line,model_mgs_opening_stock_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_catalog_import,mgs catalog import,model_mgs_catalog_import,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_catalog_import_line,mgs catalog import line,model_mgs_catalog_import_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_bouquet_component_user,mgs bouquet component user,model_mgs_bouquet_component,mi_gestor_stock.group_mgs_user,1,0,0,0
+access_mgs_bouquet_component_manager,mgs bouquet component manager,model_mgs_bouquet_component,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_event_user,mgs event user,model_mgs_event,mi_gestor_stock.group_mgs_user,1,0,0,0
+access_mgs_event_manager,mgs event manager,model_mgs_event,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_event_line_user,mgs event line user,model_mgs_event_line,mi_gestor_stock.group_mgs_user,1,0,0,0
+access_mgs_event_line_manager,mgs event line manager,model_mgs_event_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_event_payment_manager,mgs event payment manager,model_mgs_event_payment,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_event_payment_wizard,mgs event payment wizard,model_mgs_event_payment_wizard,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_purchase_order,mgs purchase order,model_mgs_purchase_order,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_purchase_order_line,mgs purchase order line,model_mgs_purchase_order_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_flower_consumption,mgs flower consumption,model_mgs_flower_consumption,mi_gestor_stock.group_mgs_manager,1,0,0,0
+access_mgs_expiry_writeoff,mgs expiry writeoff,model_mgs_expiry_writeoff,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_expiry_writeoff_line,mgs expiry writeoff line,model_mgs_expiry_writeoff_line,mi_gestor_stock.group_mgs_manager,1,1,0,1
+access_mgs_bouquet_recipe_manager,mgs bouquet recipe manager,model_mgs_bouquet_recipe,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_bouquet_recipe_user,mgs bouquet recipe user,model_mgs_bouquet_recipe,mi_gestor_stock.group_mgs_user,1,0,0,0
+access_mgs_bouquet_recipe_line_manager,mgs bouquet recipe line manager,model_mgs_bouquet_recipe_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_bouquet_recipe_line_user,mgs bouquet recipe line user,model_mgs_bouquet_recipe_line,mi_gestor_stock.group_mgs_user,1,0,0,0
+access_mgs_purchase_forecast,mgs purchase forecast,model_mgs_purchase_forecast,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_purchase_forecast_line,mgs purchase forecast line,model_mgs_purchase_forecast_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_pricelist_campaign,mgs pricelist campaign,model_mgs_pricelist_campaign,mi_gestor_stock.group_mgs_manager,1,1,1,1

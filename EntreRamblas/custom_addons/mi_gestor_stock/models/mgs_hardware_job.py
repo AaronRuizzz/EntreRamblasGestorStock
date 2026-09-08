@@ -85,6 +85,14 @@ class HardwareJob(models.Model):
 
 class Config(models.Model):
     _inherit = "mgs.config"
+    # SUSTITUYE A PROPOSITO, sin super(), la version sincrona de
+    # action_mgs_open_drawer / mgs_open_drawer / mgs_pos_open_drawer /
+    # mgs_pos_print_order que definia mgs_config.py: aquella escribia
+    # directo al puerto durante el request; esta encola un mgs.hardware.job
+    # (outbox transaccional, ver arriba) para que un fallo de la impresora no
+    # pueda dejar a medias una venta ya cobrada. Los metodos viejos se
+    # borraron de mgs_config.py: si reaparecen ahi, este comentario deja de
+    # ser cierto y hay que revisar cual gana en el MRO.
 
     def _mgs_checked_order(self, order_id):
         require_operator(self.env)
