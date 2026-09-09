@@ -30,6 +30,17 @@
         <xpath expr="//Dropdown/t[@t-set-slot='content']" position="replace">
             <t t-set-slot="content">
                 <div class="p-2 pos-burger-menu-items">
+                    <!-- Punto de anclaje para extensiones oficiales como
+                         pos_self_order. Ese módulo inserta sus códigos QR antes
+                         de "Install App"; si eliminamos el nodo por completo,
+                         Owl no puede aplicar la herencia y el TPV queda en
+                         blanco. El contenedor falso mantiene el anclaje sin
+                         recuperar ninguna de esas opciones en nuestro menú. -->
+                    <t t-if="false">
+                        <DropdownItem t-if="!isDisplayStandalone" onSelected="() => window.open(this.appUrl)">
+                            Install App
+                        </DropdownItem>
+                    </t>
                     <DropdownItem onSelected="() => this.pos.showScreen('TicketScreen')">
                         Pedidos <span t-if="orderCount gt 0" class="badge text-bg-info rounded-pill py-1 ms-2 float-end" t-esc="orderCount"/>
                     </DropdownItem>
