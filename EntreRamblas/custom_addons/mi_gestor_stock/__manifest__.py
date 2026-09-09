@@ -72,6 +72,7 @@
             "mi_gestor_stock/static/src/js/pos_hardware.js",
             "mi_gestor_stock/static/src/js/pos_validation.js",
             "mi_gestor_stock/static/src/js/pos_bouquet.js",
+            "mi_gestor_stock/static/src/js/pos_event_checkout.js",
             "mi_gestor_stock/static/src/xml/pos_bouquet.xml",
             "mi_gestor_stock/static/src/xml/pos_navbar.xml",
             "mi_gestor_stock/static/src/xml/pos_receipt.xml",

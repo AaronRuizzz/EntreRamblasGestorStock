@@ -376,14 +376,20 @@ class MgsMonthlyReport(models.TransientModel):
             "due": event.amount_due,
             "pending_return": event.pending_return,
         } for event in events]
-        collected = sum(self.env["mgs.event.payment"].search([
+        payments = self.env["mgs.event.payment"].search([
             ("company_id", "=", self.env.company.id),
             ("date", ">=", start), ("date", "<", end),
-        ]).mapped("amount"))
+        ])
+        # Los cobros hechos en caja («Cobrar en caja» del encargo) YA están en
+        # las ventas de mostrador de arriba: se separan para que quede claro que
+        # esa parte no se suma dos veces.
+        collected_pos = sum(payments.filtered(
+            lambda p: (p.note or "").startswith("Cobrado en caja")).mapped("amount"))
         return {
             "event_rows": rows,
             "event_total": sum(event.amount_total for event in events),
-            "event_collected": collected,
+            "event_collected": sum(payments.mapped("amount")),
+            "event_collected_pos": collected_pos,
             "events_available": True,
             "event_pending_return": sum(1 for event in events if event.pending_return),
         }

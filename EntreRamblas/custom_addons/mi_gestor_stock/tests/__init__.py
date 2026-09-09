@@ -5,6 +5,7 @@ from . import test_backup
 from . import test_catalog_import
 from . import test_bouquet
 from . import test_event
+from . import test_event_pos
 from . import test_consumption
 from . import test_escpos
 from . import test_res_company

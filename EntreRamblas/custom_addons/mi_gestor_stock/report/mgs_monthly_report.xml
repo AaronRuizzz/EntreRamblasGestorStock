@@ -213,9 +213,11 @@
 
                         <h3 class="mt-4" t-if="d['events_available'] and d['event_rows']">Eventos y encargos</h3>
                         <p t-if="d['events_available'] and d['event_rows']" class="text-muted">
-                            Por fecha del evento. El dinero de un evento no pasa por la caja
-                            del TPV: no está sumado en las ventas de arriba. El material roto
-                            que volvió sí aparece en las mermas.
+                            Por fecha del evento. La señal, la fianza y el alquiler no pasan
+                            por la caja del TPV y no están en las ventas de arriba; lo que se
+                            cobró en caja («Cobrar en caja» del encargo) sí está arriba y se
+                            señala aparte para no contarlo dos veces. El material roto que
+                            volvió aparece en las mermas.
                         </p>
                         <table class="table table-sm" t-if="d['events_available'] and d['event_rows']">
                             <thead>
@@ -250,6 +252,10 @@
                                     <th class="text-end" colspan="2">
                                         Cobrado en el periodo:
                                         <span t-esc="d['event_collected']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                        <span t-if="d['event_collected_pos']" class="text-muted d-block fw-normal">
+                                            de ello, en caja (ya en las ventas de arriba):
+                                            <span t-esc="d['event_collected_pos']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/>
+                                        </span>
                                     </th>
                                 </tr>
                             </tfoot>

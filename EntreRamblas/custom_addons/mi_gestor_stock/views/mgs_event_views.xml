@@ -47,6 +47,8 @@
                     <button name="action_confirm" type="object" string="Aceptar presupuesto"
                             class="btn-primary" invisible="state != 'draft'"
                             confirm="Se reservará el material de alquiler para estas fechas."/>
+                    <button name="action_mgs_checkout_pos" type="object" string="Cobrar en caja"
+                            class="btn-primary" invisible="not mgs_pos_chargeable"/>
                     <button name="action_deliver" type="object" string="Entregar"
                             class="btn-primary" invisible="state != 'confirmed'"
                             confirm="Va a salir el material de la tienda. Comprueba que está todo preparado."/>
@@ -70,6 +72,13 @@
                         Queda material de alquiler sin devolver. Anota abajo cuántas unidades
                         vuelven enteras y cuántas rotas, y pulsa <b>Registrar devolución</b>.
                     </div>
+                    <div class="alert alert-info" role="status" invisible="not mgs_pos_charged">
+                        Las partidas que se venden de este encargo se cobraron en caja.
+                        El alquiler y la fianza, si los hay, se siguen gestionando aquí
+                        con <b>Registrar cobro</b>.
+                    </div>
+                    <field name="mgs_pos_chargeable" invisible="1"/>
+                    <field name="mgs_pos_charged" invisible="1"/>
                     <group>
                         <group>
                             <field name="partner_id" readonly="state != 'draft'"/>
