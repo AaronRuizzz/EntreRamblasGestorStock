@@ -119,11 +119,11 @@
                                     </group>
                                     <group string="Materiales de la composición"
                                            invisible="not product_is_composition">
-                                        <p class="text-muted oe_grey" colspan="2">
+                                        <div class="text-muted" colspan="2">
                                             Qué flores y material lleva UNA unidad
                                             de esta composición. El evento descuenta
                                             cada uno de su partida al entregar.
-                                        </p>
+                                        </div>
                                         <field name="component_ids" nolabel="1" colspan="2"
                                                readonly="parent.state != 'draft'">
                                             <list editable="bottom">
