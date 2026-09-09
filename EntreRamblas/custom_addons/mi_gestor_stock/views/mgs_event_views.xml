@@ -42,7 +42,7 @@
         <field name="name">mgs.event.form</field>
         <field name="model">mgs.event</field>
         <field name="arch" type="xml">
-            <form string="Evento o encargo">
+            <form string="Evento o encargo" class="o_mgs_event_form">
                 <header>
                     <button name="action_confirm" type="object" string="Aceptar presupuesto"
                             class="btn-primary" invisible="state != 'draft'"
@@ -166,7 +166,10 @@
                                     context="{'default_event_id': id}"/>
                         </page>
                         <page string="Notas y material">
-                            <field name="note" placeholder="Colores, hora de montaje, dirección del salón..."/>
+                            <field name="note" placeholder="Colores, hora de montaje, dirección del salón..."
+                                   class="mgs-event-note"/>
+                            <separator string="Movimientos de material"
+                                       invisible="state == 'draft'"/>
                             <field name="move_ids" readonly="1" invisible="state == 'draft'">
                                 <list>
                                     <field name="date"/>
@@ -184,11 +187,31 @@
         </field>
     </record>
 
+    <!-- Se define antes que la lista: el botón de cabecera la referencia con
+         %(action_mgs_event_new)d. target="current" (no un diálogo): el
+         formulario de evento tiene statusbar y pestañas, un diálogo lo
+         estrecharía. -->
+    <record id="action_mgs_event_new" model="ir.actions.act_window">
+        <field name="name">Nuevo evento o encargo</field>
+        <field name="res_model">mgs.event</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
     <record id="event_list" model="ir.ui.view">
         <field name="name">mgs.event.list</field>
         <field name="model">mgs.event</field>
         <field name="arch" type="xml">
-            <list decoration-warning="pending_return" decoration-muted="state == 'cancelled'">
+            <!-- create="false" + botón propio: «Nuevo» genérico no dice qué
+                 crea. js_class oculta la rueda de «Acciones» del panel de
+                 control, que aquí no hace nada (ver clean_form.js). -->
+            <list js_class="mgs_clean_list" create="false"
+                  decoration-warning="pending_return" decoration-muted="state == 'cancelled'">
+                <header>
+                    <button name="%(action_mgs_event_new)d" type="action"
+                            string="Nuevo evento o encargo" display="always"
+                            class="btn-primary"/>
+                </header>
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="event_date"/>

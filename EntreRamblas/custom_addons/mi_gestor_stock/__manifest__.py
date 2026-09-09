@@ -54,6 +54,7 @@
         "web.assets_backend": [
             "mi_gestor_stock/static/src/scss/backend.scss",
             "mi_gestor_stock/static/src/js/title.js",
+            "mi_gestor_stock/static/src/js/navbar_active_section.js",
             "mi_gestor_stock/static/src/js/clean_form.js",
             "mi_gestor_stock/static/src/js/home.js",
             "mi_gestor_stock/static/src/js/home.xml",

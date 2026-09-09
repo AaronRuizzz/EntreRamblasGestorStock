@@ -109,6 +109,43 @@ class ResCompany(models.Model):
             configs.write({"use_pricelist": True, "restrict_price_control": True})
 
     # ------------------------------------------------------------------
+    # Caja de la tienda: el boton «Vender» entra directo a /pos/ui, asi que
+    # tiene que haber SIEMPRE una caja lista. Con --without-demo Odoo no crea
+    # ninguna, y el asistente «que vendes» del TPV puede crear una de tipo
+    # restaurante (plano de mesas) por error. Aqui se garantiza una sola caja
+    # de tienda, sin nada de restaurante. Idempotente: en un -u posterior solo
+    # comprueba y no crea nada.
+    # ------------------------------------------------------------------
+    def _mgs_ensure_shop_pos_config(self):
+        Config = self.env["pos.config"].sudo()
+        existing = Config.search([])
+        # Nunca plano de mesas: ni en la nuestra ni en una que ya exista.
+        restaurant = existing.filtered("module_pos_restaurant")
+        if restaurant:
+            restaurant.write({"module_pos_restaurant": False})
+
+        shop = self.env.ref("mi_gestor_stock.pos_config_shop", raise_if_not_found=False)
+        if not shop:
+            shop = existing.filtered(lambda c: not c.module_pos_restaurant)[:1]
+        if not shop:
+            try:
+                journal, payment_method_ids = Config._create_journal_and_payment_methods()
+            except Exception:  # noqa: BLE001 - sin plan contable no se puede; no romper el -u
+                _logger.exception("mi_gestor_stock: no se pudo preparar la caja de la tienda")
+                return
+            shop = Config.create({
+                "name": "Tienda",
+                "company_id": self.env.company.id,
+                "journal_id": journal.id,
+                "payment_method_ids": [(6, 0, payment_method_ids)],
+            })
+        self.env["ir.model.data"]._update_xmlids([{
+            "xml_id": "mi_gestor_stock.pos_config_shop",
+            "record": shop,
+            "noupdate": True,
+        }])
+
+    # ------------------------------------------------------------------
     # Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.
     # El <record> de data/mgs_event_data.xml vive en un bloque noupdate="1"
     # (asi no se pierde la numeracion ya emitida en cada -u), asi que
