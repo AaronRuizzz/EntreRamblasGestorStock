@@ -48,14 +48,6 @@ class MgsConfig(models.Model):
         help="El botón «Vender» del menú abre directamente esta caja. Solo "
              "hay que elegirla a mano si alguna vez hay más de una configurada.")
 
-    # Baja de caducados (ver models/mgs_expiry.py): días de margen antes de
-    # proponer dar de baja algo caducado. Una rosa caducada ayer todavía se
-    # puede vender con descuento; una de hace tres días ya no.
-    expiry_grace_days = fields.Integer(
-        "Días de margen antes de proponer la baja", default=2,
-        help="El aviso de caducados no propone dar de baja nada hasta que "
-             "hayan pasado estos días desde la fecha de caducidad.")
-
     # ==================================================================
     # Datos de la tienda que salen en el ticket y en las facturas: sin
     # "Ajustes" (donde vivía Compañías) no había ya ninguna pantalla desde

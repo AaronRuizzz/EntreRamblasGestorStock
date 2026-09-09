@@ -27,7 +27,6 @@ export class BouquetPopup extends Component {
     static props = {
         product: Object,
         products: Array,
-        recipes: { type: Array, optional: true },
         currency: { type: String, optional: true },
         getPayload: Function,
         close: Function,
@@ -65,29 +64,6 @@ export class BouquetPopup extends Component {
 
     get isValid() {
         return this.state.chosen.length > 0 && this.state.chosen.every((item) => item.qty > 0);
-    }
-
-    /**
-     * Punto de partida, no un candado: precarga lo que lleva la receta y su
-     * precio sugerido, pero se sigue pudiendo sumar, quitar y cambiar el
-     * precio antes de cobrar, igual que montando el ramo desde cero.
-     */
-    applyRecipe(recipe) {
-        let items;
-        try {
-            items = JSON.parse(recipe.spec_json || "[]");
-        } catch {
-            items = [];
-        }
-        const chosen = [];
-        for (const item of items) {
-            const product = this.props.products.find((candidate) => candidate.id === item.product_id);
-            // El material pudo darse de baja o dejar de estar disponible
-            // después de guardar la receta: se omite, no se rompe el diálogo.
-            if (product) chosen.push({ product, qty: item.qty });
-        }
-        this.state.chosen = chosen;
-        this.state.price = recipe.list_price || null;
     }
 
     add(product) {
@@ -147,11 +123,9 @@ patch(ProductScreen.prototype, {
             .getAll()
             .filter((item) => item.is_storable && !item.mgs_is_composition && item.available_in_pos)
             .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
-        const recipes = this.pos.models["mgs.bouquet.recipe"]?.getAll() || [];
         const payload = await makeAwaitable(this.dialog, BouquetPopup, {
             product,
             products,
-            recipes,
             currency: this.pos.currency?.symbol || "",
         });
         if (!payload) return;

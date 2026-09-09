@@ -177,6 +177,7 @@ class ProductTemplate(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def mgs_dashboard_data(self):
+        require_operator(self.env)
         products = self.search([("is_storable", "=", True)])
 
         # --- 1. Avisos ---
@@ -185,14 +186,17 @@ class ProductTemplate(models.Model):
         for alert in threshold_alerts:
             if not alert._mgs_is_below_threshold():
                 continue
+            message = _("%(prod)s: quedan %(qty).0f uds. (aviso a %(min).0f)",
+                        prod=alert.product_id.name,
+                        qty=alert.product_id.qty_available,
+                        min=alert.min_qty)
+            if alert.name:
+                message = "%s · %s" % (alert.name, message)
             alerts.append({
                 "kind": "threshold",
                 "notice_id": False,          # los de cantidad no se descartan a mano
                 "product_id": alert.product_id.id,
-                "message": _("%(prod)s: quedan %(qty).0f uds. (aviso a %(min).0f)",
-                             prod=alert.product_id.name,
-                             qty=alert.product_id.qty_available,
-                             min=alert.min_qty),
+                "message": message,
             })
         notices = self.env["mgs.stock.alert.notice"].search([("is_read", "=", False)])
         for notice in notices:
@@ -256,4 +260,8 @@ class ProductTemplate(models.Model):
             "low_stock": low_stock,
             "categories": list(categories.values()),
             "currency": self.env.company.currency_id.symbol,
+            # Recepción y la configuración de avisos son solo de la responsable:
+            # el panel esconde esos accesos para la dependienta (que aquí solo
+            # consulta), igual que hace la página de inicio.
+            "is_manager": is_manager(self.env),
         }

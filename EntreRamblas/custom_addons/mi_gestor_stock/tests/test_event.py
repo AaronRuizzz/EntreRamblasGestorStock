@@ -246,12 +246,12 @@ class TestEvent(TransactionCase):
                 "name": "Arco imposible", "mgs_rental_ok": True, "is_storable": False,
                 "type": "service"})
 
-    def test_a_bouquet_composition_without_a_recipe_cannot_go_into_a_wedding(self):
-        """Una composicion (ramo a medida) sin receta no descontaria nada al
-        entregar: action_deliver() no sabria que flor sacar. Antes se podia
+    def test_a_bouquet_composition_without_components_cannot_go_into_a_wedding(self):
+        """Una composicion (ramo a medida) sin materiales no descontaria nada
+        al entregar: action_deliver() no sabria que flor sacar. Antes se podia
         meter en un evento asi y la merma de flor se perdia en silencio; ahora
-        hace falta receta para poder anadir la partida (ver test_event_with_a_
-        bouquet_recipe_delivers_each_component en test_bouquet.py)."""
+        hace falta indicar de que esta hecha para poder anadir la partida (ver
+        test_a_bouquet_composition_delivers_each_component)."""
         bouquet = self.env["product.product"].create({
             "name": "Ramo a medida de prueba", "is_storable": False, "type": "consu",
             "mgs_is_composition": True, "list_price": 40.0,
@@ -367,25 +367,22 @@ class TestEvent(TransactionCase):
         with self.assertRaises(UserError), self.env.cr.savepoint():
             event.write({"note": "no se toca"})
 
-    def test_a_bouquet_composition_with_a_recipe_delivers_each_component(self):
+    def test_a_bouquet_composition_delivers_each_component(self):
         """Cierra la sección "0.2": una composición SÍ puede ir en un evento,
-        siempre que lleve receta — entonces se entrega descontando cada flor
-        de la receta, no la composición (que no tiene existencias propias)."""
+        siempre que lleve sus materiales — entonces se entrega descontando cada
+        flor, no la composición (que no tiene existencias propias)."""
         rose = self.env["product.product"].create({
-            "name": "Rosa de receta de evento", "is_storable": True, "tracking": "lot",
+            "name": "Rosa de composicion de evento", "is_storable": True, "tracking": "lot",
             "mgs_auto_lots": True, "use_expiration_date": True,
         })
         centre_compo = self.env["product.product"].create({
             "name": "Centro de mesa a medida", "is_storable": False, "type": "consu",
             "mgs_is_composition": True, "list_price": 40.0,
         })
-        recipe = self.env["mgs.bouquet.recipe"].create({
-            "name": "Centro de mesa clásico",
-            "line_ids": [Command.create({"product_id": rose.id, "quantity": 6})],
-        })
         self.stock(rose, 100)
         event = self.event(lines=[Command.create({
-            "product_id": centre_compo.id, "recipe_id": recipe.id,
+            "product_id": centre_compo.id,
+            "component_ids": [Command.create({"product_id": rose.id, "quantity": 6})],
             "is_rental": False, "quantity": 3, "unit_price": 40.0})])
         event.action_confirm()
         event.action_deliver()
@@ -396,21 +393,18 @@ class TestEvent(TransactionCase):
         self.assertEqual(sum(moves.mapped("product_uom_qty")), 18)
         self.assertEqual(event.line_ids.delivered_qty, 3)
 
-    def test_a_composition_without_a_recipe_is_rejected_even_by_write(self):
+    def test_a_composition_without_components_is_rejected_even_by_write(self):
         centre_compo = self.env["product.product"].create({
-            "name": "Centro sin receta", "is_storable": False, "type": "consu",
+            "name": "Centro sin materiales", "is_storable": False, "type": "consu",
             "mgs_is_composition": True, "list_price": 40.0,
         })
         with self.assertRaises(UserError), self.env.cr.savepoint():
             self.event(lines=[Command.create({
                 "product_id": centre_compo.id, "quantity": 1, "unit_price": 40.0})])
 
-    def test_a_recipe_on_a_non_composition_product_is_rejected(self):
-        recipe = self.env["mgs.bouquet.recipe"].create({
-            "name": "Receta suelta",
-            "line_ids": [Command.create({"product_id": self.centre.id, "quantity": 1})],
-        })
+    def test_components_on_a_non_composition_product_are_rejected(self):
         with self.assertRaises(UserError), self.env.cr.savepoint():
             self.event(lines=[Command.create({
-                "product_id": self.centre.id, "recipe_id": recipe.id,
+                "product_id": self.centre.id,
+                "component_ids": [Command.create({"product_id": self.centre.id, "quantity": 1})],
                 "is_rental": False, "quantity": 1, "unit_price": 30.0})])

@@ -21,6 +21,7 @@ Dos ideas que conviene entender antes de tocar nada:
    que vuelve roto se da de baja como merma con su coste real; lo que no vuelve
    se queda a la vista en la ubicación de alquiler para poder reclamarlo.
 """
+import json
 import math
 
 from odoo import api, fields, models, _
@@ -131,6 +132,28 @@ class MgsEvent(models.Model):
     move_ids = fields.One2many("stock.move", "mgs_event_id", "Movimientos", readonly=True)
     pending_return = fields.Boolean("Queda material sin devolver",
                                     compute="_compute_amounts", store=True)
+
+    # Cobro en caja: las partidas que se venden (flores, ramos) pueden llevarse
+    # al TPV como un pedido listo para cobrar. El alquiler y la fianza no: se
+    # quedan aquí, con «Registrar cobro». Ver action_mgs_checkout_pos y
+    # pos_event_checkout.js.
+    mgs_pos_charged = fields.Boolean(
+        "Vendido en caja", compute="_compute_mgs_pos_charged",
+        help="Alguna venta de caja ya ha cobrado las partidas de este encargo.")
+    mgs_pos_chargeable = fields.Boolean(
+        "Se puede cobrar en caja", compute="_compute_mgs_pos_charged")
+
+    def _compute_mgs_pos_charged(self):
+        Order = self.env["pos.order"].sudo()
+        for event in self:
+            charged = isinstance(event.id, int) and bool(Order.search_count([
+                ("mgs_event_ref", "=", event.id),
+                ("state", "in", ("paid", "done", "invoiced")),
+            ]))
+            has_sellable = any(not line.is_rental for line in event.line_ids)
+            event.mgs_pos_charged = charged
+            event.mgs_pos_chargeable = (
+                event.state in ("draft", "confirmed") and has_sellable and not charged)
 
     @api.depends("line_ids.subtotal", "line_ids.quantity", "line_ids.is_rental",
                  "line_ids.delivered_qty", "line_ids.returned_qty", "line_ids.damaged_qty",
@@ -274,6 +297,11 @@ class MgsEvent(models.Model):
         source = warehouse.lot_stock_id
         customers = self.env.ref("stock.stock_location_customers")
         for line in self.line_ids:
+            # Una partida vendida ya en caja sale con la venta del TPV; aquí no
+            # se vuelve a mover (si no, se descontaría el stock dos veces).
+            if float_compare(line.delivered_qty, line.quantity,
+                             precision_rounding=line.product_id.uom_id.rounding or 0.01) >= 0:
+                continue
             line._check_valid()
             if line.product_id.mgs_is_composition:
                 # Siempre se vende, nunca se alquila (ver _mgs_deliver_composition).
@@ -378,6 +406,120 @@ class MgsEvent(models.Model):
         })
         return True
 
+    # ------------------------------------------------------------------
+    # Cobro en caja
+    # ------------------------------------------------------------------
+    def action_mgs_checkout_pos(self):
+        """Abre el TPV con las partidas que se venden ya cargadas, listas para
+        cobrar. El alquiler y la fianza se quedan en el evento."""
+        require_manager(self.env)
+        self.ensure_one()
+        if not self.mgs_pos_chargeable:
+            raise UserError(_(
+                "Este encargo no se puede cobrar en caja: o no tiene nada que "
+                "vender (todo es alquiler), o ya está cobrado, o no está en "
+                "presupuesto/aceptado."))
+        sellable = self.line_ids.filtered(lambda line: not line.is_rental)
+        for line in sellable:
+            line._check_valid()
+            if not line.product_id.available_in_pos:
+                raise UserError(_(
+                    "«%s» no está disponible en el TPV. Márcala como disponible "
+                    "en su ficha o cóbrala con «Registrar cobro».",
+                    line.product_id.display_name))
+        config = self.env["pos.config"].sudo().search(
+            [("company_id", "=", self.company_id.id)], limit=1)
+        if not config:
+            raise UserError(_("No hay ninguna caja configurada. Entra una vez en «Vender»."))
+        return {
+            "type": "ir.actions.act_url",
+            "url": "/pos/ui?config_id=%d&mgs_event=%d" % (config.id, self.id),
+            "target": "self",
+        }
+
+    @api.model
+    def mgs_pos_load_event(self, event_id):
+        """Datos del encargo para que el TPV monte el pedido (lo llama
+        pos_event_checkout.js al arrancar)."""
+        if not (self.env.su or self.env.user.has_group("mi_gestor_stock.group_mgs_user")
+                or self.env.user.has_group("mi_gestor_stock.group_mgs_manager")):
+            raise AccessError(_("No tienes permiso para cobrar encargos en caja."))
+        event = self.sudo().browse(int(event_id)).exists()
+        if not event or event.company_id != self.env.company:
+            return {"error": _("El encargo ya no está disponible.")}
+        if not event.mgs_pos_chargeable:
+            return {"error": _("El encargo %s ya no se puede cobrar en caja.") % event.name}
+        lines = []
+        for line in event.line_ids.filtered(lambda item: not item.is_rental):
+            entry = {
+                "product_id": line.product_id.id,
+                "qty": line.quantity,
+                # El presupuesto va con impuestos incluidos (lo que paga el
+                # cliente). El TPV suma el IVA sobre el precio que le pasamos,
+                # así que hay que darle el neto para que el total del ticket
+                # coincida con el del presupuesto.
+                "price_unit": event._mgs_pos_price_unit(line),
+            }
+            if line.product_id.mgs_is_composition:
+                entry["bouquet_spec"] = json.dumps([
+                    {"product_id": component.product_id.id, "qty": component.quantity}
+                    for component in line.component_ids])
+            lines.append(entry)
+        return {
+            "event_id": event.id,
+            "name": event.name,
+            "partner_id": event.partner_id.id,
+            "lines": lines,
+        }
+
+    def _mgs_pos_price_unit(self, line):
+        """Precio unitario SIN impuestos para el TPV, de forma que el importe
+        con IVA del ticket sea igual al del presupuesto (`quantity * unit_price`,
+        que se entiende con impuestos incluidos)."""
+        self.ensure_one()
+        product = line.product_id
+        taxes = product.taxes_id.filtered(
+            lambda tax: not tax.company_id or tax.company_id == self.company_id)
+        if not taxes or not line.unit_price:
+            return line.unit_price
+        if all(tax.price_include for tax in taxes):
+            # El TPV ya trata el precio como con impuestos incluidos.
+            return line.unit_price
+        result = taxes.compute_all(
+            1.0, currency=self.company_id.currency_id, quantity=1.0, product=product)
+        included = result.get("total_included") or 1.0
+        excluded = result.get("total_excluded") or 1.0
+        return line.unit_price * (excluded / included)
+
+    @api.model
+    def mgs_pos_link_order(self, event_id, order_uuid):
+        """El TPV enlaza el pedido con el encargo (lo llama nada más montarlo, y
+        otra vez al cobrarlo). Deja `mgs_event_ref` en el pedido —así el enlace
+        sobrevive aunque falle el aviso posterior— y, si el pedido ya está
+        cobrado, liquida el encargo. Idempotente; hay una segunda red en
+        pos.order._process_order."""
+        if not (self.env.su or self.env.user.has_group("mi_gestor_stock.group_mgs_user")
+                or self.env.user.has_group("mi_gestor_stock.group_mgs_manager")):
+            raise AccessError(_("No tienes permiso para cobrar encargos en caja."))
+        order = self.env["pos.order"].sudo().search(
+            [("uuid", "=", order_uuid)], limit=1)
+        event = self.sudo().browse(int(event_id)).exists()
+        if not order or not event or order.company_id != event.company_id:
+            return False
+        if order.mgs_event_ref != event.id:
+            order.write({"mgs_event_ref": event.id})
+        if order.state in ("paid", "done", "invoiced"):
+            order._mgs_settle_event()
+        return True
+
+    def _mgs_force_done(self):
+        """Cierra el encargo cuando la venta de caja lo deja pagado y entregado.
+        Solo servidor: lo llama la liquidación del pedido de caja."""
+        self.ensure_one()
+        if not self.env.su:
+            raise AccessError(_("El estado del encargo lo cierra el servidor."))
+        super().write({"state": "done"})
+
     def action_done(self):
         self._lock()
         if self.state == "done":
@@ -418,15 +560,16 @@ class MgsEventLine(models.Model):
     company_id = fields.Many2one(related="event_id.company_id", store=True)
     product_id = fields.Many2one(
         "product.product", "Producto", required=True,
-        help="Si es una composición a medida (ramo, centro de mesa...), elige "
-             "también qué receta lleva: el evento descuenta cada flor de la "
-             "receta, no la composición en sí, que no tiene existencias propias.")
-    # Solo tiene sentido -y solo se acepta- cuando product_id es una
-    # composición a medida (ver _check_mgs_composition_needs_recipe). Reutiliza
-    # mgs.bouquet.recipe, el mismo catálogo de recetas que ya usa el TPV: no
-    # hace falta mantener dos sitios con "ramo novia clásico = 12 rosas...".
-    recipe_id = fields.Many2one("mgs.bouquet.recipe", "Receta")
-    # Related solo para que la vista pueda mostrar/ocultar «Receta» según el
+        help="Si es una composición a medida (ramo, centro de mesa...), indica "
+             "también de qué flores y material está hecha: el evento descuenta "
+             "cada una de su partida, no la composición en sí, que no tiene "
+             "existencias propias.")
+    # Solo tiene sentido -y solo se acepta- cuando product_id es una composición
+    # a medida (ver _check_mgs_composition_components). Se escribe en la propia
+    # línea, sin catálogo de recetas: cada evento monta el ramo que lleva.
+    component_ids = fields.One2many(
+        "mgs.event.line.component", "line_id", string="Materiales")
+    # Related solo para que la vista pueda mostrar/ocultar «Materiales» según el
     # producto elegido: un domain de vista no puede mirar un subcampo de un
     # many2one que no esté ya cargado en el formulario.
     product_is_composition = fields.Boolean(related="product_id.mgs_is_composition")
@@ -455,20 +598,29 @@ class MgsEventLine(models.Model):
                 line.is_rental = line.product_id.mgs_rental_ok
                 line.unit_price = line.product_id.list_price
 
-    @api.constrains("product_id", "recipe_id")
-    def _check_mgs_composition_needs_recipe(self):
+    @api.constrains("product_id", "component_ids")
+    def _check_mgs_composition_components(self):
         # Una composicion no tiene existencias propias (is_storable=False,
-        # forzado en mgs_bouquet.py): sin receta, action_deliver() no sabria
-        # que flor descontar y se saltaria la linea en silencio (ver la
-        # seccion "0.2" del traspaso). Con esto no puede entrar sin receta.
+        # forzado en mgs_bouquet.py): sin materiales, action_deliver() no
+        # sabria que flor descontar y se saltaria la linea en silencio (ver
+        # la seccion "0.2" del traspaso). Con esto no puede entrar sin ellos,
+        # y ademas se validan contra el MISMO parser que usa el cobro del TPV.
+        PosLine = self.env["pos.order.line"]
         for line in self:
-            if line.product_id.mgs_is_composition and not line.recipe_id:
+            if line.product_id.mgs_is_composition:
+                if not line.component_ids:
+                    raise UserError(_(
+                        "«%s» es una composición a medida: indica de qué "
+                        "flores y material está hecha.",
+                        line.product_id.display_name))
+                spec = json.dumps([
+                    {"product_id": component.product_id.id,
+                     "qty": component.quantity}
+                    for component in line.component_ids])
+                PosLine._mgs_parse_components(spec)
+            elif line.component_ids:
                 raise UserError(_(
-                    "«%s» es una composición a medida: elige también qué "
-                    "receta lleva.", line.product_id.display_name))
-            if line.recipe_id and not line.product_id.mgs_is_composition:
-                raise UserError(_(
-                    "«%s» no es una composición a medida: no necesita receta.",
+                    "«%s» no es una composición a medida: no lleva materiales.",
                     line.product_id.display_name))
 
     def _check_valid(self):
@@ -484,24 +636,24 @@ class MgsEventLine(models.Model):
             raise UserError(_("«%s» no lleva control de existencias: no se puede alquilar.",
                               self.product_id.display_name))
         # Sin "else raise" para el resto de composiciones: una composición con
-        # receta es válida (_check_mgs_composition_needs_recipe ya lo exige al
+        # materiales es válida (_check_mgs_composition_components ya lo exige al
         # guardar la línea), y action_deliver() sabe expandirla.
 
     def _mgs_deliver_composition(self, source, destination):
         """Entrega una composición (ramo, centro...) de un evento: un
-        movimiento por material de la RECETA, multiplicado por la cantidad de
+        movimiento por MATERIAL de la línea, multiplicado por la cantidad de
         la línea. Mismo patrón que
         mgs_bouquet.StockPicking._create_move_from_pos_order_lines, pero para
         movimientos sueltos en vez de para una línea del TPV. Una composición
         nunca es de alquiler (is_storable=False lo impide en _check_valid),
         así que siempre entrega vendiendo, nunca a tránsito."""
         self.ensure_one()
-        for recipe_line in self.recipe_id.line_ids:
+        for component in self.component_ids:
             move = self.env["stock.move"].create({
-                "name": "%s - %s" % (self.event_id.name, recipe_line.product_id.display_name),
-                "product_id": recipe_line.product_id.id,
-                "product_uom": recipe_line.product_id.uom_id.id,
-                "product_uom_qty": recipe_line.quantity * self.quantity,
+                "name": "%s - %s" % (self.event_id.name, component.product_id.display_name),
+                "product_id": component.product_id.id,
+                "product_uom": component.product_id.uom_id.id,
+                "product_uom_qty": component.quantity * self.quantity,
                 "location_id": source.id,
                 "location_dest_id": destination.id,
                 "company_id": self.company_id.id,
@@ -550,6 +702,20 @@ class MgsEventLine(models.Model):
         if not self.env.su and any(line.event_id.state != "draft" for line in self):
             raise UserError(_("Las partidas de un evento aceptado se conservan."))
         return super().unlink()
+
+
+class MgsEventLineComponent(models.Model):
+    """Material de una composición a medida de un evento (una flor, un follaje,
+    un envoltorio) con la cantidad que lleva UNA unidad de la composición.
+    Se valida contra el mismo parser que el cobro del TPV, en
+    mgs.event.line._check_mgs_composition_components."""
+    _name = "mgs.event.line.component"
+    _description = "Material de una composición a medida de un evento"
+
+    line_id = fields.Many2one("mgs.event.line", required=True, ondelete="cascade", index=True)
+    company_id = fields.Many2one(related="line_id.company_id", store=True)
+    product_id = fields.Many2one("product.product", "Material", required=True)
+    quantity = fields.Float("Cantidad", default=1.0, required=True)
 
 
 class MgsEventPayment(models.Model):
@@ -640,3 +806,83 @@ class MgsEventPaymentWizard(models.TransientModel):
         self.ensure_one()
         self.event_id.action_register_payment(self.amount, self.method, self.note)
         return {"type": "ir.actions.act_window_close"}
+
+
+class PosOrder(models.Model):
+    """Enlace de una venta de caja con el encargo que la originó.
+
+    Cuando un encargo se cobra desde «Vender» (botón «Cobrar en caja» →
+    pos_event_checkout.js), el pedido del TPV lleva `mgs_event_ref`. Al cobrarlo,
+    el servidor marca esas partidas como entregadas —el stock ya lo ha movido el
+    propio TPV— y anota el cobro en el encargo. Si con eso queda pagado y no hay
+    alquiler pendiente, lo cierra."""
+    _inherit = "pos.order"
+
+    # pos.order sincroniza todos sus campos al TPV (no tiene lista propia en
+    # _load_pos_data_fields), así que este entero viaja solo, de ida y de vuelta.
+    mgs_event_ref = fields.Integer(
+        "Encargo de origen", readonly=True, copy=False, index=True)
+
+    @api.model
+    def _process_order(self, order, existing_order):
+        order_id = super()._process_order(order, existing_order)
+        record = self.browse(order_id)
+        if record.mgs_event_ref and record.state in ("paid", "done", "invoiced"):
+            record.sudo()._mgs_settle_event()
+        return order_id
+
+    def _mgs_event_payment_note(self):
+        self.ensure_one()
+        return _("Cobrado en caja · %s") % (self.pos_reference or self.name or self.id)
+
+    def _mgs_event_payment_method(self):
+        self.ensure_one()
+        methods = self.payment_ids.mapped("payment_method_id")
+        if methods and all(method.is_cash_count for method in methods):
+            return "cash"
+        return "card"
+
+    def _mgs_settle_event(self):
+        self.ensure_one()
+        event = self.env["mgs.event"].sudo().browse(self.mgs_event_ref).exists()
+        if not event or event.state in ("done", "cancelled"):
+            return
+        sellable = event.line_ids.filtered(lambda line: not line.is_rental)
+        rounding = lambda line: line.product_id.uom_id.rounding or 0.01
+        # Idempotencia: no volver a liquidar si ya se hizo (reintento de sync o
+        # una segunda venta para el mismo encargo).
+        if sellable and all(float_compare(line.delivered_qty, line.quantity,
+                                          precision_rounding=rounding(line)) >= 0
+                            for line in sellable):
+            return
+        if self.env["mgs.event.payment"].sudo().search_count([
+            ("event_id", "=", event.id),
+            ("note", "=", self._mgs_event_payment_note()),
+        ]):
+            return
+        for line in sellable:
+            if float_compare(line.delivered_qty, line.quantity,
+                             precision_rounding=rounding(line)) < 0:
+                line.sudo().write({"delivered_qty": line.quantity})
+        # Lo que valen esas partidas según el presupuesto. Si el TPV ha cobrado
+        # esa cifra salvo redondeo (el neto por unidad no siempre divide justo),
+        # se anota el importe del presupuesto para que el encargo cuadre; si hay
+        # una diferencia real (un descuento en caja), se anota lo cobrado y el
+        # encargo queda pendiente para que la responsable lo revise.
+        expected = sum(sellable.mapped("subtotal"))
+        amount = self.amount_paid
+        if abs(amount - expected) <= max(0.05, 0.01 * len(sellable)):
+            amount = expected
+        self.env["mgs.event.payment"].sudo().create({
+            "event_id": event.id,
+            "amount": amount,
+            "method": self._mgs_event_payment_method(),
+            "note": self._mgs_event_payment_note(),
+            "user_id": (self.user_id or self.env.user).id,
+        })
+        event.invalidate_recordset()
+        if (float_is_zero(event.amount_due, precision_rounding=0.01)
+                and not event.pending_return
+                and not any(line.is_rental for line in event.line_ids)
+                and event.state in ("draft", "confirmed")):
+            event._mgs_force_done()

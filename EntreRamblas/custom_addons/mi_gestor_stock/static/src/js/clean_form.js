@@ -11,6 +11,8 @@
 import { registry } from "@web/core/registry";
 import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
+import { listView } from "@web/views/list/list_view";
+import { ListController } from "@web/views/list/list_controller";
 
 export class MgsCleanFormController extends FormController {
     get className() {
@@ -21,4 +23,18 @@ export class MgsCleanFormController extends FormController {
 registry.category("views").add("mgs_clean_form", {
     ...formView,
     Controller: MgsCleanFormController,
+});
+
+// Mismo criterio para una lista-flujo (p. ej. Eventos y encargos): la rueda de
+// «Acciones» del panel de control no aporta nada cuando la única acción es el
+// botón propio de la cabecera. Solo añade una clase; el CSS acota el retoque.
+export class MgsCleanListController extends ListController {
+    get className() {
+        return { ...super.className, o_mgs_clean_list: true };
+    }
+}
+
+registry.category("views").add("mgs_clean_list", {
+    ...listView,
+    Controller: MgsCleanListController,
 });

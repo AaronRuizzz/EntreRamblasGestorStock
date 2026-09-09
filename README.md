@@ -8,6 +8,12 @@
 > en [MANUAL_TIENDA.md](MANUAL_TIENDA.md), puesta en marcha en
 > [APERTURA.md](APERTURA.md) y facturación española en
 > [FACTURACION.md](FACTURACION.md).
+>
+> ⚠️ **2026-09-09 — el módulo se ha recortado.** Se eliminaron Compras, Partidas,
+> Recuento físico, Reposición, Bajas de caducados, Recetas de ramo, Tarifas de
+> campaña y Existencias iniciales. Todo lo que este README diga sobre esas
+> secciones (§0, §0quinquies, §0ante, §6bis, §11…) es histórico. Ver la
+> actualización al principio de [TRASPASO_IA.md](TRASPASO_IA.md).
 
 ---
 

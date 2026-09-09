@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Barra superior del TPV, reducida a lo que la tienda usa:
+         · Centro: el nombre de la tienda (antes, el logotipo de Odoo).
+           Se ve entero y, al pulsarlo, sale del TPV a la página de inicio.
+         · Se quitan las pestañas de pedidos (el número suelto y el «+»),
+           el nombre del cajero y las opciones sueltas del menú que no
+           pintan nada en una floristería (instalar app, cambiar vista,
+           crear producto). El menú deja lo justo: pedidos, efectivo,
+           informe de caja, cerrar caja y salir. -->
+    <t t-name="mi_gestor_stock.PosNavbarBrand" t-inherit="point_of_sale.Navbar"
+       t-inherit-mode="extension">
+
+        <!-- Centro: nombre de la tienda en lugar del logotipo de Odoo -->
+        <xpath expr="//img[hasclass('pos-logo')]" position="replace">
+            <div class="o_mgs_pos_brand" t-on-click="() => pos.closePos()"
+                 title="Ir a la página de inicio">
+                Clavel &amp; Azahar
+            </div>
+        </xpath>
+
+        <!-- Fuera las pestañas de pedidos (el «201» suelto y el «+») -->
+        <xpath expr="//OrderTabs" position="replace"/>
+
+        <!-- Fuera el nombre del cajero -->
+        <xpath expr="//CashierName" position="replace"/>
+
+        <!-- Menú (icono ☰): solo lo que se usa en caja -->
+        <xpath expr="//Dropdown/t[@t-set-slot='content']" position="replace">
+            <t t-set-slot="content">
+                <div class="p-2 pos-burger-menu-items">
+                    <DropdownItem onSelected="() => this.pos.showScreen('TicketScreen')">
+                        Pedidos <span t-if="orderCount gt 0" class="badge text-bg-info rounded-pill py-1 ms-2 float-end" t-esc="orderCount"/>
+                    </DropdownItem>
+                    <DropdownItem t-if="showCashMoveButton" onSelected="() => this.pos.cashMove()">
+                        Entrada / salida de efectivo
+                    </DropdownItem>
+                    <DropdownItem t-if="hardwareProxy.printer" onSelected="() => this.showSaleDetails()">
+                        Imprimir informe de caja
+                    </DropdownItem>
+                    <DropdownItem onSelected="() => this.pos.closeSession()">
+                        Cerrar caja
+                    </DropdownItem>
+                    <DropdownItem onSelected="() => this.pos.closePos()">
+                        Salir al programa
+                    </DropdownItem>
+                    <DropdownItem t-if="this.env.debug" onSelected="() => this.clearCache()">
+                        Vaciar caché
+                    </DropdownItem>
+                    <DropdownItem t-if="this.env.debug" onSelected="() => debug.toggleWidget()">
+                        Ventana de depuración
+                    </DropdownItem>
+                </div>
+            </t>
+        </xpath>
+
+    </t>
+
+</templates>

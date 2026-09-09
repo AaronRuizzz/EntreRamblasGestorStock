@@ -54,12 +54,13 @@ Al elegir un producto, el programa rellena solo el precio y marca **«Se alquila
 si esa ficha lo tiene marcado.
 
 **Si la partida es un centro de mesa o un ramo a medida** (una composición,
-no un producto con existencias propias), hay que elegir también su **receta**
-(la misma lista de flores que ya se usa en el TPV, ver [MANUAL_TIENDA.md](MANUAL_TIENDA.md)):
-al entregar, el almacén descuenta cada flor de la receta, multiplicada por
-cuántos centros lleva el evento — no el centro en sí, que no tiene existencias.
-Una composición sin receta no se puede añadir: el programa la rechaza antes
-de guardar la línea, para no perder la merma de flor en silencio.
+no un producto con existencias propias), se indican en la propia línea **de qué
+flores y material está hecho** (sección «Materiales de la composición»,
+validada con el mismo criterio que el TPV): al entregar —o al cobrar en caja—
+el almacén descuenta cada flor, multiplicada por cuántos centros lleva el
+evento, no el centro en sí, que no tiene existencias. Una composición sin
+materiales no se puede guardar: el programa la rechaza antes, para no perder
+la merma de flor en silencio.
 
 Aquí **no se compromete ni se mueve nada**: es una oferta. Puedes imprimir el
 presupuesto en PDF para la clienta (botón **Imprimir**); sale con lo que se alquila
@@ -111,9 +112,23 @@ acepta y el resto cuando se entrega. Cada cobro guarda importe, forma de pago,
 fecha y quién lo registró, y **no se puede modificar después** — si hay un error,
 se registra otro cobro.
 
-> **El dinero de un evento no pasa por la caja del TPV.** No abre el cajón ni sale
-> en el arqueo de caja del día. Y el **datáfono sigue siendo independiente**:
-> registrar «tarjeta» aquí no cobra nada en el terminal.
+> **La señal, la fianza y el alquiler no pasan por la caja del TPV.** No abren el
+> cajón ni salen en el arqueo del día, y el **datáfono sigue siendo
+> independiente**: registrar «tarjeta» aquí no cobra nada en el terminal.
+
+### Cobrar en caja lo que se vende
+
+Para un encargo sencillo —un ramo, un centro para una comunión— que el cliente
+paga al recoger, el botón **Cobrar en caja** (visible en Presupuesto y Aceptado)
+abre el TPV con las flores y ramos del encargo ya cargados, el cliente puesto y
+el importe listo: se cobra en efectivo o con datáfono y sale el ticket, como una
+venta normal. El stock de las flores se descuenta ahí (no hace falta pulsar
+«Entregar» para esas partidas) y el encargo anota el cobro; si con eso queda
+pagado y no hay alquiler, se cierra solo.
+
+**El material de alquiler no va a la caja**: se sigue reservando con «Aceptar
+presupuesto», entregando con «Entregar» y cobrando (fianza incluida) con
+«Registrar cobro».
 
 ### La fianza
 

@@ -5,6 +5,13 @@ local, datos actuales de prueba. No borrar la base de desarrollo. Hardware:
 Honeywell 1472g, lector PcCom, Approx appPOS80AM, CASH01, SSD Corsair.
 Datáfono independiente (registro manual de tarjeta). Sin ramos, encargos ni nube.
 
+> ⚠️ **2026-09-09.** El módulo se ha recortado: fuera Compras, Partidas (vista),
+> Recuento físico, Reposición, Bajas de caducados, Recetas de ramo, Tarifas de
+> campaña y Existencias iniciales. Las casillas marcadas y los avances fechados de
+> este documento que se refieran a esas funciones son históricos. Detalle al
+> principio de [TRASPASO_IA.md](TRASPASO_IA.md); diagnóstico fiscal en
+> [FACTURACION.md](FACTURACION.md) §2bis.
+
 ## Entregables y aceptación
 
 - [X] Entorno reproducible: fijar revisión Odoo y dependencias; instalación y actualización comprobadas.

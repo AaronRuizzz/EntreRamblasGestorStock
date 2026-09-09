@@ -2,16 +2,11 @@ from . import test_reception
 from . import test_pos_stock
 from . import test_security
 from . import test_backup
-from . import test_inventory_count
-from . import test_opening_stock
 from . import test_catalog_import
 from . import test_bouquet
 from . import test_event
-from . import test_purchase
+from . import test_event_pos
 from . import test_consumption
-from . import test_expiry
-from . import test_purchase_forecast
-from . import test_pricelist_campaign
 from . import test_escpos
 from . import test_res_company
 from . import test_stock_alert

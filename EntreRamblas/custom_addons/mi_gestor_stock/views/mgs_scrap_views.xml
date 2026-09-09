@@ -16,9 +16,11 @@
                         <field name="scrap_qty" readonly="state == 'done'"/>
                         <field name="product_uom_id" readonly="1"/>
                         <field name="mgs_reason" readonly="state == 'done'"/>
-                        <field name="origin" readonly="state == 'done'"/>
                         <field name="mgs_return_line_id" invisible="not mgs_return_line_id"/>
-                        <field name="location_id" readonly="state == 'done'" options="{'no_create': True}"/>
+                        <!-- "Documento de origen" y "Ubicación de origen" fuera:
+                             la tienda opera con una sola ubicación interna, así
+                             que location_id lo rellena solo el precompute nativo
+                             con el almacén, y origin no lo pide la merma. -->
                         <field name="company_id" invisible="1"/>
                         <field name="mgs_validated_by" invisible="state != 'done'"/>
                         <field name="date_done" invisible="state != 'done'"/>

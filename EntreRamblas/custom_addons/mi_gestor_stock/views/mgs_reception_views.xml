@@ -28,11 +28,10 @@
                 <sheet>
                     <group>
                         <group>
-                            <field name="purchase_id" options="{'no_create': True}"/>
                             <field name="supplier_id"/>
+                            <field name="supplier_ref" placeholder="Nº de albarán del proveedor"/>
                         </group>
                         <group>
-                            <field name="supplier_ref" placeholder="Nº de albarán del proveedor"/>
                             <field name="document_date"/>
                             <field name="picking_id" invisible="not picking_id"/>
                         </group>
@@ -59,7 +58,8 @@
                             <group string="Información del producto">
                                 <field name="new_name" placeholder="Ej. Rosa roja de tallo largo"/>
                                 <field name="new_categ_id" options="{'no_open': True}"
-                                       placeholder="Ej. Flor cortada"/>
+                                       required="mode == 'nuevo'"
+                                       placeholder="Escribe una y pulsa «Crear» si no está en la lista"/>
                                 <field name="new_price"/>
                                 <field name="new_cost"/>
                                 <field name="new_expiry_date"/>

@@ -19,10 +19,13 @@
                  de aviso (por eso tampoco es una lista editable en línea). -->
             <list string="Avisos" create="false" decoration-danger="is_triggered">
                 <header>
+                    <!-- La dependienta ve los avisos (solo lectura); crearlos y
+                         cambiarlos es cosa de la responsable. -->
                     <button name="%(action_mgs_alert_new)d" type="action"
                             string="Nuevo aviso de stock" display="always"
-                            class="btn-primary"/>
+                            class="btn-primary" groups="mi_gestor_stock.group_mgs_manager"/>
                 </header>
+                <field name="name" string="Nombre" optional="show"/>
                 <field name="product_id" options="{'no_create': True}"/>
                 <field name="alert_type" string="Tipo"/>
                 <field name="min_qty" string="Avisar con"/>
@@ -40,11 +43,16 @@
         <field name="arch" type="xml">
             <form string="Aviso de stock" js_class="mgs_clean_form">
                 <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Nombre del aviso (opcional)"/>
+                        <h1>
+                            <field name="name" placeholder="p. ej. «Rosas San Valentín»"/>
+                        </h1>
+                    </div>
                     <group>
-                        <group string="Producto">
+                        <group string="Qué vigilar">
                             <field name="product_id" options="{'no_create': True}"/>
                             <field name="qty_available" readonly="1"/>
-                            <field name="active" widget="boolean_toggle"/>
                         </group>
                         <group string="Cuándo avisar">
                             <field name="alert_type" widget="radio"/>
@@ -54,6 +62,10 @@
                                    invisible="alert_type != 'periodic' or interval_type != 'days'"/>
                             <field name="last_run" invisible="alert_type != 'periodic'"/>
                         </group>
+                    </group>
+                    <group>
+                        <field name="active" widget="boolean_toggle"
+                               help="Desactívalo para silenciar el aviso sin borrarlo."/>
                     </group>
                     <div class="alert alert-warning" role="alert"
                          invisible="not is_triggered">
@@ -70,6 +82,7 @@
         <field name="model">mgs.stock.alert</field>
         <field name="arch" type="xml">
             <search string="Avisos">
+                <field name="name" string="Nombre"/>
                 <field name="product_id"/>
                 <filter string="Por cantidad" name="threshold"
                         domain="[('alert_type','=','threshold')]"/>

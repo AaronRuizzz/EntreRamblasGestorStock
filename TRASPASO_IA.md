@@ -1,5 +1,29 @@
 # Estado del proyecto — gestor de stock Entre Ramblas
 
+> **Actualización del 9 de septiembre de 2026 — recorte del módulo.** A petición
+> del usuario se han **eliminado del código** nueve secciones que la tienda no va
+> a usar: **Compras** (pedidos a proveedor y previsión), la pantalla **Partidas**
+> (los campos de coste histórico de `stock.lot` se conservan; solo se fue la
+> vista), **Recuento físico**, **Reposición**, **Bajas de caducados**, **Recetas
+> de ramo**, **Tarifas de campaña** y **Existencias iniciales**. El menú Stock
+> queda en Panel · Productos · Alertas · Alta de catálogo.
+>
+> Las **recetas de ramo** sostenían las composiciones de los eventos: se ha
+> reemplazado esa dependencia por una **lista de materiales en la propia línea del
+> evento** (`mgs.event.line.component`), validada por el mismo parser que usa el
+> TPV al cobrar. No se pierde el descuento de flor exacto ni el coste real.
+>
+> Además: «Vender» ya crea una **caja de floristería** sin plano de mesas; la
+> barra superior **resalta la sección activa**; **Mermas** pierde «Documento de
+> origen» y «Ubicación de origen» y el informe mensual añade fecha/referencia/
+> autor de cada merma; los **avisos** admiten un nombre opcional buscable; el menú
+> **«Impresiones y aperturas»** está traducido; y hay una herramienta nueva
+> `reset-catalogo.ps1` para vaciar el catálogo antes de una entrega. Las partes de
+> este documento y del resto que describan Compras, Recuento, Reposición, Recetas,
+> Tarifas, Partidas o Existencias iniciales **son históricas**. **APERTURA.md y
+> RECUENTOS.md quedan obsoletos por completo.** El diagnóstico del ticket frente a
+> la normativa está en [FACTURACION.md](FACTURACION.md) §2bis.
+
 Última revisión: **7 de septiembre de 2026**. Sustituye al traspaso anterior:
 esta sesión ejecutó un plan de continuación completo (8 fases: correcciones,
 quitar la marca Odoo, compras y proveedores, consumo real de flor, caducidad
@@ -219,10 +243,9 @@ sellada basta.
 `.\test.ps1` termina con código 0 y ejecuta, en este orden:
 
 1. Pruebas del archivo de copia (3).
-2. Guardián de codificación (`tools/check_encoding.py`) — nuevo esta sesión.
-3. **121 pruebas Odoo del módulo, 0 fallos y 0 errores.**
+2. Guardián de codificación (`tools/check_encoding.py`).
+3. **Las pruebas Odoo del módulo, 0 fallos y 0 errores.**
 4. Prueba transaccional de hardware.
-5. Prueba de concurrencia de apertura y recepción.
 
 Los logs se acumulan en `.odoo_data/mgs-validation.log`: mirar la última
 ejecución, no una línea verde antigua.
@@ -303,8 +326,7 @@ leerlo antes de ejecutarlo, no lanzarlo solo para consultar credenciales.
 Herramientas: `tools/check_report_pdf.py`, `check_report_pdf_long.py`
 (requieren el HTTP de pruebas levantado), `check_service_worker.py`,
 `check_backup_restore.py`, `check_hardware_outbox.py`,
-`check_opening_concurrency.py`, `check_encoding.py` (sin requisitos, revisa
-`custom_addons/` directamente).
+`check_encoding.py` (sin requisitos, revisa `custom_addons/` directamente).
 
 ## 7. Condiciones
 

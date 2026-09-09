@@ -42,7 +42,7 @@
         <field name="name">mgs.event.form</field>
         <field name="model">mgs.event</field>
         <field name="arch" type="xml">
-            <form string="Evento o encargo" js_class="mgs_clean_form">
+            <form string="Evento o encargo" class="o_mgs_event_form" js_class="mgs_clean_form">
                 <header>
                     <!-- El informe está enlazado al modelo (binding_model_id en
                          report/mgs_event_report.xml), así que sin este botón
@@ -54,6 +54,8 @@
                     <button name="action_confirm" type="object" string="Aceptar presupuesto"
                             class="btn-primary" invisible="state != 'draft'"
                             confirm="Se reservará el material de alquiler para estas fechas."/>
+                    <button name="action_mgs_checkout_pos" type="object" string="Cobrar en caja"
+                            class="btn-primary" invisible="not mgs_pos_chargeable"/>
                     <button name="action_deliver" type="object" string="Entregar"
                             class="btn-primary" invisible="state != 'confirmed'"
                             confirm="Va a salir el material de la tienda. Comprueba que está todo preparado."/>
@@ -77,6 +79,13 @@
                         Queda material de alquiler sin devolver. Anota abajo cuántas unidades
                         vuelven enteras y cuántas rotas, y pulsa <b>Registrar devolución</b>.
                     </div>
+                    <div class="alert alert-info" role="status" invisible="not mgs_pos_charged">
+                        Las partidas que se venden de este encargo se cobraron en caja.
+                        El alquiler y la fianza, si los hay, se siguen gestionando aquí
+                        con <b>Registrar cobro</b>.
+                    </div>
+                    <field name="mgs_pos_chargeable" invisible="1"/>
+                    <field name="mgs_pos_charged" invisible="1"/>
                     <group>
                         <group>
                             <field name="partner_id" readonly="state != 'draft'"/>
@@ -96,16 +105,12 @@
                     <notebook>
                         <page string="Partidas">
                             <field name="line_ids" readonly="state not in ('draft', 'delivered', 'returned')">
-                                <list editable="bottom">
-                                    <field name="product_id"
-                                           readonly="parent.state != 'draft'"/>
+                                <list>
+                                    <field name="product_id"/>
                                     <field name="product_is_composition" column_invisible="1"/>
-                                    <field name="recipe_id" readonly="parent.state != 'draft'"
-                                           options="{'no_create': True}"
-                                           invisible="not product_is_composition"/>
-                                    <field name="is_rental" readonly="parent.state != 'draft'"/>
-                                    <field name="quantity" readonly="parent.state != 'draft'"/>
-                                    <field name="unit_price" readonly="parent.state != 'draft'"/>
+                                    <field name="is_rental"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price"/>
                                     <field name="subtotal" readonly="1"/>
                                     <field name="delivered_qty" readonly="1"
                                            column_invisible="parent.state in ('draft', 'confirmed')"/>
@@ -118,6 +123,42 @@
                                     <field name="return_damaged_qty"
                                            column_invisible="parent.state not in ('delivered', 'returned')"/>
                                 </list>
+                                <form>
+                                    <group>
+                                        <field name="product_id"
+                                               readonly="parent.state != 'draft'"/>
+                                        <field name="product_is_composition" invisible="1"/>
+                                        <field name="is_rental" readonly="parent.state != 'draft'"/>
+                                        <field name="quantity" readonly="parent.state != 'draft'"/>
+                                        <field name="unit_price" readonly="parent.state != 'draft'"/>
+                                        <field name="subtotal" readonly="1"/>
+                                    </group>
+                                    <group string="Materiales de la composición"
+                                           invisible="not product_is_composition">
+                                        <div class="text-muted" colspan="2">
+                                            Qué flores y material lleva UNA unidad
+                                            de esta composición. El evento descuenta
+                                            cada uno de su partida al entregar.
+                                        </div>
+                                        <field name="component_ids" nolabel="1" colspan="2"
+                                               readonly="parent.state != 'draft'">
+                                            <list editable="bottom">
+                                                <field name="product_id"
+                                                       domain="[('is_storable', '=', True), ('mgs_is_composition', '=', False)]"
+                                                       options="{'no_create': True}"/>
+                                                <field name="quantity"/>
+                                            </list>
+                                        </field>
+                                    </group>
+                                    <group string="Devolución"
+                                           invisible="parent.state not in ('delivered', 'returned')">
+                                        <field name="delivered_qty" readonly="1"/>
+                                        <field name="returned_qty" readonly="1"/>
+                                        <field name="damaged_qty" readonly="1"/>
+                                        <field name="return_ok_qty"/>
+                                        <field name="return_damaged_qty"/>
+                                    </group>
+                                </form>
                             </field>
                         </page>
                         <page string="Cobros">
@@ -141,7 +182,10 @@
                                     context="{'default_event_id': id}"/>
                         </page>
                         <page string="Notas y material">
-                            <field name="note" placeholder="Colores, hora de montaje, dirección del salón..."/>
+                            <field name="note" placeholder="Colores, hora de montaje, dirección del salón..."
+                                   class="mgs-event-note"/>
+                            <separator string="Movimientos de material"
+                                       invisible="state == 'draft'"/>
                             <field name="move_ids" readonly="1" invisible="state == 'draft'">
                                 <list>
                                     <field name="date"/>
@@ -159,11 +203,31 @@
         </field>
     </record>
 
+    <!-- Se define antes que la lista: el botón de cabecera la referencia con
+         %(action_mgs_event_new)d. target="current" (no un diálogo): el
+         formulario de evento tiene statusbar y pestañas, un diálogo lo
+         estrecharía. -->
+    <record id="action_mgs_event_new" model="ir.actions.act_window">
+        <field name="name">Nuevo evento o encargo</field>
+        <field name="res_model">mgs.event</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
     <record id="event_list" model="ir.ui.view">
         <field name="name">mgs.event.list</field>
         <field name="model">mgs.event</field>
         <field name="arch" type="xml">
-            <list decoration-warning="pending_return" decoration-muted="state == 'cancelled'">
+            <!-- create="false" + botón propio: «Nuevo» genérico no dice qué
+                 crea. js_class oculta la rueda de «Acciones» del panel de
+                 control, que aquí no hace nada (ver clean_form.js). -->
+            <list js_class="mgs_clean_list" create="false"
+                  decoration-warning="pending_return" decoration-muted="state == 'cancelled'">
+                <header>
+                    <button name="%(action_mgs_event_new)d" type="action"
+                            string="Nuevo evento o encargo" display="always"
+                            class="btn-primary"/>
+                </header>
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="event_date"/>

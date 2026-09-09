@@ -1,5 +1,9 @@
 # Recuento físico de partidas
 
+> ⚠️ **OBSOLETO (9 de septiembre de 2026).** El recuento físico se ha eliminado
+> del programa a petición del usuario. Este documento se conserva solo como
+> histórico.
+
 La propietaria accede desde **Stock → Recuento físico**. Haz el recuento en un
 momento sin ventas, recepciones ni otras operaciones en la ubicación elegida.
 

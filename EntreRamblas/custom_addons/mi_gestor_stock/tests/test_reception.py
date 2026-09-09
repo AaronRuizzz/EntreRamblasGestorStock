@@ -104,6 +104,28 @@ class TestReception(TransactionCase):
             self.outgoing(4)
         self.assertEqual(self.product.qty_available, 3)
 
+    def test_new_product_needs_a_category_chosen_by_the_user(self):
+        wizard = self.env["mgs.reception"].create({
+            "mode": "nuevo", "new_name": "Peonía rosa",
+            "new_barcode": "8499999999990", "new_price": 3.5, "new_cost": 1.2,
+        })
+        # Sin categoría no deja: nada de caer en una categoría de fábrica.
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            wizard.action_add_new_product()
+        # La categoría que teclea la dueña queda disponible al instante.
+        categ = self.env["product.category"].create({"name": "Planta de temporada"})
+        wizard.new_categ_id = categ
+        wizard.action_add_new_product()
+        product = self.env["product.template"].search([("name", "=", "Peonía rosa")])
+        self.assertEqual(product.categ_id, categ)
+
+    def test_factory_categories_are_archived_and_hidden(self):
+        for xmlid in ("product.product_category_all", "product.product_category_1",
+                      "product.cat_expense", "point_of_sale.product_category_pos"):
+            self.assertFalse(self.env.ref(xmlid).active, xmlid)
+        visible = self.env["product.category"].search([])
+        self.assertFalse(visible & self.env.ref("product.product_category_all"))
+
     def test_scrap_records_lot_cost_actor_and_is_idempotent(self):
         receipt = self.receive(quantity=4, cost=3)
         scrap = self.env["stock.scrap"].create({
@@ -118,12 +140,3 @@ class TestReception(TransactionCase):
         excessive = scrap.copy({"scrap_qty": 3})
         with self.assertRaises(UserError), self.env.cr.savepoint():
             excessive.do_scrap()
-
-    def test_replenishment_excludes_expired_stock(self):
-        self.receive(quantity=50, days=-2)
-        self.receive(quantity=3, days=2)
-        alert = self.env["mgs.stock.alert"].create({
-            "product_id": self.product.product_tmpl_id.id, "min_qty": 5, "target_qty": 12,
-        })
-        self.assertEqual(alert.available_qty, 3)
-        self.assertEqual(alert.suggested_qty, 9)

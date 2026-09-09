@@ -10,9 +10,9 @@
         <div class="mgs-dash-head">
           <h1 class="mgs-dash-heading">Stock</h1>
           <div class="mgs-dash-head-actions">
-            <button class="btn btn-secondary" t-on-click="() => this.openReception()">Recepción</button>
+            <button t-if="state.data.is_manager" class="btn btn-secondary" t-on-click="() => this.openReception()">Recepción</button>
             <button class="btn btn-secondary" t-on-click="() => this.openProducts()">Ver todos los productos</button>
-            <button class="btn btn-secondary" t-on-click="() => this.openAlerts()">Configurar avisos</button>
+            <button t-if="state.data.is_manager" class="btn btn-secondary" t-on-click="() => this.openAlerts()">Configurar avisos</button>
           </div>
         </div>
 
@@ -66,8 +66,11 @@
           <h2 class="mgs-dash-title">Productos por categoría</h2>
 
           <div t-if="!hasProducts" class="mgs-dash-empty">
-            Todavía no hay productos. Da de alta el primero desde
-            <a href="#" t-on-click.prevent="() => this.openReception()">Recepción</a>.
+            <t t-if="state.data.is_manager">
+              Todavía no hay productos. Da de alta el primero desde
+              <a href="#" t-on-click.prevent="() => this.openReception()">Recepción</a>.
+            </t>
+            <t t-else="">Todavía no hay productos.</t>
           </div>
 
           <div t-foreach="state.data.categories" t-as="cat" t-key="cat.id" class="mgs-categ">

@@ -20,9 +20,13 @@
     <!-- Idioma: toda la interfaz en espanol (es_ES) -->
     <function model="res.company" name="_mgs_setup_spanish" eval="[[]]"/>
 
-    <!-- Tarifas de campana: activa su uso en las cajas ya configuradas
-         (ver models/mgs_purchase_forecast.py y mgs_pricelist_campaign.py). -->
+    <!-- Deja las cajas ya configuradas listas para usar tarifas nativas de
+         Odoo y controla quien puede cambiar el precio en el TPV. -->
     <function model="res.company" name="_mgs_apply_pos_pricelist_defaults" eval="[[]]"/>
+
+    <!-- Caja de la tienda: siempre una, sin plano de mesas. El boton «Vender»
+         entra directo a /pos/ui y necesita que exista. -->
+    <function model="res.company" name="_mgs_ensure_shop_pos_config" eval="[[]]"/>
 
     <!-- Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.
          El registro vive en data/mgs_event_data.xml con noupdate="1", asi
