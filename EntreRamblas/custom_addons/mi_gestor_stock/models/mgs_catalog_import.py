@@ -7,9 +7,9 @@ antes de tocar nada y solo entonces se crean los productos: si una sola fila
 está mal, no se importa ninguna. Así la dueña corrige la hoja y vuelve a
 subirla, en vez de quedarse con medio catálogo dentro.
 
-Este asistente NO carga existencias: crea las fichas. El stock de apertura se
-registra después en Stock → Existencias iniciales, que es quien deja el ajuste
-de inventario con su partida, su coste y su caducidad.
+Este asistente NO carga existencias: crea las fichas. El stock se registra
+después desde Recepción, que es quien deja la partida con su coste y su
+caducidad.
 """
 import base64
 import csv
@@ -271,7 +271,7 @@ class CatalogImport(models.TransientModel):
             notes.append(_('Se crearán estas categorías nuevas: %s.', ', '.join(sorted(new_categories))))
         if not errors:
             notes.append(_('Revisa la lista y pulsa «Importar catálogo». '
-                           'Las existencias se registran después en Existencias iniciales.'))
+                           'Las existencias se registran después desde Recepción.'))
         self.write({'error_count': errors, 'summary': '\n'.join(notes),
                     'state': 'draft' if errors else 'checked'})
         return {'type': 'ir.actions.act_window', 'name': _('Alta de catálogo'),
@@ -318,8 +318,8 @@ class CatalogImport(models.TransientModel):
                                'code': barcode, 'message': _('creado')})
         self.write({'state': 'done',
                     'summary': _('%s productos creados. Ahora registra las existencias '
-                                 'en Stock → Existencias iniciales y, si algún producto '
-                                 'llevaba código interno, imprime su etiqueta.',
+                                 'desde Recepción y, si algún producto llevaba código '
+                                 'interno, imprime su etiqueta.',
                                  len(self.line_ids))})
         return {'type': 'ir.actions.act_window', 'name': _('Alta de catálogo'),
                 'res_model': self._name, 'res_id': self.id,

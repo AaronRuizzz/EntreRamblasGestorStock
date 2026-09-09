@@ -243,10 +243,9 @@ sellada basta.
 `.\test.ps1` termina con código 0 y ejecuta, en este orden:
 
 1. Pruebas del archivo de copia (3).
-2. Guardián de codificación (`tools/check_encoding.py`) — nuevo esta sesión.
-3. **121 pruebas Odoo del módulo, 0 fallos y 0 errores.**
+2. Guardián de codificación (`tools/check_encoding.py`).
+3. **Las pruebas Odoo del módulo, 0 fallos y 0 errores.**
 4. Prueba transaccional de hardware.
-5. Prueba de concurrencia de apertura y recepción.
 
 Los logs se acumulan en `.odoo_data/mgs-validation.log`: mirar la última
 ejecución, no una línea verde antigua.
@@ -319,8 +318,7 @@ leerlo antes de ejecutarlo, no lanzarlo solo para consultar credenciales.
 Herramientas: `tools/check_report_pdf.py`, `check_report_pdf_long.py`
 (requieren el HTTP de pruebas levantado), `check_service_worker.py`,
 `check_backup_restore.py`, `check_hardware_outbox.py`,
-`check_opening_concurrency.py`, `check_encoding.py` (sin requisitos, revisa
-`custom_addons/` directamente).
+`check_encoding.py` (sin requisitos, revisa `custom_addons/` directamente).
 
 ## 7. Condiciones
 

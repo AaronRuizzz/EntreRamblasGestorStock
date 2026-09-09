@@ -163,3 +163,18 @@ class TestDashboardData(TransactionCase):
     def test_currency_is_the_company_currency_symbol(self):
         data = self.env["product.template"].mgs_dashboard_data()
         self.assertEqual(data["currency"], self.env.company.currency_id.symbol)
+
+    def test_a_manager_sees_the_manager_only_shortcuts(self):
+        self.assertTrue(self.env["product.template"].mgs_dashboard_data()["is_manager"])
+
+    def test_a_shop_user_sees_the_panel_but_not_the_manager_shortcuts(self):
+        staff = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)),
+                               login="mgs_dash_staff", groups="mi_gestor_stock.group_mgs_user")
+        data = self.env["product.template"].with_user(staff).mgs_dashboard_data()
+        self.assertFalse(data["is_manager"])
+
+    def test_a_user_without_the_shop_group_cannot_open_the_panel(self):
+        stranger = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)),
+                                  login="mgs_dash_stranger")
+        with self.assertRaises(AccessError), self.env.cr.savepoint():
+            self.env["product.template"].with_user(stranger).mgs_dashboard_data()

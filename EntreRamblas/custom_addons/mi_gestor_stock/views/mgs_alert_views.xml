@@ -19,9 +19,11 @@
                  de aviso (por eso tampoco es una lista editable en línea). -->
             <list string="Avisos" create="false" decoration-danger="is_triggered">
                 <header>
+                    <!-- La dependienta ve los avisos (solo lectura); crearlos y
+                         cambiarlos es cosa de la responsable. -->
                     <button name="%(action_mgs_alert_new)d" type="action"
                             string="Nuevo aviso de stock" display="always"
-                            class="btn-primary"/>
+                            class="btn-primary" groups="mi_gestor_stock.group_mgs_manager"/>
                 </header>
                 <field name="name" string="Nombre" optional="show"/>
                 <field name="product_id" options="{'no_create': True}"/>

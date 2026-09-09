@@ -177,6 +177,7 @@ class ProductTemplate(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def mgs_dashboard_data(self):
+        require_operator(self.env)
         products = self.search([("is_storable", "=", True)])
 
         # --- 1. Avisos ---
@@ -259,4 +260,8 @@ class ProductTemplate(models.Model):
             "low_stock": low_stock,
             "categories": list(categories.values()),
             "currency": self.env.company.currency_id.symbol,
+            # Recepción y la configuración de avisos son solo de la responsable:
+            # el panel esconde esos accesos para la dependienta (que aquí solo
+            # consulta), igual que hace la página de inicio.
+            "is_manager": is_manager(self.env),
         }
