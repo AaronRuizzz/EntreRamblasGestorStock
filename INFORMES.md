@@ -39,23 +39,7 @@ entregado en eventos. Es informativo — ese coste ya está contado en el margen
 de arriba, dentro de la línea que se cobró, así que no se suma dos veces. Las
 mermas no se incluyen aquí: ya tienen su propio apartado, con sus motivos.
 
-## Bajas de caducados
-
-**Stock → Bajas de caducados**. El programa revisa cada día lo que ha
-caducado más allá del margen configurado (Configuración → Dispositivos,
-por defecto 2 días) y prepara una **propuesta** con el coste que se va a dar
-de baja, a la vista. **No se confirma sola**: hay que revisarla y pulsar
-**Dar de baja**. No se puede deshacer — un error se corrige con un recuento
-físico, igual que el resto de ajustes de esta familia.
-
-## Previsión de compra
-
-**Stock → Previsión de compra**: elige la campaña (San Valentín, Día de la
-Madre, Todos los Santos o fechas libres), cuántos años mirar atrás y un
-margen de seguridad, y pulsa **Calcular**. Mira el consumo real de flor del
-mismo periodo en años anteriores y propone comprar el máximo histórico con
-margen, menos lo que ya hay sin caducar. **Crear pedido** rellena un pedido a
-proveedor en borrador, agrupado por el proveedor habitual de cada producto;
-lo que no tenga proveedor conocido se queda fuera, avisando cuál es.
-El primer año que se usa una campaña no hay historial: la pantalla lo dice,
-no inventa una cifra.
+> ⚠️ **9 de septiembre de 2026.** «Bajas de caducados» y «Previsión de compra» se
+> han **eliminado del programa**. Los apartados que seguían aquí describían esas
+> pantallas; se han retirado. Los caducados se ven en el **Panel de Stock**
+> (caducidades próximas) y se dan de baja como **merma**.

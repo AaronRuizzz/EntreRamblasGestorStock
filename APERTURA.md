@@ -1,5 +1,11 @@
 # Puesta en marcha: catálogo y existencias iniciales
 
+> ⚠️ **OBSOLETO (9 de septiembre de 2026).** «Existencias iniciales» y «Recuento
+> físico» se han eliminado del programa. El catálogo se da de alta con **Stock →
+> Alta de catálogo** (importación CSV) o dando de alta cada producto en
+> **Recepción**; el stock de arranque entra por **Recepción** como cualquier otra
+> mercancía. Este documento se conserva solo como histórico.
+
 Estos dos pasos se hacen **una sola vez**, antes de empezar a vender. Después,
 la mercancía entra siempre por **Recepción** y se corrige por **Recuento físico**.
 Los dos menús están en **Stock** y solo los ve la propietaria.

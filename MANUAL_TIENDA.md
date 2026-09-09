@@ -10,6 +10,18 @@ siguen sirviendo como detalle: [APERTURA.md](APERTURA.md), [EVENTOS.md](EVENTOS.
 > el datáfono. Cada cobro y cada reembolso con tarjeta se hace en el datáfono y
 > se comprueba allí.
 
+> ⚠️ **Pendiente de actualizar (9 de septiembre de 2026).** Se han **quitado del
+> programa** varias secciones que este manual todavía describe: **Compras**
+> (pedidos a proveedor y previsión), **Partidas**, **Recuento físico**,
+> **Reposición**, **Bajas de caducados**, **Recetas de ramo**, **Tarifas de
+> campaña** y **Existencias iniciales**. En su lugar:
+> - El **catálogo** se da de alta con **Stock → Alta de catálogo** o creando el
+>   producto en **Recepción**; el stock de arranque entra por **Recepción**.
+> - Un **ramo de un evento** se compone escribiendo sus flores en la propia línea
+>   del presupuesto (pestaña «Partidas» del evento), no eligiendo una receta.
+> - Las secciones 3 y 8 de este índice y las menciones a Compras/Previsión/
+>   Tarifas/Recetas están **pendientes de reescritura**.
+
 ## Índice
 
 1. [Quién puede hacer qué](#1-quién-puede-hacer-qué)
