@@ -74,6 +74,43 @@ class TestCompanyPricelistDefaults(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
+class TestCompanyShopPosConfig(TransactionCase):
+    """La conversión de una caja restaurante no puede bloquear un ``-u``."""
+
+    def _mark_shop_as_restaurant(self):
+        shop = self.env.ref("mi_gestor_stock.pos_config_shop")
+        # Este estado puede venir de una base anterior. Se escribe por SQL para
+        # reproducirlo sin instalar el módulo opcional pos_restaurant durante
+        # una prueba del addon.
+        self.env.cr.execute(
+            "UPDATE pos_config SET module_pos_restaurant = TRUE WHERE id = %s",
+            [shop.id],
+        )
+        shop.invalidate_recordset(["module_pos_restaurant"])
+        return shop
+
+    def test_converts_a_restaurant_config_when_it_has_no_open_session(self):
+        shop = self._mark_shop_as_restaurant()
+
+        self.env.company._mgs_ensure_shop_pos_config()
+
+        self.assertFalse(shop.module_pos_restaurant)
+
+    def test_defers_conversion_when_the_restaurant_session_is_open(self):
+        shop = self._mark_shop_as_restaurant()
+        session = self.env["pos.session"].create({
+            "config_id": shop.id,
+            "user_id": self.env.user.id,
+        })
+        self.assertNotEqual(session.state, "closed")
+
+        self.env.company._mgs_ensure_shop_pos_config()
+
+        self.assertTrue(shop.module_pos_restaurant)
+        self.assertEqual(self.env.ref("mi_gestor_stock.pos_config_shop"), shop)
+
+
+@tagged("post_install", "-at_install")
 class TestCompanySpanish(TransactionCase):
     def test_setup_spanish_leaves_spanish_active_and_english_inactive(self):
         self.env.company._mgs_setup_spanish()

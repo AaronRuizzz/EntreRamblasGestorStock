@@ -121,13 +121,31 @@ class ResCompany(models.Model):
         Config = self.env["pos.config"].sudo()
         existing = Config.search([])
         # Nunca plano de mesas: ni en la nuestra ni en una que ya exista.
+        # Odoo protege esa opción mientras una sesión está abierta; forzarla
+        # entonces abortaría todo el ``-u`` y podría interrumpir una venta. En
+        # ese caso se conserva la caja temporalmente y se corrige en la próxima
+        # actualización, una vez cerrada la sesión.
         restaurant = existing.filtered("module_pos_restaurant")
-        if restaurant:
-            restaurant.write({"module_pos_restaurant": False})
+        open_restaurant = restaurant.filtered(
+            lambda config: config.session_ids.filtered(lambda session: session.state != "closed"))
+        closable_restaurant = restaurant - open_restaurant
+        if closable_restaurant:
+            closable_restaurant.write({"module_pos_restaurant": False})
+        if open_restaurant:
+            _logger.warning(
+                "mi_gestor_stock: se aplaza quitar el plano de mesas de la caja %s "
+                "porque tiene una sesión abierta; ciérrala y vuelve a actualizar el módulo",
+                ", ".join(open_restaurant.mapped("name")),
+            )
 
         shop = self.env.ref("mi_gestor_stock.pos_config_shop", raise_if_not_found=False)
         if not shop:
             shop = existing.filtered(lambda c: not c.module_pos_restaurant)[:1]
+        if not shop and open_restaurant:
+            # No crear otra caja mientras la única existente está en uso. Se
+            # conserva como la caja de tienda y el cambio de modo queda
+            # aplazado por la guarda anterior.
+            shop = open_restaurant[:1]
         if not shop:
             try:
                 journal, payment_method_ids = Config._create_journal_and_payment_methods()
