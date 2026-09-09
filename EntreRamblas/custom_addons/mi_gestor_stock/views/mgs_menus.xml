@@ -2,10 +2,9 @@
 <odoo>
     <!-- ============================================================
          Gestor de Stock — única app visible del sistema.
-         Flujos: Vender · Eventos y encargos · Recepción · Compras ·
-         Stock (Panel/Productos/Partidas/Alertas/Reposición/Recuento/
-         Bajas de caducados/Recetas/Tarifas/Alta de catálogo/Existencias
-         iniciales) · Mermas · Informes · Configuración.
+         Flujos: Vender · Eventos y encargos · Recepción ·
+         Stock (Panel/Productos/Alertas/Alta de catálogo) ·
+         Mermas · Informes · Configuración.
          El TPV sigue instalado y registrando ventas, pero se abre
          aparte a pantalla completa (/pos/ui), no desde este menú.
          ============================================================ -->
@@ -25,42 +24,16 @@
     <menuitem id="menu_mgs_reception" name="Recepción" parent="menu_mgs_root"
               action="action_mgs_reception" sequence="10" groups="mi_gestor_stock.group_mgs_manager"/>
 
-    <!-- Compras agrupa lo que no es diario: pedir y prever. Recepción se
-         queda fuera, en la raíz, porque esa sí se usa cada mañana. -->
-    <menuitem id="menu_mgs_purchasing" name="Compras" parent="menu_mgs_root"
-              sequence="15" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_purchase" name="Pedidos a proveedor" parent="menu_mgs_purchasing"
-              action="action_mgs_purchase_orders" sequence="10" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_purchase_forecast" name="Previsión de compra" parent="menu_mgs_purchasing"
-              action="action_mgs_purchase_forecast" sequence="20" groups="mi_gestor_stock.group_mgs_manager"/>
-
     <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="20"/>
     <!-- De uso diario a de una sola vez, de 10 en 10, sin secuencias repetidas. -->
     <menuitem id="menu_mgs_stock_panel" name="Panel" parent="menu_mgs_stock"
               action="action_mgs_stock_dashboard" sequence="10"/>
     <menuitem id="menu_mgs_stock_products" name="Productos" parent="menu_mgs_stock"
               action="action_mgs_products" sequence="20"/>
-    <menuitem id="menu_mgs_lots" name="Partidas" parent="menu_mgs_stock"
-              action="action_mgs_lots" sequence="30" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_stock_alerts" name="Alertas" parent="menu_mgs_stock"
               action="action_mgs_alerts" sequence="40"/>
-    <menuitem id="menu_mgs_replenishment" name="Reposición" parent="menu_mgs_stock"
-              action="action_mgs_replenishment" sequence="50" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_counts" name="Recuento físico" parent="menu_mgs_stock"
-              action="action_mgs_inventory_counts" sequence="60" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_expiry" name="Bajas de caducados" parent="menu_mgs_stock"
-              action="action_mgs_expiry_writeoffs" sequence="70" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_bouquet_recipes" name="Recetas de ramo" parent="menu_mgs_stock"
-              action="action_mgs_bouquet_recipes" sequence="80" groups="mi_gestor_stock.group_mgs_manager"/>
-    <!-- Tarifas: una sola entrada (la lista). Su botón de cabecera abre el
-         asistente "Nueva tarifa de campaña" (ver mgs_pricelist_campaign_views.xml);
-         antes eran dos menús para lo mismo. -->
-    <menuitem id="menu_mgs_pricelists" name="Tarifas de campaña" parent="menu_mgs_stock"
-              action="action_mgs_pricelists" sequence="90" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_catalog_import" name="Alta de catálogo" parent="menu_mgs_stock"
               action="action_catalog_import" sequence="100" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_opening" name="Existencias iniciales" parent="menu_mgs_stock"
-              action="action_opening_stock" sequence="110" groups="mi_gestor_stock.group_mgs_manager"/>
 
     <menuitem id="menu_mgs_scrap" name="Mermas" parent="menu_mgs_root" action="action_mgs_scrap" sequence="25"/>
 

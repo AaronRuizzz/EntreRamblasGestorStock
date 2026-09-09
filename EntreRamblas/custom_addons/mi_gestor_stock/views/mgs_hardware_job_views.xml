@@ -20,8 +20,9 @@
     <record id="view_mgs_hardware_job_list" model="ir.ui.view">
         <field name="name">mgs.hardware.job.list</field><field name="model">mgs.hardware.job</field>
         <field name="arch" type="xml">
-            <list create="false" edit="false" delete="false" decoration-warning="state in ['sending','uncertain']">
-                <field name="create_date"/><field name="kind"/><field name="state"/>
+            <list string="Impresiones y aperturas" create="false" edit="false" delete="false"
+                  decoration-warning="state in ['sending','uncertain']">
+                <field name="create_date" string="Fecha"/><field name="kind"/><field name="state"/>
                 <field name="user_id"/><field name="session_id"/><field name="order_id"/>
                 <field name="reason"/><field name="message"/>
             </list>
@@ -30,9 +31,15 @@
     <record id="action_mgs_hardware_jobs" model="ir.actions.act_window">
         <field name="name">Impresiones y aperturas</field><field name="res_model">mgs.hardware.job</field>
         <field name="view_mode">list</field><field name="view_id" ref="view_mgs_hardware_job_list"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay impresiones ni aperturas de cajón</p>
+            <p>Aquí queda registrado cada ticket que se manda a la impresora y cada
+               vez que se abre el cajón, con su resultado. Sirve para comprobar que
+               el hardware de la tienda responde.</p>
+        </field>
     </record>
     <record id="ir_cron_mgs_hardware" model="ir.cron">
-        <field name="name">Floristería: enviar solicitudes pendientes de hardware</field>
+        <field name="name">Gestor de stock: enviar solicitudes pendientes de hardware</field>
         <field name="model_id" ref="model_mgs_hardware_job"/>
         <field name="state">code</field><field name="code">model._cron_dispatch()</field>
         <field name="interval_number">1</field><field name="interval_type">minutes</field>

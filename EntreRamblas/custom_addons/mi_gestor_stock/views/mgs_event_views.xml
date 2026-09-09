@@ -89,16 +89,12 @@
                     <notebook>
                         <page string="Partidas">
                             <field name="line_ids" readonly="state not in ('draft', 'delivered', 'returned')">
-                                <list editable="bottom">
-                                    <field name="product_id"
-                                           readonly="parent.state != 'draft'"/>
+                                <list>
+                                    <field name="product_id"/>
                                     <field name="product_is_composition" column_invisible="1"/>
-                                    <field name="recipe_id" readonly="parent.state != 'draft'"
-                                           options="{'no_create': True}"
-                                           invisible="not product_is_composition"/>
-                                    <field name="is_rental" readonly="parent.state != 'draft'"/>
-                                    <field name="quantity" readonly="parent.state != 'draft'"/>
-                                    <field name="unit_price" readonly="parent.state != 'draft'"/>
+                                    <field name="is_rental"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price"/>
                                     <field name="subtotal" readonly="1"/>
                                     <field name="delivered_qty" readonly="1"
                                            column_invisible="parent.state in ('draft', 'confirmed')"/>
@@ -111,6 +107,42 @@
                                     <field name="return_damaged_qty"
                                            column_invisible="parent.state not in ('delivered', 'returned')"/>
                                 </list>
+                                <form>
+                                    <group>
+                                        <field name="product_id"
+                                               readonly="parent.state != 'draft'"/>
+                                        <field name="product_is_composition" invisible="1"/>
+                                        <field name="is_rental" readonly="parent.state != 'draft'"/>
+                                        <field name="quantity" readonly="parent.state != 'draft'"/>
+                                        <field name="unit_price" readonly="parent.state != 'draft'"/>
+                                        <field name="subtotal" readonly="1"/>
+                                    </group>
+                                    <group string="Materiales de la composición"
+                                           invisible="not product_is_composition">
+                                        <p class="text-muted oe_grey" colspan="2">
+                                            Qué flores y material lleva UNA unidad
+                                            de esta composición. El evento descuenta
+                                            cada uno de su partida al entregar.
+                                        </p>
+                                        <field name="component_ids" nolabel="1" colspan="2"
+                                               readonly="parent.state != 'draft'">
+                                            <list editable="bottom">
+                                                <field name="product_id"
+                                                       domain="[('is_storable', '=', True), ('mgs_is_composition', '=', False)]"
+                                                       options="{'no_create': True}"/>
+                                                <field name="quantity"/>
+                                            </list>
+                                        </field>
+                                    </group>
+                                    <group string="Devolución"
+                                           invisible="parent.state not in ('delivered', 'returned')">
+                                        <field name="delivered_qty" readonly="1"/>
+                                        <field name="returned_qty" readonly="1"/>
+                                        <field name="damaged_qty" readonly="1"/>
+                                        <field name="return_ok_qty"/>
+                                        <field name="return_damaged_qty"/>
+                                    </group>
+                                </form>
                             </field>
                         </page>
                         <page string="Cobros">

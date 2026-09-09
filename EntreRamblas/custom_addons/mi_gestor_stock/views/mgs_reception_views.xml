@@ -28,11 +28,10 @@
                 <sheet>
                     <group>
                         <group>
-                            <field name="purchase_id" options="{'no_create': True}"/>
                             <field name="supplier_id"/>
+                            <field name="supplier_ref" placeholder="Nº de albarán del proveedor"/>
                         </group>
                         <group>
-                            <field name="supplier_ref" placeholder="Nº de albarán del proveedor"/>
                             <field name="document_date"/>
                             <field name="picking_id" invisible="not picking_id"/>
                         </group>

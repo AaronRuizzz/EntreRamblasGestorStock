@@ -21,6 +21,7 @@ Dos ideas que conviene entender antes de tocar nada:
    que vuelve roto se da de baja como merma con su coste real; lo que no vuelve
    se queda a la vista en la ubicación de alquiler para poder reclamarlo.
 """
+import json
 import math
 
 from odoo import api, fields, models, _
@@ -418,15 +419,16 @@ class MgsEventLine(models.Model):
     company_id = fields.Many2one(related="event_id.company_id", store=True)
     product_id = fields.Many2one(
         "product.product", "Producto", required=True,
-        help="Si es una composición a medida (ramo, centro de mesa...), elige "
-             "también qué receta lleva: el evento descuenta cada flor de la "
-             "receta, no la composición en sí, que no tiene existencias propias.")
-    # Solo tiene sentido -y solo se acepta- cuando product_id es una
-    # composición a medida (ver _check_mgs_composition_needs_recipe). Reutiliza
-    # mgs.bouquet.recipe, el mismo catálogo de recetas que ya usa el TPV: no
-    # hace falta mantener dos sitios con "ramo novia clásico = 12 rosas...".
-    recipe_id = fields.Many2one("mgs.bouquet.recipe", "Receta")
-    # Related solo para que la vista pueda mostrar/ocultar «Receta» según el
+        help="Si es una composición a medida (ramo, centro de mesa...), indica "
+             "también de qué flores y material está hecha: el evento descuenta "
+             "cada una de su partida, no la composición en sí, que no tiene "
+             "existencias propias.")
+    # Solo tiene sentido -y solo se acepta- cuando product_id es una composición
+    # a medida (ver _check_mgs_composition_components). Se escribe en la propia
+    # línea, sin catálogo de recetas: cada evento monta el ramo que lleva.
+    component_ids = fields.One2many(
+        "mgs.event.line.component", "line_id", string="Materiales")
+    # Related solo para que la vista pueda mostrar/ocultar «Materiales» según el
     # producto elegido: un domain de vista no puede mirar un subcampo de un
     # many2one que no esté ya cargado en el formulario.
     product_is_composition = fields.Boolean(related="product_id.mgs_is_composition")
@@ -455,20 +457,29 @@ class MgsEventLine(models.Model):
                 line.is_rental = line.product_id.mgs_rental_ok
                 line.unit_price = line.product_id.list_price
 
-    @api.constrains("product_id", "recipe_id")
-    def _check_mgs_composition_needs_recipe(self):
+    @api.constrains("product_id", "component_ids")
+    def _check_mgs_composition_components(self):
         # Una composicion no tiene existencias propias (is_storable=False,
-        # forzado en mgs_bouquet.py): sin receta, action_deliver() no sabria
-        # que flor descontar y se saltaria la linea en silencio (ver la
-        # seccion "0.2" del traspaso). Con esto no puede entrar sin receta.
+        # forzado en mgs_bouquet.py): sin materiales, action_deliver() no
+        # sabria que flor descontar y se saltaria la linea en silencio (ver
+        # la seccion "0.2" del traspaso). Con esto no puede entrar sin ellos,
+        # y ademas se validan contra el MISMO parser que usa el cobro del TPV.
+        PosLine = self.env["pos.order.line"]
         for line in self:
-            if line.product_id.mgs_is_composition and not line.recipe_id:
+            if line.product_id.mgs_is_composition:
+                if not line.component_ids:
+                    raise UserError(_(
+                        "«%s» es una composición a medida: indica de qué "
+                        "flores y material está hecha.",
+                        line.product_id.display_name))
+                spec = json.dumps([
+                    {"product_id": component.product_id.id,
+                     "qty": component.quantity}
+                    for component in line.component_ids])
+                PosLine._mgs_parse_components(spec)
+            elif line.component_ids:
                 raise UserError(_(
-                    "«%s» es una composición a medida: elige también qué "
-                    "receta lleva.", line.product_id.display_name))
-            if line.recipe_id and not line.product_id.mgs_is_composition:
-                raise UserError(_(
-                    "«%s» no es una composición a medida: no necesita receta.",
+                    "«%s» no es una composición a medida: no lleva materiales.",
                     line.product_id.display_name))
 
     def _check_valid(self):
@@ -484,24 +495,24 @@ class MgsEventLine(models.Model):
             raise UserError(_("«%s» no lleva control de existencias: no se puede alquilar.",
                               self.product_id.display_name))
         # Sin "else raise" para el resto de composiciones: una composición con
-        # receta es válida (_check_mgs_composition_needs_recipe ya lo exige al
+        # materiales es válida (_check_mgs_composition_components ya lo exige al
         # guardar la línea), y action_deliver() sabe expandirla.
 
     def _mgs_deliver_composition(self, source, destination):
         """Entrega una composición (ramo, centro...) de un evento: un
-        movimiento por material de la RECETA, multiplicado por la cantidad de
+        movimiento por MATERIAL de la línea, multiplicado por la cantidad de
         la línea. Mismo patrón que
         mgs_bouquet.StockPicking._create_move_from_pos_order_lines, pero para
         movimientos sueltos en vez de para una línea del TPV. Una composición
         nunca es de alquiler (is_storable=False lo impide en _check_valid),
         así que siempre entrega vendiendo, nunca a tránsito."""
         self.ensure_one()
-        for recipe_line in self.recipe_id.line_ids:
+        for component in self.component_ids:
             move = self.env["stock.move"].create({
-                "name": "%s - %s" % (self.event_id.name, recipe_line.product_id.display_name),
-                "product_id": recipe_line.product_id.id,
-                "product_uom": recipe_line.product_id.uom_id.id,
-                "product_uom_qty": recipe_line.quantity * self.quantity,
+                "name": "%s - %s" % (self.event_id.name, component.product_id.display_name),
+                "product_id": component.product_id.id,
+                "product_uom": component.product_id.uom_id.id,
+                "product_uom_qty": component.quantity * self.quantity,
                 "location_id": source.id,
                 "location_dest_id": destination.id,
                 "company_id": self.company_id.id,
@@ -550,6 +561,20 @@ class MgsEventLine(models.Model):
         if not self.env.su and any(line.event_id.state != "draft" for line in self):
             raise UserError(_("Las partidas de un evento aceptado se conservan."))
         return super().unlink()
+
+
+class MgsEventLineComponent(models.Model):
+    """Material de una composición a medida de un evento (una flor, un follaje,
+    un envoltorio) con la cantidad que lleva UNA unidad de la composición.
+    Se valida contra el mismo parser que el cobro del TPV, en
+    mgs.event.line._check_mgs_composition_components."""
+    _name = "mgs.event.line.component"
+    _description = "Material de una composición a medida de un evento"
+
+    line_id = fields.Many2one("mgs.event.line", required=True, ondelete="cascade", index=True)
+    company_id = fields.Many2one(related="line_id.company_id", store=True)
+    product_id = fields.Many2one("product.product", "Material", required=True)
+    quantity = fields.Float("Cantidad", default=1.0, required=True)
 
 
 class MgsEventPayment(models.Model):

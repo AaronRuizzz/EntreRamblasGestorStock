@@ -30,7 +30,8 @@ def dispatch_job(dbname, job_id):
             except Exception as error:
                 job.write({"state": "uncertain", "message": str(error)})
             else:
-                job.write({"state": "sent", "message": "Enviado al dispositivo; comprueba el resultado físico."})
+                job.write({"state": "sent",
+                           "message": _("Enviado al dispositivo; comprueba el resultado físico.")})
                 if job.kind == "receipt":
                     cr.execute("UPDATE pos_order SET nb_print = COALESCE(nb_print, 0) + 1 WHERE id = %s", [job.order_id.id])
             cr.commit()
@@ -44,19 +45,21 @@ class HardwareJob(models.Model):
     _description = "Registro de impresiones y aperturas de cajón"
     _order = "id desc"
 
-    request_key = fields.Char(required=True, readonly=True, index=True)
-    kind = fields.Selection([("receipt", "Ticket"), ("drawer", "Apertura de cajón")], required=True, readonly=True)
+    request_key = fields.Char("Clave de solicitud", required=True, readonly=True, index=True)
+    kind = fields.Selection([("receipt", "Ticket"), ("drawer", "Apertura de cajón")],
+                            string="Tipo", required=True, readonly=True)
     state = fields.Selection([
         ("pending", "Pendiente"), ("sending", "Envío iniciado, resultado sin confirmar"),
         ("sent", "Enviado"), ("uncertain", "Resultado incierto"),
-    ], default="pending", required=True, readonly=True)
-    company_id = fields.Many2one("res.company", required=True, readonly=True)
-    user_id = fields.Many2one("res.users", required=True, readonly=True)
-    session_id = fields.Many2one("pos.session", readonly=True)
-    order_id = fields.Many2one("pos.order", readonly=True)
-    reason = fields.Char(required=True, readonly=True)
-    message = fields.Char(readonly=True)
-    payload = fields.Binary(required=True, attachment=False, readonly=True, groups=COST_GROUPS)
+    ], string="Estado", default="pending", required=True, readonly=True)
+    company_id = fields.Many2one("res.company", string="Empresa", required=True, readonly=True)
+    user_id = fields.Many2one("res.users", string="Usuario", required=True, readonly=True)
+    session_id = fields.Many2one("pos.session", string="Sesión de caja", readonly=True)
+    order_id = fields.Many2one("pos.order", string="Venta", readonly=True)
+    reason = fields.Char("Motivo", required=True, readonly=True)
+    message = fields.Char("Resultado", readonly=True)
+    payload = fields.Binary("Datos enviados", required=True, attachment=False,
+                            readonly=True, groups=COST_GROUPS)
 
     _sql_constraints = [("request_key_unique", "unique(request_key)", "Esta solicitud ya está registrada.")]
 

@@ -158,10 +158,13 @@
 
                         <h3>Detalle de mermas</h3>
                         <table t-if="d['scrap_rows']" class="table table-sm">
-                            <thead><tr><th>Producto</th><th>Partida</th><th>Motivo</th><th>Cantidad</th><th>Coste</th></tr></thead>
+                            <thead><tr><th>Fecha</th><th>Referencia</th><th>Producto</th><th>Partida</th>
+                                <th>Motivo</th><th>Cantidad</th><th>Registrado por</th><th>Coste</th></tr></thead>
                             <tbody><tr t-foreach="d['scrap_rows']" t-as="row">
+                                <td t-esc="row['date']"/><td t-esc="row['reference']"/>
                                 <td t-esc="row['product']"/><td t-esc="row['lot']"/><td t-esc="row['reason']"/>
                                 <td><t t-esc="row['quantity']"/> <t t-esc="row['uom']"/></td>
+                                <td t-esc="row['recorded_by']"/>
                                 <td><span t-esc="row['cost']" t-options="{'widget': 'monetary', 'display_currency': d['currency']}"/></td>
                             </tr></tbody>
                         </table>

@@ -33,21 +33,12 @@ class MgsReception(models.TransientModel):
     supplier_id = fields.Many2one("res.partner", string="Proveedor")
     picking_id = fields.Many2one("stock.picking", readonly=True, copy=False)
 
-    # Pedido del que viene esta entrega, y datos del albarán del proveedor.
-    # Los tres son opcionales a propósito: no toda recepción viene de un
-    # pedido formal (una compra de urgencia, una donación, una corrección),
-    # y exigirlos entorpecería justo lo que se quiere facilitar.
-    purchase_id = fields.Many2one(
-        "mgs.purchase.order", string="Pedido",
-        domain="[('state', 'in', ('ordered', 'partial')), ('company_id', '=', company_id)]")
+    # Datos del albarán del proveedor. Opcionales a propósito: no toda
+    # recepción trae albarán (una compra de urgencia, una donación, una
+    # corrección), y exigirlos entorpecería justo lo que se quiere facilitar.
     supplier_ref = fields.Char("Nº de albarán del proveedor")
     document_date = fields.Date("Fecha del albarán")
     company_id = fields.Many2one("res.company", default=lambda self: self.env.company)
-
-    @api.onchange("purchase_id")
-    def _onchange_purchase_id(self):
-        if self.purchase_id and not self.supplier_id:
-            self.supplier_id = self.purchase_id.partner_id
 
     # --- modo "existente" ---
     manual_barcode = fields.Char(
@@ -236,10 +227,9 @@ class MgsReception(models.TransientModel):
         if not self.line_ids:
             raise UserError(_("Escanea al menos un producto antes de guardar."))
 
-        # Mismo candado, y en el mismo orden, que toma la apertura de existencias
-        # (mgs_opening_stock.action_apply). La apertura solo admite productos sin
-        # movimientos: sin este candado una entrada simultanea podria confirmarse
-        # entre su comprobacion y su ajuste, y el stock quedaria contado dos veces.
+        # Candado por producto y en orden de id: sin el, una entrada simultanea
+        # del mismo articulo podria confirmarse entre su comprobacion de stock y
+        # su ajuste, y las existencias quedarian contadas dos veces.
         self.env.cr.execute("SELECT id FROM product_product WHERE id IN %s ORDER BY id FOR UPDATE",
                             [tuple(self.line_ids.product_id.ids)])
 
@@ -266,7 +256,7 @@ class MgsReception(models.TransientModel):
             "picking_type_id": picking_type.id,
             "location_id": src.id,
             "location_dest_id": dest.id,
-            "origin": self.purchase_id.name or self.supplier_ref or _("Recepción rápida"),
+            "origin": self.supplier_ref or _("Recepción rápida"),
             "partner_id": self.supplier_id.id,
             "move_ids": [Command.create({
                 "name": line.product_id.display_name,
@@ -315,12 +305,6 @@ class MgsReception(models.TransientModel):
         for line in self.line_ids:
             vals = {"mgs_reception_date": today}
             line.product_id.product_tmpl_id.write(vals)
-
-        if self.purchase_id:
-            received = {}
-            for line in self.line_ids:
-                received[line.product_id.id] = received.get(line.product_id.id, 0.0) + line.quantity
-            self.purchase_id._mgs_register_receipt(received)
 
         message = _("%(n)s productos guardados en almacén · albarán %(ref)s",
                     n=len(self.line_ids), ref=picking.name)

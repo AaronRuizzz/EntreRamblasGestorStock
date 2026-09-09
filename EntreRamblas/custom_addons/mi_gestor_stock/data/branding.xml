@@ -20,8 +20,8 @@
     <!-- Idioma: toda la interfaz en espanol (es_ES) -->
     <function model="res.company" name="_mgs_setup_spanish" eval="[[]]"/>
 
-    <!-- Tarifas de campana: activa su uso en las cajas ya configuradas
-         (ver models/mgs_purchase_forecast.py y mgs_pricelist_campaign.py). -->
+    <!-- Deja las cajas ya configuradas listas para usar tarifas nativas de
+         Odoo y controla quien puede cambiar el precio en el TPV. -->
     <function model="res.company" name="_mgs_apply_pos_pricelist_defaults" eval="[[]]"/>
 
     <!-- Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.

@@ -22,7 +22,6 @@
 
                     <group>
                         <field name="pos_config_id" options="{'no_create': True}"/>
-                        <field name="expiry_grace_days"/>
                     </group>
 
                     <notebook>

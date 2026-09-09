@@ -26,8 +26,6 @@ import math
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError
 
-from .mgs_permissions import require_manager
-
 # Tope de componentes por composición. Un centro de mesa grande no pasa de unos
 # pocos materiales; un número enorme solo puede venir de un error o de un abuso.
 MAX_COMPONENTS = 40
@@ -112,8 +110,9 @@ class PosOrderLine(models.Model):
 
     def _mgs_parse_components(self, spec):
         """El resto de _mgs_parse_bouquet, sin el requisito de un producto
-        concreto: lo usa también mgs.bouquet.recipe para validarse contra el
-        MISMO parser que el cobro, sin necesitar una composición ya creada."""
+        concreto: lo usa también la línea de un evento (mgs.event.line) para
+        validar su composición contra el MISMO parser que el cobro del TPV,
+        sin necesitar una composición ya creada."""
         try:
             items = json.loads(spec)
         except (TypeError, ValueError):
@@ -228,102 +227,3 @@ class StockPicking(models.Model):
                 move._action_confirm(merge=False)
                 move._add_mls_related_to_order(line)
                 move.picked = True
-
-
-class MgsBouquetRecipe(models.Model):
-    """Punto de partida guardado para un ramo, no un candado.
-
-    «Ramo novia clásico = 12 rosas + 3 eucalipto + papel»: se elige en el TPV
-    y precarga el diálogo de montaje, pero la dependienta sigue pudiendo
-    sumar, quitar y cambiar el precio antes de cobrar — así funciona una
-    floristería de verdad. `spec_json` se valida con el MISMO parser que usa
-    el cobro (_mgs_parse_components), así que una receta guardada nunca puede
-    contener algo que luego el TPV rechace.
-    """
-    _name = "mgs.bouquet.recipe"
-    _inherit = ["pos.load.mixin"]
-    _description = "Receta de ramo o composición a medida"
-    _order = "name"
-
-    name = fields.Char(required=True)
-    active = fields.Boolean(default=True)
-    note = fields.Char()
-    list_price = fields.Float("Precio sugerido", digits="Product Price")
-    line_ids = fields.One2many("mgs.bouquet.recipe.line", "recipe_id", string="Materiales")
-    # Precalculado en el servidor con la MISMA forma que mgs_bouquet_spec, para
-    # que el TPV no tenga que reconstruirlo a partir de dos modelos cargados
-    # por separado: uno solo, sin relaciones que reconciliar en el cliente.
-    spec_json = fields.Char(compute="_compute_spec_json", store=True)
-
-    @api.depends("line_ids.product_id", "line_ids.quantity")
-    def _compute_spec_json(self):
-        for recipe in self:
-            recipe.spec_json = json.dumps([
-                {"product_id": line.product_id.id, "qty": line.quantity}
-                for line in recipe.line_ids if line.product_id])
-
-    @api.constrains("line_ids")
-    def _check_recipe_is_valid(self):
-        Line = self.env["pos.order.line"]
-        for recipe in self:
-            Line._mgs_parse_components(recipe.spec_json or "[]")
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        require_manager(self.env)
-        recipes = super().create(vals_list)
-        # @api.constrains("line_ids") NO se dispara si un create() no incluye
-        # esa clave en absoluto (p. ej. "name" solo, sin partidas): Odoo
-        # comprueba las restricciones de los campos que vienen en vals, no
-        # todos los campos del registro nuevo. Sin esto, una receta vacía se
-        # crearía sin avisar y solo fallaría más tarde, al usarla en el TPV.
-        recipes._check_recipe_is_valid()
-        return recipes
-
-    def write(self, vals):
-        require_manager(self.env)
-        res = super().write(vals)
-        self._check_recipe_is_valid()
-        return res
-
-    def unlink(self):
-        require_manager(self.env)
-        return super().unlink()
-
-    @api.model
-    def _load_pos_data_fields(self, config_id):
-        return ["id", "name", "note", "list_price", "spec_json"]
-
-    @api.model
-    def _load_pos_data_domain(self, data):
-        return [("active", "=", True)]
-
-
-class MgsBouquetRecipeLine(models.Model):
-    _name = "mgs.bouquet.recipe.line"
-    _description = "Material de una receta de ramo"
-
-    recipe_id = fields.Many2one("mgs.bouquet.recipe", required=True, ondelete="cascade", index=True)
-    product_id = fields.Many2one("product.product", "Material", required=True)
-    quantity = fields.Float("Cantidad", default=1.0, required=True)
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        require_manager(self.env)
-        return super().create(vals_list)
-
-    def write(self, vals):
-        require_manager(self.env)
-        return super().write(vals)
-
-    def unlink(self):
-        require_manager(self.env)
-        return super().unlink()
-
-
-class PosSessionRecipe(models.Model):
-    _inherit = "pos.session"
-
-    @api.model
-    def _load_pos_data_models(self, config_id):
-        return super()._load_pos_data_models(config_id) + ["mgs.bouquet.recipe"]

@@ -119,11 +119,3 @@ class TestReception(TransactionCase):
         with self.assertRaises(UserError), self.env.cr.savepoint():
             excessive.do_scrap()
 
-    def test_replenishment_excludes_expired_stock(self):
-        self.receive(quantity=50, days=-2)
-        self.receive(quantity=3, days=2)
-        alert = self.env["mgs.stock.alert"].create({
-            "product_id": self.product.product_tmpl_id.id, "min_qty": 5, "target_qty": 12,
-        })
-        self.assertEqual(alert.available_qty, 3)
-        self.assertEqual(alert.suggested_qty, 9)

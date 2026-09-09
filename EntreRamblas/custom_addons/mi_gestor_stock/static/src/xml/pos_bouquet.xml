@@ -6,16 +6,6 @@
 
                 <!-- Izquierda: lo que se puede meter en el ramo -->
                 <div class="d-flex flex-column flex-grow-1" style="flex-basis: 55%;">
-                    <div t-if="props.recipes and props.recipes.length" class="mb-2">
-                        <div class="d-flex flex-wrap gap-1">
-                            <button t-foreach="props.recipes" t-as="recipe" t-key="recipe.id"
-                                    class="btn btn-sm btn-outline-primary"
-                                    t-att-title="recipe.note"
-                                    t-on-click="() => this.applyRecipe(recipe)">
-                                <t t-esc="recipe.name"/>
-                            </button>
-                        </div>
-                    </div>
                     <input type="text" class="form-control form-control-lg mb-2"
                            placeholder="Buscar flor o material..."
                            t-model="state.search"/>

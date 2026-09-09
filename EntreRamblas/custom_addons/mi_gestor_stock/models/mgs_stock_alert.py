@@ -32,26 +32,6 @@ class MgsStockAlert(models.Model):
         "Avisar cuando queden", default=10.0, digits="Product Unit of Measure",
              help="Salta el aviso cuando el stock sea igual o menor que esta cantidad.")
 
-    target_qty = fields.Float("Stock objetivo", digits="Product Unit of Measure",
-                              help="Si se deja a cero, se propone reponer hasta el doble del mínimo.")
-    available_qty = fields.Float("Disponible sin caducar", compute="_compute_replenishment")
-    suggested_qty = fields.Float("Reposición sugerida", compute="_compute_replenishment")
-
-    @api.depends("product_id", "min_qty", "target_qty", "product_id.qty_available")
-    def _compute_replenishment(self):
-        now = fields.Datetime.now()
-        for alert in self:
-            quants = self.env["stock.quant"].search([
-                ("product_id.product_tmpl_id", "=", alert.product_id.id),
-                ("company_id", "=", self.env.company.id), ("location_id.usage", "=", "internal"),
-                ("owner_id", "=", False),
-            ])
-            available = sum(q.quantity - q.reserved_quantity for q in quants
-                            if not q.lot_id.expiration_date or q.lot_id.expiration_date >= now)
-            alert.available_qty = available
-            target = max(alert.min_qty, alert.target_qty or alert.min_qty * 2)
-            alert.suggested_qty = max(0, target - available) if available <= alert.min_qty else 0
-
     # --- periodic ---
     interval_type = fields.Selection([
         ("days", "Cada X días"),
@@ -68,18 +48,30 @@ class MgsStockAlert(models.Model):
     is_triggered = fields.Boolean(
         "Saltando ahora", compute="_compute_is_triggered",
         help="Solo para los avisos por cantidad: indica si el stock está en el límite.")
-    name = fields.Char(compute="_compute_name")
+
+    # Nombre libre y opcional: "Rosas San Valentín". Si se deja vacío se usa el
+    # texto automático (auto_label) tanto en la lista como en el panel.
+    name = fields.Char(
+        "Nombre del aviso",
+        help="Opcional. Si lo dejas en blanco, el aviso se nombra solo a partir "
+             "del producto y las condiciones.")
+    auto_label = fields.Char(compute="_compute_auto_label")
 
     @api.depends("product_id", "alert_type", "min_qty", "interval_type", "interval_number")
-    def _compute_name(self):
+    def _compute_auto_label(self):
         for alert in self:
             product = alert.product_id.name or _("(sin producto)")
             if alert.alert_type == "threshold":
-                alert.name = _("%(prod)s · avisar con %(qty)s o menos",
-                               prod=product, qty=alert.min_qty)
+                alert.auto_label = _("%(prod)s · avisar con %(qty)s o menos",
+                                     prod=product, qty=alert.min_qty)
             else:
-                alert.name = _("%(prod)s · %(freq)s",
-                               prod=product, freq=alert._mgs_interval_label())
+                alert.auto_label = _("%(prod)s · %(freq)s",
+                                     prod=product, freq=alert._mgs_interval_label())
+
+    @api.depends("name", "auto_label")
+    def _compute_display_name(self):
+        for alert in self:
+            alert.display_name = alert.name or alert.auto_label
 
     @api.depends("product_id.qty_available", "min_qty", "alert_type")
     def _compute_is_triggered(self):
@@ -133,13 +125,16 @@ class MgsStockAlert(models.Model):
         for alert in self.search([("alert_type", "=", "periodic")]):
             if alert._mgs_next_due() > now:
                 continue
+            message = _("%(prod)s: %(qty).0f uds. en stock (%(freq)s)",
+                        prod=alert.product_id.name,
+                        qty=alert.product_id.qty_available,
+                        freq=alert._mgs_interval_label())
+            if alert.name:
+                message = "%s · %s" % (alert.name, message)
             Notice.create({
                 "alert_id": alert.id,
                 "product_id": alert.product_id.id,
-                "name": _("%(prod)s: %(qty).0f uds. en stock (%(freq)s)",
-                          prod=alert.product_id.name,
-                          qty=alert.product_id.qty_available,
-                          freq=alert._mgs_interval_label()),
+                "name": message,
             })
             alert.last_run = now
 

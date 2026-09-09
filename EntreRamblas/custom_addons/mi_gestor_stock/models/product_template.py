@@ -185,14 +185,17 @@ class ProductTemplate(models.Model):
         for alert in threshold_alerts:
             if not alert._mgs_is_below_threshold():
                 continue
+            message = _("%(prod)s: quedan %(qty).0f uds. (aviso a %(min).0f)",
+                        prod=alert.product_id.name,
+                        qty=alert.product_id.qty_available,
+                        min=alert.min_qty)
+            if alert.name:
+                message = "%s · %s" % (alert.name, message)
             alerts.append({
                 "kind": "threshold",
                 "notice_id": False,          # los de cantidad no se descartan a mano
                 "product_id": alert.product_id.id,
-                "message": _("%(prod)s: quedan %(qty).0f uds. (aviso a %(min).0f)",
-                             prod=alert.product_id.name,
-                             qty=alert.product_id.qty_available,
-                             min=alert.min_qty),
+                "message": message,
             })
         notices = self.env["mgs.stock.alert.notice"].search([("is_read", "=", False)])
         for notice in notices:

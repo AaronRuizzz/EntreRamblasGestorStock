@@ -77,8 +77,11 @@ class MgsMonthlyReport(models.TransientModel):
                   [[r['name'], r['qty'], r['revenue'], r['cost'], r['revenue'] - r['cost']] for r in data['sold_rows']])
             table('ventas_diarias', ['Fecha Madrid', 'Ventas sin impuestos', 'Impuestos', 'Coste histórico', 'Margen bruto'],
                   [[r['date'], r['revenue'], r['taxes'], r['cost'], r['revenue'] - r['cost']] for r in data['daily_rows']])
-            table('mermas', ['Producto', 'Partida', 'Motivo', 'Cantidad', 'Unidad', 'Coste histórico'],
-                  [[r[k] for k in ('product', 'lot', 'reason', 'quantity', 'uom', 'cost')] for r in data['scrap_rows']])
+            table('mermas',
+                  ['Fecha', 'Referencia', 'Producto', 'Partida', 'Motivo', 'Cantidad', 'Unidad',
+                   'Registrado por', 'Coste histórico'],
+                  [[r[k] for k in ('date', 'reference', 'product', 'lot', 'reason', 'quantity', 'uom',
+                                   'recorded_by', 'cost')] for r in data['scrap_rows']])
             table('stock_actual', ['Producto', 'Cantidad', 'Unidad', 'Valor'],
                   [[r[k] for k in ('name', 'qty', 'uom', 'value')] for r in data['stock_rows']])
             table('consumo_flor', ['Producto', 'Cantidad consumida', 'Unidad', 'Coste histórico'],
@@ -191,12 +194,16 @@ class MgsMonthlyReport(models.TransientModel):
         ])
         reasons = dict(self.env["stock.scrap"]._fields["mgs_reason"]._description_selection(self.env))
         scrap_rows = []
-        for scrap in scraps:
+        for scrap in scraps.sorted("date_done"):
             move_lines = scrap.move_ids.move_line_ids
+            done = fields.Datetime.context_timestamp(self, scrap.date_done) if scrap.date_done else False
             scrap_rows.append({"product": scrap.product_id.display_name,
+                "date": fields.Date.to_string(done.date()) if done else "",
+                "reference": scrap.name or "",
                 "lot": scrap.lot_id.name or "", "reason": reasons.get(scrap.mgs_reason, ""),
                 "quantity": sum(move_lines.mapped("quantity_product_uom")),
                 "uom": scrap.product_id.uom_id.name,
+                "recorded_by": scrap.mgs_validated_by.name or "",
                 "cost": sum(ml.quantity_product_uom * ml.mgs_unit_cost for ml in move_lines)})
         scrap_cost = sum(row["cost"] for row in scrap_rows)
 
