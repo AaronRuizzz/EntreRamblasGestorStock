@@ -40,7 +40,7 @@ class MgsStockAlert(models.Model):
     ], string="Frecuencia", default="weekly")
     interval_number = fields.Integer("Cada (días)", default=7)
 
-    active = fields.Boolean(default=True)
+    active = fields.Boolean("Activo", default=True)
     last_run = fields.Datetime("Último aviso enviado", readonly=True)
 
     qty_available = fields.Float(
