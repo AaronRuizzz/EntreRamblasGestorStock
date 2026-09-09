@@ -141,6 +141,9 @@ class MgsReception(models.TransientModel):
             raise UserError(_("El precio y el coste no pueden ser negativos."))
         if not self.new_barcode:
             raise UserError(_("Escanea el código de barras del producto nuevo."))
+        if not self.new_categ_id:
+            raise UserError(_("Elige una categoría para el producto, o escribe una "
+                              "nueva y pulsa «Crear»."))
         if self._mgs_find_product(self.new_barcode):
             raise UserError(_("Ya existe un producto con el código %s.", self.new_barcode))
 
@@ -149,7 +152,7 @@ class MgsReception(models.TransientModel):
             "barcode": self.new_barcode,
             "list_price": self.new_price,
             "standard_price": self.new_cost,
-            "categ_id": self.new_categ_id.id or self.env.ref("product.product_category_all").id,
+            "categ_id": self.new_categ_id.id,
             "is_storable": True,
             "sale_ok": True,
             "available_in_pos": True,

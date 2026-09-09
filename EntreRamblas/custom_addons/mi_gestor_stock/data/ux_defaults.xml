@@ -58,4 +58,27 @@
     <record id="base.menu_tests" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
+
+    <!-- ==========================================================
+         Categorías de producto de fábrica: fuera del selector.
+         ==========================================================
+         Odoo precarga «Todo», «Todo/Vendible», «Todo/Gastos» y, con el
+         TPV, «Todo/Vendible/TPV». Para la tienda no significan nada y solo
+         estorban al elegir la categoría de un producto. Se archivan (campo
+         `active`, añadido en models/product_category.py) para que
+         desaparezcan de todos los desplegables. La dueña crea las suyas
+         desde Recepción → «Producto nuevo» y quedan disponibles al instante.
+         No se pueden borrar: Odoo las protege como categorías genéricas. -->
+    <record id="product.product_category_all" model="product.category">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="product.product_category_1" model="product.category">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="product.cat_expense" model="product.category">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="point_of_sale.product_category_pos" model="product.category">
+        <field name="active" eval="False"/>
+    </record>
 </odoo>

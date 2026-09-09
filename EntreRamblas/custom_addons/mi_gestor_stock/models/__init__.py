@@ -1,6 +1,7 @@
 from . import mgs_config
 from . import mgs_backup
 from . import res_company
+from . import product_category
 from . import product_template
 from . import mgs_stock_lot
 from . import mgs_pos_stock
