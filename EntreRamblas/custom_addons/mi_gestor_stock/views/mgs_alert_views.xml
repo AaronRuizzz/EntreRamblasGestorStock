@@ -38,7 +38,7 @@
         <field name="name">mgs.stock.alert.form</field>
         <field name="model">mgs.stock.alert</field>
         <field name="arch" type="xml">
-            <form string="Aviso de stock">
+            <form string="Aviso de stock" js_class="mgs_clean_form">
                 <sheet>
                     <group>
                         <group string="Producto">

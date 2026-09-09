@@ -10,7 +10,7 @@
     <record id="opening_form" model="ir.ui.view">
         <field name="name">mgs.opening.stock.form</field><field name="model">mgs.opening.stock</field>
         <field name="arch" type="xml">
-            <form string="Existencias iniciales" duplicate="false">
+            <form string="Existencias iniciales" duplicate="false" js_class="mgs_clean_form">
                 <header><button name="action_apply" type="object" string="Aplicar apertura" class="btn-primary" invisible="state == 'done'" confirm="Se registrarán estas existencias iniciales. Comprueba cantidades y costes antes de continuar."/><field name="state" widget="statusbar"/></header>
                 <sheet>
                     <p>Solo para productos sin existencias ni movimientos anteriores. Cada línea genera una partida. Las compras posteriores se registran en Recepción.</p>

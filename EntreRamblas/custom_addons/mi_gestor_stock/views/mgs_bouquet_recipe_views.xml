@@ -16,7 +16,7 @@
         <field name="name">mgs.bouquet.recipe.form</field>
         <field name="model">mgs.bouquet.recipe</field>
         <field name="arch" type="xml">
-            <form string="Receta de ramo">
+            <form string="Receta de ramo" js_class="mgs_clean_form">
                 <sheet>
                     <div class="oe_title">
                         <h1><field name="name" placeholder="Ej. Ramo novia clásico"/></h1>

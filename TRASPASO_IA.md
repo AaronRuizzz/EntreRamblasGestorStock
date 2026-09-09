@@ -270,6 +270,14 @@ Por orden de lo que bloquea la puesta en producción:
 9. **Commits.** El trabajo de esta sesión sigue sin commit, a la espera de que
    lo revises. Comprobado que no hay secretos en lo que entraría y que el
    runtime privado (`odoo.local`, `.odoo_data`, `venv`, `odoo/`) está ignorado.
+10. **No bloquea nada, es una decisión ya tomada**: el menú «Ajustes» de Odoo
+    (Usuarios y compañías, Ajustes generales, modo desarrollador) se oculta
+    del todo — no solo las otras ocho apps nativas — porque esta app es de
+    gestión de tienda, no de administración de Odoo. Consecuencia real: dar de
+    alta a una dependienta nueva o restablecerle la contraseña deja de tener
+    pantalla propia y pasa a ser tarea de consola (`odoo-bin shell`,
+    procedimiento en `MANUAL_TIENDA.md` §13). No revoca ningún permiso:
+    `/odoo/settings` sigue respondiendo por URL para quien mantenga el equipo.
 
 ## 6. Comandos
 

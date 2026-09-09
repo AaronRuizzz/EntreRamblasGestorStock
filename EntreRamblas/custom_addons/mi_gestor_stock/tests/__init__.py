@@ -16,3 +16,4 @@ from . import test_escpos
 from . import test_res_company
 from . import test_stock_alert
 from . import test_product_panel
+from . import test_menus

@@ -22,6 +22,39 @@
         </field>
     </record>
 
+    <!-- Ficha propia: la nativa (stock.view_production_lot_form) trae
+         Transferencias/Ubicación/Trazabilidad, propiedades y chatter, y NO
+         enseña ni el proveedor ni el coste de entrada, que es justo lo que
+         esta app guarda. Solo lectura: una partida nace en Recepción y su
+         coste es inmutable una vez registrado (ver StockLot.write). -->
+    <record id="view_mgs_lot_form" model="ir.ui.view">
+        <field name="name">stock.lot.form.mgs</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <form string="Partida" create="0" edit="0" js_class="mgs_clean_form">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" string="Lote"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="product_id"/>
+                            <field name="product_qty" string="Existencias"/>
+                            <field name="expiration_date"/>
+                        </group>
+                        <group>
+                            <field name="mgs_supplier_id"/>
+                            <field name="mgs_supplier_ref"/>
+                            <field name="mgs_document_date"/>
+                            <field name="mgs_received_at"/>
+                            <field name="mgs_unit_cost"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="view_mgs_lot_search" model="ir.ui.view">
         <field name="name">stock.lot.search.mgs</field>
         <field name="model">stock.lot</field>
@@ -45,8 +78,10 @@
         <field name="name">Partidas</field>
         <field name="res_model">stock.lot</field>
         <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_mgs_lot_list"/>
         <field name="search_view_id" ref="view_mgs_lot_search"/>
         <field name="domain">[('product_qty', '>', 0)]</field>
+        <field name="view_ids" eval="[(5,0,0),
+            (0,0,{'sequence':1,'view_mode':'list','view_id': ref('view_mgs_lot_list')}),
+            (0,0,{'sequence':2,'view_mode':'form','view_id': ref('view_mgs_lot_form')})]"/>
     </record>
 </odoo>

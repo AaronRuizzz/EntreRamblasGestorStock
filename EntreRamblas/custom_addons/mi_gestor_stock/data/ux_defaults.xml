@@ -5,10 +5,15 @@
          ==========================================================
          La página de inicio: emblema, nombre de la tienda y acceso directo a
          Recepción, Stock e Informes. -->
+    <!-- `tz` también aquí, no solo en _mgs_setup_spanish (que reescribe a
+         los usuarios YA creados): esto es lo que copia un usuario nuevo al
+         nacer de base.default_user. Sin ella, un alta después de quitar
+         "Ajustes" (donde vivía Preferencias, la única pantalla que la
+         corregía) se queda con `tz` vacío y sus horas se pintan en UTC. -->
     <function model="res.users" name="write">
         <value model="res.users"
                eval="[ref('base.user_admin'), ref('base.default_user')]"/>
-        <value eval="{'action_id': ref('mi_gestor_stock.action_mgs_home')}"/>
+        <value eval="{'action_id': ref('mi_gestor_stock.action_mgs_home'), 'tz': 'Europe/Madrid'}"/>
     </function>
 
     <!-- ==========================================================
@@ -26,14 +31,19 @@
     </function>
 
     <!-- ==========================================================
-         Ocultar todas las apps salvo la nuestra.
+         Ocultar todas las apps, «Ajustes» incluido.
          ==========================================================
          Lista completa de los 9 menús raíz de esta instalación
-         (verificada por consulta directa a ir_ui_menu). Se mantiene
-         SOLO base.menu_administration (Ajustes): ya está restringido
-         por grupo a administradores (base.group_system /
-         base.group_erp_manager), así que un usuario de tienda no lo
-         ve sin necesidad de tocarlo. -->
+         (verificada por consulta directa a ir_ui_menu). Antes se dejaba
+         base.menu_administration (Ajustes) visible porque ya está
+         restringido por grupo a administradores; se quita también: esta
+         app es de gestión de tienda, no de administración de Odoo, y
+         dentro de Ajustes había cosas que a una floristería no le hacen
+         falta (Herramientas de desarrollador, Usuarios y compañías con
+         la ficha nativa de permisos, configuración de Inventario/TPV/
+         Facturación). El acceso técnico sigue existiendo por URL
+         (`/odoo/settings`) para quien mantenga el equipo: desactivar el
+         menú no revoca ningún permiso, solo lo saca de la barra. -->
     <record id="mail.menu_root_discuss" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
@@ -56,6 +66,9 @@
         <field name="active" eval="False"/>
     </record>
     <record id="base.menu_tests" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="base.menu_administration" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
 </odoo>

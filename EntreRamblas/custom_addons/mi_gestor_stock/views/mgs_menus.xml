@@ -15,7 +15,7 @@
          tiene la suya (web/models/ir_ui_menu.py, load_web_menus), así que
          poniéndola aquí no hace falta un menú "Inicio" ocupando sitio. -->
     <menuitem id="menu_mgs_root" name="Gestor de Stock" sequence="1"
-              action="action_mgs_home"
+              action="action_mgs_home" groups="mi_gestor_stock.group_mgs_user"
               web_icon="mi_gestor_stock,static/description/icon.png"/>
 
     <menuitem id="menu_mgs_sell" name="Vender" parent="menu_mgs_root"
@@ -34,16 +34,17 @@
     <menuitem id="menu_mgs_purchase_forecast" name="Previsión de compra" parent="menu_mgs_purchasing"
               action="action_mgs_purchase_forecast" sequence="20" groups="mi_gestor_stock.group_mgs_manager"/>
 
-    <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="20"/>
+    <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="20"
+              groups="mi_gestor_stock.group_mgs_user"/>
     <!-- De uso diario a de una sola vez, de 10 en 10, sin secuencias repetidas. -->
     <menuitem id="menu_mgs_stock_panel" name="Panel" parent="menu_mgs_stock"
-              action="action_mgs_stock_dashboard" sequence="10"/>
+              action="action_mgs_stock_dashboard" sequence="10" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_stock_products" name="Productos" parent="menu_mgs_stock"
-              action="action_mgs_products" sequence="20"/>
+              action="action_mgs_products" sequence="20" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_lots" name="Partidas" parent="menu_mgs_stock"
               action="action_mgs_lots" sequence="30" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_stock_alerts" name="Alertas" parent="menu_mgs_stock"
-              action="action_mgs_alerts" sequence="40"/>
+              action="action_mgs_alerts" sequence="40" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_replenishment" name="Reposición" parent="menu_mgs_stock"
               action="action_mgs_replenishment" sequence="50" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_counts" name="Recuento físico" parent="menu_mgs_stock"
@@ -62,7 +63,8 @@
     <menuitem id="menu_mgs_opening" name="Existencias iniciales" parent="menu_mgs_stock"
               action="action_opening_stock" sequence="110" groups="mi_gestor_stock.group_mgs_manager"/>
 
-    <menuitem id="menu_mgs_scrap" name="Mermas" parent="menu_mgs_root" action="action_mgs_scrap" sequence="25"/>
+    <menuitem id="menu_mgs_scrap" name="Mermas" parent="menu_mgs_root" action="action_mgs_scrap"
+              sequence="25" groups="mi_gestor_stock.group_mgs_user"/>
 
     <menuitem id="menu_mgs_reports" groups="mi_gestor_stock.group_mgs_manager" name="Informes" parent="menu_mgs_root" sequence="30"/>
     <menuitem id="menu_mgs_reports_sales" name="Ventas y balance" parent="menu_mgs_reports"

@@ -4,7 +4,7 @@
         <field name="name">stock.scrap.form.mgs</field>
         <field name="model">stock.scrap</field>
         <field name="arch" type="xml">
-            <form string="Merma">
+            <form string="Merma" js_class="mgs_clean_form">
                 <header>
                     <button name="do_scrap" type="object" string="Registrar merma" class="btn-primary" invisible="state == 'done'"/>
                     <field name="state" widget="statusbar"/>
@@ -42,10 +42,30 @@
             </list>
         </field>
     </record>
+    <!-- Buscador propio: el nativo (stock.stock_scrap_search_view) filtra y
+         agrupa por Ubicación / Ubicación de desecho / Transferencia, que en
+         una sola tienda con una sola ubicación de mermas no dice nada. -->
+    <record id="view_mgs_scrap_search" model="ir.ui.view">
+        <field name="name">stock.scrap.search.mgs</field>
+        <field name="model">stock.scrap</field>
+        <field name="arch" type="xml">
+            <search string="Mermas">
+                <field name="product_id"/>
+                <field name="lot_id"/>
+                <field name="mgs_reason"/>
+                <filter name="filter_date" date="date_done" string="Fecha"/>
+                <group expand="1" string="Agrupar por">
+                    <filter string="Producto" name="group_product" context="{'group_by':'product_id'}"/>
+                    <filter string="Motivo" name="group_reason" context="{'group_by':'mgs_reason'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
     <record id="action_mgs_scrap" model="ir.actions.act_window">
         <field name="name">Mermas</field>
         <field name="res_model">stock.scrap</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mgs_scrap_search"/>
         <field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'list','view_id':ref('view_mgs_scrap_list')}),(0,0,{'view_mode':'form','view_id':ref('view_mgs_scrap_form')})]"/>
     </record>
 </odoo>

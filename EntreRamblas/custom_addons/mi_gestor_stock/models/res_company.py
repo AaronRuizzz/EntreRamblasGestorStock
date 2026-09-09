@@ -8,6 +8,7 @@ _logger = logging.getLogger(__name__)
 
 COMPANY_NAME = "Entre Ramblas · Clavel & Azahar"
 LANG_CODE = "es_ES"
+TZ_CODE = "Europe/Madrid"
 _IMG_DIR = "mi_gestor_stock/static/src/img"
 
 # El acceso inicial se provisiona fuera del módulo; nunca fijar contraseñas en código.
@@ -199,8 +200,11 @@ class ResCompany(models.Model):
         # todavia usa algun usuario ("Cannot deactivate a language that is
         # currently used by users").
         self.env["ir.default"].set("res.partner", "lang", LANG_CODE)
+        # Zona horaria tambien: sin "Ajustes" (donde vivia Preferencias) ya
+        # no hay pantalla para corregirla a mano, y con tz vacio las horas
+        # se pintan en UTC en vez de en la hora real de la tienda.
         self.env["res.users"].with_context(active_test=False).search([]).write(
-            {"lang": LANG_CODE}
+            {"lang": LANG_CODE, "tz": TZ_CODE}
         )
         self.env["res.partner"].with_context(active_test=False).search(
             [("lang", "!=", LANG_CODE)]

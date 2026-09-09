@@ -9,7 +9,7 @@
         <field name="name">mgs.config.form</field>
         <field name="model">mgs.config</field>
         <field name="arch" type="xml">
-            <form string="Dispositivos" create="false" duplicate="false" delete="false">
+            <form string="Dispositivos" create="false" duplicate="false" delete="false" js_class="mgs_clean_form">
                 <sheet>
                     <div class="oe_title">
                         <h1>Dispositivos y copias de seguridad</h1>
@@ -26,6 +26,24 @@
                     </group>
 
                     <notebook>
+                        <!-- ============ DATOS DE LA TIENDA ============ -->
+                        <page string="Datos de la tienda" name="company">
+                            <div class="alert alert-info" role="status">
+                                Lo que sale en el ticket y en el presupuesto de eventos:
+                                nombre, NIF, dirección y teléfono. El nombre lo fija el
+                                programa solo y aquí se enseña de solo lectura; el resto
+                                se corrige a mano si hace falta.
+                            </div>
+                            <group>
+                                <field name="mgs_company_name"/>
+                                <field name="mgs_company_vat"/>
+                                <field name="mgs_company_street"/>
+                                <field name="mgs_company_city"/>
+                                <field name="mgs_company_zip"/>
+                                <field name="mgs_company_phone"/>
+                            </group>
+                        </page>
+
                         <!-- ============ LECTORES ============ -->
                         <page string="Lectores de códigos" name="scanners">
                             <div class="alert alert-info" role="status">

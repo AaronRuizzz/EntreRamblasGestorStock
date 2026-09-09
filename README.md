@@ -555,36 +555,58 @@ sincronizados: `static/src/scss/login.scss` (variables `$navy-dark` / `$navy`
 
 ---
 
-## 7bis. Pantalla de inicio y menús ocultos (`data/ux_defaults.xml`)
+## 7bis. Pantalla de inicio y menús ocultos (`data/ux_defaults.xml` + `static/src/js/title.js`)
+
+Objetivo: entre por donde entre, la tienda solo ve su gestor, no un ERP genérico
+con opciones que a una floristería no le sirven de nada.
 
 **`mi_gestor_stock/data/ux_defaults.xml`** hace tres cosas:
 
-1. **Pantalla de inicio = "Stock → Productos"** (`mi_gestor_stock.action_mgs_products`).
-   Se fija el campo *Home Action* (`res.users.action_id`) del administrador
-   (`base.user_admin`) y de la plantilla de usuarios nuevos (`base.default_user`),
-   mediante un `<function model="res.users" name="write">` (un `<field>` normal **no
-   funciona** con este campo).
-2. **Reapunta la salida del TPV** a `menu_mgs_root` (ver §6bis, punto 3) — si no, al
-   cerrar una sesión de caja el usuario aterriza en un menú desactivado.
-3. **Oculta todos los menús raíz salvo el nuestro y "Ajustes"** (`active = False` sobre
-   cada uno): `mail.menu_root_discuss`, `contacts.menu_contacts`,
+1. **Pantalla de inicio = `mi_gestor_stock.action_mgs_home`** (el panel propio,
+   no ninguna vista nativa). Se fija el campo *Home Action* (`res.users.action_id`)
+   del administrador (`base.user_admin`) y de la plantilla de usuarios nuevos
+   (`base.default_user`), mediante un `<function model="res.users" name="write">`
+   (un `<field>` normal **no funciona** con este campo). La misma llamada fija
+   también `tz = Europe/Madrid`: sin «Ajustes» ya no hay pantalla de Preferencias
+   donde corregirla, y con `tz` vacío las horas se pintan en UTC.
+2. **Reapunta la salida del TPV** a `menu_mgs_root` — si no, al cerrar una sesión
+   de caja el usuario aterriza en un menú desactivado.
+3. **Oculta los nueve menús raíz nativos**, «Ajustes» incluido (`active = False`
+   sobre cada uno): `mail.menu_root_discuss`, `contacts.menu_contacts`,
    `spreadsheet_dashboard.spreadsheet_dashboard_menu_root`,
    `point_of_sale.menu_point_root`, `account.menu_finance`, `stock.menu_stock_root`,
-   `base.menu_management`, `base.menu_tests`. **`base.menu_administration` (Ajustes) NO
-   se toca**: ya está restringido por grupo (`base.group_system` /
-   `base.group_erp_manager`), así que un usuario de tienda no lo ve sin necesidad de
-   desactivarlo — y sigue haciendo falta para configurar TPV, impuestos y almacén.
+   `base.menu_management`, `base.menu_tests`, **`base.menu_administration`**. Este
+   último llevaba dentro Ajustes generales (con «Herramientas de desarrollador»),
+   Usuarios y compañías (con la ficha nativa de permisos) y la configuración de
+   Inventario/TPV/Facturación — nada de eso es tarea de una floristería. Ocultar
+   el menú no revoca ningún permiso: `/odoo/settings` sigue respondiendo por URL
+   para quien mantenga el equipo (ver «13. Mantenimiento» en `MANUAL_TIENDA.md`
+   para el alta de usuarios, que pasa a ser tarea de consola).
 
-Verificado por login HTTP real (`/web/webclient/load_menus`) tras un `bootstrap.ps1
--Reset` completo: el lanzador de apps muestra exactamente **"Gestor de Stock"** y
-**"Ajustes"**; `action_id` del admin = `Stock` (`product.template`); los 6 elementos hoja
-del menú (Recepción, Productos, Alertas, Compra, Ventas y balance, Productos más
-vendidos) resuelven `actionID`; cerrar una sesión de TPV vuelve a la app, no a un menú
-en blanco. Reproducible: `-u mi_gestor_stock` vuelve a aplicar los tres puntos.
+**`static/src/js/title.js`** limpia lo que no se puede tocar por XML — registros
+del cliente web (systray, menú de usuario, engranaje de las listas):
+
+- Systray: fuera mensajería interna, llamadas y el reloj de actividades.
+- Menú del avatar: solo quedan **«Cambiar contraseña»** (entrada propia, llama a
+  `res.users.preference_change_password`) y **«Cerrar sesión»**. Se quitan
+  Documentación, Support, Mi cuenta de Odoo.com, Instalar app, Atajos (el
+  buscador de comandos, que llega a cualquier pantalla de Odoo), Preferencias y
+  el interruptor de tours guiados («Onboarding»).
+- Engranaje de las listas: se quita **«Importar registros»** (para eso está
+  «Alta de catálogo», que valida antes de crear nada); «Exportar» se conserva.
+
+Las fichas propias (producto, partida, tarifa...) llevan además
+`js_class="mgs_clean_form"`, que oculta el indicador de guardado y el propio
+engranaje de acciones en el formulario (`static/src/js/clean_form.js` +
+`static/src/scss/backend.scss`); la de producto además quita los botones
+«Actualizar cantidad»/«Reabastecer», la caja de botones inteligentes, las
+pestaña «Punto de venta» (la de «Contabilidad» ya no aparecía en esta
+pantalla: cuelga de otra vista base que esta acción no usa) y el chatter.
 
 Para revertir algún menú oculto: quita su `<record>` de `ux_defaults.xml` y `-u`.
-Para cambiar la pantalla de inicio de un usuario puntualmente: Ajustes → Usuarios →
-(usuario) → pestaña *Preferencias* → *Acción de inicio*.
+Para cambiar la pantalla de inicio de un usuario puntualmente, por consola:
+`env['res.users'].browse(uid).action_id = env.ref('mi_gestor_stock.action_mgs_home')`
+(o la acción que corresponda).
 
 ---
 

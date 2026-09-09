@@ -31,7 +31,7 @@
         <field name="name">pos.session.form.mgs</field>
         <field name="model">pos.session</field>
         <field name="arch" type="xml">
-            <form string="Cierre de caja" create="0" edit="0" delete="0">
+            <form string="Cierre de caja" create="0" edit="0" delete="0" js_class="mgs_clean_form">
                 <sheet>
                     <group>
                         <field name="name"/>
@@ -49,10 +49,29 @@
         </field>
     </record>
 
+    <!-- Buscador propio: el nativo (point_of_sale.view_pos_session_search)
+         filtra por Terminal (config_id) y agrupa por Abierto por / Punto de
+         venta / Estado / Fecha de apertura / Fecha de cierre — vocabulario
+         de varias cajas que aquí no aplica, con una sola. -->
+    <record id="view_mgs_pos_session_search" model="ir.ui.view">
+        <field name="name">pos.session.search.mgs</field>
+        <field name="model">pos.session</field>
+        <field name="arch" type="xml">
+            <search string="Cierres de caja">
+                <field name="name"/>
+                <filter name="filter_date" date="start_at" string="Fecha"/>
+                <group expand="1" string="Agrupar por">
+                    <filter string="Estado" name="group_state" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_mgs_pos_sessions" model="ir.actions.act_window">
         <field name="name">Cierres de caja</field>
         <field name="res_model">pos.session</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mgs_pos_session_search"/>
         <field name="view_ids" eval="[(5, 0, 0),
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_mgs_pos_session_list')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_mgs_pos_session_form')})]"/>

@@ -12,11 +12,44 @@
         <field name="arch" type="xml">
 
             <!-- 0. Menos ruido en el panel de control: los productos se crean en
-                 Recepción, y duplicar una ficha no tiene sentido aquí. -->
+                 Recepción, y duplicar una ficha no tiene sentido aquí.
+                 js_class="mgs_clean_form" quita además el indicador de guardado
+                 y el engranaje de acciones (Duplicar/Exportar/Informe de
+                 tarifas...): no hace falta ninguno desde aquí. -->
             <xpath expr="//form" position="attributes">
                 <attribute name="create">false</attribute>
                 <attribute name="duplicate">false</attribute>
+                <attribute name="js_class">mgs_clean_form</attribute>
             </xpath>
+
+            <!-- 0bis. Botones de cabecera que inyecta `stock` («Actualizar
+                 cantidad», «Reabastecer»): van con position="before" sobre
+                 //header/button, así que se escapan del xpath de abajo que
+                 apunta a action_open_label_layout. El segundo se localiza
+                 por su hermano siguiente, no por su nombre: stock lo
+                 declara con la sintaxis de sustitución de acción por xmlid,
+                 así que en la vista ya combinada lleva el id numérico
+                 resuelto, no un nombre reconocible - y Odoo 18 además
+                 prohíbe usar @string como selector de herencia. -->
+            <xpath expr="//header/button[@name='action_update_quantity_on_hand']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='action_update_quantity_on_hand']/following-sibling::button[1]"
+                   position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 0ter. Caja de botones inteligentes (Reglas de precio, Documentos,
+                 Disponible, Previsto, Reglas de reordenamiento, Movimientos,
+                 Nº de serie, Ubicaciones...): nada de eso es del día a día de
+                 la tienda; lo que hace falta está en el grupo "Existencias y
+                 caducidad" de más abajo, con datos propios. -->
+            <xpath expr="//div[@name='button_box']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 0quater: sin seguidores/mensajes en la ficha de producto. -->
+            <xpath expr="//chatter" position="replace"/>
 
             <!-- 1. Ocultar estrella de favoritos y checks técnicos de la cabecera -->
             <xpath expr="//field[@name='is_favorite']" position="attributes">
@@ -109,6 +142,17 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//page[@name='inventory']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 6bis. "Punto de venta" (categoría de TPV, "para pesar"...):
+                 configuración de fondo, no algo que se toque a diario desde
+                 la ficha del producto. (La pestaña "Contabilidad" de
+                 `account` no hace falta tocarla aquí: cuelga de
+                 product.product_template_form_view, una vista distinta de
+                 la que usa esta pantalla, product_template_only_form_view —
+                 nunca ha estado presente en esta ficha.) -->
+            <xpath expr="//page[@name='pos']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
 

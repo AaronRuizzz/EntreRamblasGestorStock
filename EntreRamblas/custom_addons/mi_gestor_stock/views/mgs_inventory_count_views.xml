@@ -21,7 +21,7 @@
     </record>
     <record id="view_mgs_count_form" model="ir.ui.view">
         <field name="name">mgs.inventory.count.form</field><field name="model">mgs.inventory.count</field>
-        <field name="arch" type="xml"><form>
+        <field name="arch" type="xml"><form js_class="mgs_clean_form">
             <header>
                 <button name="action_prepare" type="object" string="Preparar partidas" class="btn-primary" invisible="state != 'draft'"/>
                 <button name="action_prepare" type="object" string="Recargar y volver a contar" invisible="state != 'counting'"

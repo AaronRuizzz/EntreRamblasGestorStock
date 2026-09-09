@@ -7,6 +7,46 @@
          y los contextos que interesan a la floristería.
          ============================================================ -->
 
+    <!-- Lista y buscador propios para las dos vistas de abajo: los nativos
+         (report_pos_order_view_tree / view_report_pos_order_search) traen
+         Facturado/Sin facturar, Terminal (config_id), método de pago y
+         categoría de TPV — vocabulario de ERP multi-terminal que no pinta
+         nada en una tienda con una sola caja. -->
+    <record id="view_mgs_sales_list" model="ir.ui.view">
+        <field name="name">report.pos.order.list.mgs</field>
+        <field name="model">report.pos.order</field>
+        <field name="arch" type="xml">
+            <list string="Ventas" create="0" edit="0" delete="0">
+                <field name="date"/>
+                <field name="product_id"/>
+                <field name="product_categ_id" string="Categoría"/>
+                <field name="product_qty" string="Unidades"/>
+                <field name="price_total" string="Total"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mgs_sales_search" model="ir.ui.view">
+        <field name="name">report.pos.order.search.mgs</field>
+        <field name="model">report.pos.order</field>
+        <field name="arch" type="xml">
+            <search string="Ventas">
+                <field name="date"/>
+                <field name="product_id"/>
+                <field name="product_categ_id" string="Categoría"/>
+                <separator/>
+                <filter string="No canceladas" name="not_cancelled" domain="[('state','!=','cancel')]"/>
+                <filter name="filter_date" date="date" string="Fecha"/>
+                <group expand="1" string="Agrupar por">
+                    <filter string="Día" name="group_day" context="{'group_by':'date:day'}"/>
+                    <filter string="Mes" name="group_month" context="{'group_by':'date:month'}"/>
+                    <filter string="Producto" name="product" context="{'group_by':'product_id'}"/>
+                    <filter string="Categoría" name="group_categ" context="{'group_by':'product_categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <!-- ================= Ventas y balance ================= -->
     <record id="view_mgs_sales_graph" model="ir.ui.view">
         <field name="name">report.pos.order.graph.mgs</field>
@@ -36,12 +76,12 @@
         <field name="name">Ventas y balance</field>
         <field name="res_model">report.pos.order</field>
         <field name="view_mode">graph,pivot,list</field>
-        <field name="search_view_id" ref="point_of_sale.view_report_pos_order_search"/>
+        <field name="search_view_id" ref="view_mgs_sales_search"/>
         <field name="context">{'search_default_not_cancelled': 1}</field>
         <field name="view_ids" eval="[(5,0,0),
             (0,0,{'sequence':1,'view_mode':'graph','view_id': ref('view_mgs_sales_graph')}),
             (0,0,{'sequence':2,'view_mode':'pivot','view_id': ref('view_mgs_sales_pivot')}),
-            (0,0,{'sequence':3,'view_mode':'list', 'view_id': ref('point_of_sale.report_pos_order_view_tree')})]"/>
+            (0,0,{'sequence':3,'view_mode':'list', 'view_id': ref('view_mgs_sales_list')})]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Todavía no hay ventas registradas.</p>
             <p>En cuanto se cobre en el TPV, aquí aparecerán los importes y el margen.</p>
@@ -77,12 +117,12 @@
         <field name="name">Productos más vendidos</field>
         <field name="res_model">report.pos.order</field>
         <field name="view_mode">graph,pivot,list</field>
-        <field name="search_view_id" ref="point_of_sale.view_report_pos_order_search"/>
+        <field name="search_view_id" ref="view_mgs_sales_search"/>
         <field name="context">{'search_default_not_cancelled': 1, 'search_default_product': 1}</field>
         <field name="view_ids" eval="[(5,0,0),
             (0,0,{'sequence':1,'view_mode':'graph','view_id': ref('view_mgs_top_products_graph')}),
             (0,0,{'sequence':2,'view_mode':'pivot','view_id': ref('view_mgs_top_products_pivot')}),
-            (0,0,{'sequence':3,'view_mode':'list', 'view_id': ref('point_of_sale.report_pos_order_view_tree')})]"/>
+            (0,0,{'sequence':3,'view_mode':'list', 'view_id': ref('view_mgs_sales_list')})]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Todavía no hay ventas registradas.</p>
             <p>Cuando las haya, aquí saldrá el ranking de lo que más se vende.</p>

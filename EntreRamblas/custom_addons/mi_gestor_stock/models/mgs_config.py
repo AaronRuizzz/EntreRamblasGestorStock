@@ -57,6 +57,51 @@ class MgsConfig(models.Model):
              "hayan pasado estos días desde la fecha de caducidad.")
 
     # ==================================================================
+    # Datos de la tienda que salen en el ticket y en las facturas: sin
+    # "Ajustes" (donde vivía Compañías) no había ya ninguna pantalla desde
+    # la que corregir el NIF o la dirección. `name` se enseña de solo
+    # lectura porque `res_company._mgs_apply_branding` lo reescribe en cada
+    # `-u`: si se dejara editable aquí, un cambio a mano se perdería en la
+    # siguiente actualización sin avisar.
+    # ==================================================================
+    mgs_company_name = fields.Char(
+        "Nombre de la tienda", compute="_compute_company_fields", readonly=True)
+    mgs_company_vat = fields.Char(
+        "NIF/CIF", compute="_compute_company_fields", inverse="_inverse_company_fields")
+    mgs_company_street = fields.Char(
+        "Dirección", compute="_compute_company_fields", inverse="_inverse_company_fields")
+    mgs_company_city = fields.Char(
+        "Población", compute="_compute_company_fields", inverse="_inverse_company_fields")
+    mgs_company_zip = fields.Char(
+        "Código postal", compute="_compute_company_fields", inverse="_inverse_company_fields")
+    mgs_company_phone = fields.Char(
+        "Teléfono", compute="_compute_company_fields", inverse="_inverse_company_fields")
+
+    def _compute_company_fields(self):
+        company = self.env.company
+        for config in self:
+            config.mgs_company_name = company.name
+            config.mgs_company_vat = company.vat
+            config.mgs_company_street = company.street
+            config.mgs_company_city = company.city
+            config.mgs_company_zip = company.zip
+            config.mgs_company_phone = company.phone
+
+    def _inverse_company_fields(self):
+        # sudo(): escribir en res.company exige group_erp_manager, que la
+        # propietaria no tiene. La ACL de mgs.config (solo group_mgs_manager
+        # puede escribir aquí) ya hace de guarda: quien llega a este inverse
+        # es porque ya pudo escribir en el propio mgs.config.
+        for config in self:
+            self.env.company.sudo().write({
+                "vat": config.mgs_company_vat,
+                "street": config.mgs_company_street,
+                "city": config.mgs_company_city,
+                "zip": config.mgs_company_zip,
+                "phone": config.mgs_company_phone,
+            })
+
+    # ==================================================================
     # 1 y 2. Lectores de códigos de barras (HID: se comportan como teclado)
     # ==================================================================
     scan_max_delay_ms = fields.Integer(

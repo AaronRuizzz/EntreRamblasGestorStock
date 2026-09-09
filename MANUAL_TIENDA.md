@@ -45,6 +45,13 @@ siguen sirviendo como detalle: [APERTURA.md](APERTURA.md), [EVENTOS.md](EVENTOS.
 Los permisos se comprueban **en el servidor**, no solo escondiendo botones: una
 dependienta no puede llegar a los costes ni cambiando la dirección del navegador.
 
+**Dar de alta a una dependienta nueva o restablecerle la contraseña no es algo
+que se haga desde dentro del programa**: el menú «Ajustes» de Odoo, donde vivía
+esa pantalla, está deliberadamente oculto (ver «7bis. Pantalla de inicio y
+menús ocultos» en `README.md`). Es tarea de quien mantiene el equipo — ver
+«13. Mantenimiento» más abajo. Lo que sí puede hacer cualquiera desde el menú
+de su propio avatar (arriba a la derecha) es **cambiar su propia contraseña**.
+
 ## 2. Encender y apagar
 
 El programa arranca **solo** con el ordenador, como servicio de Windows. No hay
@@ -288,6 +295,43 @@ mande nada mientras se comprueba.
 el ticket, y solo después toca el programa. Nunca repitas un cobro «por si acaso».
 
 ## 13. Mantenimiento
+
+### Alta de una dependienta nueva o restablecer una contraseña
+
+El menú «Ajustes» de Odoo (donde vivían Usuarios y compañías) está oculto a
+propósito: es de administración de Odoo, no de gestión de la tienda. Esto es
+tarea de consola, por quien mantenga el equipo, desde `EntreRamblas`
+(PowerShell, con el servidor **parado**):
+
+```powershell
+.\venv\Scripts\python.exe odoo\odoo-bin shell -c odoo.local -d mi_base_stock --db-filter=^mi_base_stock$ --no-http
+```
+
+Dentro del intérprete que se abre:
+
+```python
+# Alta de una dependienta nueva (grupo "Dependienta"; usa "Propietaria" para
+# darle también acceso de gestión):
+usuario = env['res.users'].create({
+    'name': 'Nombre de la dependienta',
+    'login': 'su-email@ejemplo.com',
+    'groups_id': [(6, 0, [env.ref('mi_gestor_stock.group_mgs_user').id])],
+})
+usuario.action_reset_password()   # le manda un correo para que elija su contraseña
+env.cr.commit()
+
+# Restablecer la contraseña de alguien que la ha olvidado:
+env['res.users'].search([('login', '=', 'su-email@ejemplo.com')]).action_reset_password()
+env.cr.commit()
+```
+
+`action_reset_password()` manda un correo con un enlace, así que hace falta
+tener el correo saliente configurado (`ir.mail_server`); si no lo está, se
+puede fijar la contraseña directamente con `usuario.write({'password': '...'})`,
+siempre una contraseña provisional que la interesada cambie en su primer
+acceso desde su propio menú de usuario («Cambiar contraseña»). No hace falta
+tocar nada más: `/odoo/settings` sigue respondiendo por URL para quien
+mantenga el equipo, aunque el menú esté oculto.
 
 - **Cada día**: cerrar la caja al terminar y apagar bien el ordenador.
 - **Cada semana**: mirar el panel de Stock (avisos y caducidades) y comprobar que
