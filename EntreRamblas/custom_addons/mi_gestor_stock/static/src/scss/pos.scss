@@ -3,19 +3,33 @@
 //  Bundle: point_of_sale._assets_pos
 // ============================================================
 
+// El centro de la barra ocupa el hueco libre y no recorta: así el
+// nombre de la tienda se ve entero y bien centrado (el logo de Odoo
+// que había antes era pequeño y sí cabía en el hueco estrecho).
+.pos-topheader .pos-centerheader {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: visible !important;
+}
+
 // Rótulo de la tienda en el centro de la barra superior (sustituye al
 // logotipo de Odoo). Misma tipografía que la marca del backend:
 // negrita, azul marino, sobre la barra blanca del TPV.
 .o_mgs_pos_brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     height: 42px;
-    padding: 0 4px;
+    padding: 0 10px;
     cursor: pointer;
     user-select: none;
-    white-space: nowrap;
+    white-space: nowrap;        // se ve entero
+    flex-shrink: 0;
     font-weight: 700;
     font-size: 20px;
     letter-spacing: .5px;
-    color: #1e3a5f; // azul marino institucional (mismo acento que el backend)
+    color: #1e3a5f;             // azul marino institucional (acento del backend)
+    border-radius: 6px;
+    transition: background-color .12s ease;
+
+    &:hover { background-color: rgba(30, 58, 95, .08); }
 }
