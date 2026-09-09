@@ -158,6 +158,12 @@ class ResCompany(models.Model):
                 "journal_id": journal.id,
                 "payment_method_ids": [(6, 0, payment_method_ids)],
             })
+        # El asistente inicial de Odoo usa estos nombres para su caja de
+        # demostración. Una vez reutilizada como caja normal, no dejar un
+        # rótulo que haga pensar que el modo restaurante sigue activo. Los
+        # nombres elegidos por el usuario se respetan.
+        if shop.name in ("Restaurant", "Restaurante"):
+            shop.name = "Tienda"
         self.env["ir.model.data"]._update_xmlids([{
             "xml_id": "mi_gestor_stock.pos_config_shop",
             "record": shop,

@@ -90,11 +90,22 @@ class TestCompanyShopPosConfig(TransactionCase):
         return shop
 
     def test_converts_a_restaurant_config_when_it_has_no_open_session(self):
+        shop = self.env.ref("mi_gestor_stock.pos_config_shop")
+        shop.name = "Restaurante"
         shop = self._mark_shop_as_restaurant()
 
         self.env.company._mgs_ensure_shop_pos_config()
 
         self.assertFalse(shop.module_pos_restaurant)
+        self.assertEqual(shop.name, "Tienda")
+
+    def test_preserves_a_custom_shop_name(self):
+        shop = self.env.ref("mi_gestor_stock.pos_config_shop")
+        shop.name = "Caja Centro"
+
+        self.env.company._mgs_ensure_shop_pos_config()
+
+        self.assertEqual(shop.name, "Caja Centro")
 
     def test_defers_conversion_when_the_restaurant_session_is_open(self):
         shop = self._mark_shop_as_restaurant()
