@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- El TPV pinta el logotipo de Odoo (/web/static/img/logo.png) en el
+         centro de la barra superior. Aquí se sustituye por el nombre de la
+         tienda, con la misma tipografía que el resto del programa (negrita,
+         azul marino). Se conserva el clic al widget de depuración. -->
+    <t t-name="mi_gestor_stock.PosNavbarBrand" t-inherit="point_of_sale.Navbar"
+       t-inherit-mode="extension">
+        <xpath expr="//img[hasclass('pos-logo')]" position="replace">
+            <div class="o_mgs_pos_brand" t-on-click="() => debug.toggleWidget()">
+                Clavel &amp; Azahar
+            </div>
+        </xpath>
+    </t>
+
+</templates>

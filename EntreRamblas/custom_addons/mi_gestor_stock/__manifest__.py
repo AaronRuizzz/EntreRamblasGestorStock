@@ -68,10 +68,12 @@
         # Puente TPV <-> impresora termica ESC/POS y cajon portamonedas, sin
         # IoT Box (ver static/src/js/pos_hardware.js).
         "point_of_sale._assets_pos": [
+            "mi_gestor_stock/static/src/scss/pos.scss",
             "mi_gestor_stock/static/src/js/pos_hardware.js",
             "mi_gestor_stock/static/src/js/pos_validation.js",
             "mi_gestor_stock/static/src/js/pos_bouquet.js",
             "mi_gestor_stock/static/src/xml/pos_bouquet.xml",
+            "mi_gestor_stock/static/src/xml/pos_navbar.xml",
             "mi_gestor_stock/static/src/xml/pos_receipt.xml",
         ],
     },
