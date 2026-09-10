@@ -1,6 +1,6 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
-    "version": "18.0.2.0.0",
+    "version": "18.0.3.0.0",
     "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
@@ -20,6 +20,7 @@
         "security/mgs_security.xml",
         "security/ir.model.access.csv",
         "data/branding.xml",
+        "data/mgs_access_data.xml",
         "data/cron_alerts.xml",
         "data/mgs_hardware_data.xml",
         "data/mgs_bouquet_data.xml",
@@ -39,7 +40,9 @@
         "report/mgs_monthly_report.xml",
         "report/mgs_event_report.xml",
         "views/mgs_menus.xml",
+        "views/mgs_security_views.xml",
         "views/login_templates.xml",
+        "views/mgs_auth_templates.xml",
         "views/mgs_web_templates.xml",
         # ux_defaults va el ultimo: reapunta la salida del TPV a menu_mgs_root
         # y fija la pantalla de inicio al panel de Stock, ambas definidas antes.
@@ -64,6 +67,7 @@
         ],
         "web.assets_frontend": [
             "mi_gestor_stock/static/src/scss/login.scss",
+            "mi_gestor_stock/static/src/js/mgs_login.js",
         ],
         # Puente TPV <-> impresora termica ESC/POS y cajon portamonedas, sin
         # IoT Box (ver static/src/js/pos_hardware.js).

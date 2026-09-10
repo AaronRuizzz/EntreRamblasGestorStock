@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Primer acceso: código de activación + contraseña nueva.
+         Alcanzable solo mientras mgs.access.activation_state == 'pending'.
+         ============================================================ -->
+    <template id="mgs_first_access" name="Primer acceso">
+        <t t-call="web.login_layout">
+            <t t-set="disable_footer" t-value="True"/>
+            <t t-set="title">Gestión de stock</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
+
+            <div class="o_mgs_login_title text-center mb-3">
+                <h5 class="mb-1">Primer acceso</h5>
+                <small class="text-muted">Introduce el código de activación y elige tu contraseña.</small>
+            </div>
+
+            <form class="oe_login_form" role="form" method="post" t-attf-action="/mgs/primer-acceso">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                <div class="mb-3">
+                    <label for="activation_code" class="form-label">Código de activación</label>
+                    <input type="text" name="activation_code" id="activation_code" class="form-control"
+                           required="required" autocomplete="one-time-code" autofocus="autofocus"
+                           autocapitalize="characters" spellcheck="false"
+                           placeholder="XXXX-XXXX-XXXX-XXXX"/>
+                    <div class="form-text">Está en la hoja que te dio quien instaló el programa.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña nueva</label>
+                    <input type="password" name="password" id="password" class="form-control"
+                           required="required" minlength="12" autocomplete="new-password" maxlength="4096"/>
+                    <div class="form-text">Al menos 12 caracteres. Puedes pegarla.</div>
+                </div>
+                <div class="mb-2">
+                    <label for="confirm_password" class="form-label">Repite la contraseña</label>
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-control"
+                           required="required" minlength="12" autocomplete="new-password" maxlength="4096"/>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="mgs_show_pw"
+                           data-mgs-toggle-password="password,confirm_password"/>
+                    <label class="form-check-label small" for="mgs_show_pw">Mostrar las contraseñas</label>
+                </div>
+
+                <p class="alert alert-danger" t-if="error" role="alert"><t t-esc="error"/></p>
+
+                <div class="oe_login_buttons d-grid pt-2">
+                    <button type="submit" class="btn btn-primary">Establecer contraseña</button>
+                </div>
+            </form>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         Recuperación con la clave impresa. Sin correo.
+         ============================================================ -->
+    <template id="mgs_recover" name="Recuperar acceso">
+        <t t-call="web.login_layout">
+            <t t-set="disable_footer" t-value="True"/>
+            <t t-set="title">Gestión de stock</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
+
+            <div class="o_mgs_login_title text-center mb-3">
+                <h5 class="mb-1">He olvidado mi contraseña</h5>
+                <small class="text-muted">Usa la clave de recuperación que imprimiste al configurar el acceso.</small>
+            </div>
+
+            <t t-if="no_key">
+                <p class="alert alert-warning" role="status">
+                    Todavía no hay ninguna clave de recuperación generada. Entra con tu
+                    contraseña y créala en <strong>Configuración → Seguridad</strong>. Si
+                    tampoco recuerdas la contraseña, hace falta la herramienta local de
+                    recuperación (la ejecuta quien mantiene el equipo, con permisos de
+                    administrador de Windows).
+                </p>
+                <div class="d-grid">
+                    <a href="/web/login" class="btn btn-link btn-sm">Volver</a>
+                </div>
+            </t>
+            <form t-else="" class="oe_login_form" role="form" method="post" t-attf-action="/mgs/recuperar">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                <div class="mb-3">
+                    <label for="recovery_key" class="form-label">Clave de recuperación</label>
+                    <input type="text" name="recovery_key" id="recovery_key" class="form-control"
+                           required="required" autocomplete="off" autofocus="autofocus"
+                           autocapitalize="characters" spellcheck="false"
+                           placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"/>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña nueva</label>
+                    <input type="password" name="password" id="password" class="form-control"
+                           required="required" minlength="12" autocomplete="new-password" maxlength="4096"/>
+                    <div class="form-text">Al menos 12 caracteres.</div>
+                </div>
+                <div class="mb-2">
+                    <label for="confirm_password" class="form-label">Repite la contraseña</label>
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-control"
+                           required="required" minlength="12" autocomplete="new-password" maxlength="4096"/>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="mgs_show_pw2"
+                           data-mgs-toggle-password="password,confirm_password"/>
+                    <label class="form-check-label small" for="mgs_show_pw2">Mostrar las contraseñas</label>
+                </div>
+
+                <p class="alert alert-danger" t-if="error" role="alert"><t t-esc="error"/></p>
+
+                <div class="oe_login_buttons d-grid pt-2">
+                    <button type="submit" class="btn btn-primary">Restablecer contraseña</button>
+                    <a href="/web/login" class="btn btn-link btn-sm mt-1">Volver</a>
+                </div>
+            </form>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         Se enseña UNA vez la clave (nueva o rotada). No se guarda en
+         claro en ningún sitio: si se cierra, hay que regenerarla.
+         ============================================================ -->
+    <template id="mgs_recovery_key" name="Clave de recuperación">
+        <t t-call="web.login_layout">
+            <t t-set="disable_footer" t-value="True"/>
+            <t t-set="title">Gestión de stock</t>
+            <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
+
+            <div class="o_mgs_login_title text-center mb-3">
+                <h5 class="mb-1">
+                    <t t-if="first_time">Contraseña establecida</t>
+                    <t t-else="">Contraseña restablecida</t>
+                </h5>
+                <small class="text-muted">Guarda esta clave de recuperación fuera del ordenador.</small>
+            </div>
+
+            <p class="small">
+                Es lo único que permite recuperar el acceso si olvidas la contraseña.
+                <strong>No se vuelve a mostrar.</strong> Imprímela o cópiala a papel y
+                guárdala en un sitio seguro que no sea este PC. La clave anterior, si la
+                había, ya no sirve.
+            </p>
+
+            <div class="mgs-recovery-key border rounded p-3 my-3 text-center"
+                 style="font-family:monospace;font-size:1.05rem;word-break:break-all;background:#f8f9fa">
+                <t t-esc="key"/>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="window.print()">Imprimir</button>
+            </div>
+
+            <form class="mt-3" role="form" method="post" action="/mgs/clave-recuperacion/confirmar">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="mgs_key_ack" name="ack"
+                           required="required"/>
+                    <label class="form-check-label small" for="mgs_key_ack">
+                        He guardado la clave fuera de este ordenador.
+                    </label>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Ir a acceder</button>
+                </div>
+            </form>
+        </t>
+    </template>
+
+</odoo>

@@ -20,13 +20,16 @@
     <!-- Idioma: toda la interfaz en espanol (es_ES) -->
     <function model="res.company" name="_mgs_setup_spanish" eval="[[]]"/>
 
-    <!-- Deja las cajas ya configuradas listas para usar tarifas nativas de
-         Odoo y controla quien puede cambiar el precio en el TPV. -->
-    <function model="res.company" name="_mgs_apply_pos_pricelist_defaults" eval="[[]]"/>
-
     <!-- Caja de la tienda: siempre una, sin plano de mesas. El boton «Vender»
-         entra directo a /pos/ui y necesita que exista. -->
+         entra directo a /pos/ui y necesita que exista. Va ANTES de aplicar
+         los ajustes comunes del TPV: en una instalacion nueva no hay ninguna
+         caja hasta este punto, asi que si los ajustes fueran antes no se
+         aplicarian hasta el siguiente `-u`. -->
     <function model="res.company" name="_mgs_ensure_shop_pos_config" eval="[[]]"/>
+
+    <!-- Deja la caja lista para usar tarifas nativas de Odoo y controla quien
+         puede cambiar el precio en el TPV. Despues de crearla. -->
+    <function model="res.company" name="_mgs_apply_pos_pricelist_defaults" eval="[[]]"/>
 
     <!-- Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.
          El registro vive en data/mgs_event_data.xml con noupdate="1", asi

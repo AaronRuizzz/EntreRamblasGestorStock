@@ -22,6 +22,7 @@ MANAGER_MENUS = ["mi_gestor_stock." + m for m in (
     "menu_mgs_reports_consumption", "menu_mgs_reports_monthly",
     "menu_mgs_reports_sessions", "menu_mgs_settings",
     "menu_mgs_settings_devices", "menu_mgs_settings_backups", "menu_mgs_hardware_jobs",
+    "menu_mgs_settings_security", "menu_mgs_settings_access_events",
 )]
 NATIVE_ROOT_MENUS = [
     "mail.menu_root_discuss", "contacts.menu_contacts",

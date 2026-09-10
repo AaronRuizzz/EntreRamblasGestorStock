@@ -35,6 +35,19 @@ class TestCompanyBranding(TransactionCase):
         self.env.company._mgs_apply_branding()
         self.assertEqual(stale.name, COMPANY_NAME)
 
+    def test_apply_branding_keeps_a_real_legal_name_and_offers_a_trade_name(self):
+        company = self.env.company
+        company.name = "Floristería Ejemplo SL"
+        company._mgs_apply_branding()
+        self.assertEqual(company.name, "Floristería Ejemplo SL")
+        icp = self.env["ir.config_parameter"].sudo()
+        self.assertTrue(icp.get_param("mgs.commercial_name"))
+        # La pantalla de Configuración separa los dos nombres y cada uno va a su sitio.
+        config = self.env["mgs.config"]._mgs_get()
+        config.write({"mgs_commercial_name": "Entre Ramblas", "mgs_company_name": "Otra Razón SL"})
+        self.assertEqual(company.name, "Otra Razón SL")
+        self.assertEqual(icp.get_param("mgs.commercial_name"), "Entre Ramblas")
+
     def test_rename_picking_types_renames_pos_orders_and_the_default_warehouse(self):
         picking_type = self.env["stock.picking.type"].search([], limit=1)
         original_picking_name = picking_type.name

@@ -288,21 +288,23 @@ if ($claveConfig) {
         throw ('La base "' + $Database + '" tiene collate y ctype distintos y no funcionará en Windows. Revisa db_template.')
     }
 }
-$acceso = Join-Path $RuntimeDirectory ($Database + '-first-access.secret')
+$activacion = Join-Path $RuntimeDirectory ($Database + '-activacion.txt')
 Write-Output ''
 Write-Output 'Equipo preparado.'
 Write-Output ''
 Write-Output ('  Configuración : ' + $config)
 Write-Output ('  Base de datos : ' + $Database)
-if (Test-Path -LiteralPath $acceso -PathType Leaf) {
-    Write-Output ('  Acceso inicial: ' + $acceso)
+if (Test-Path -LiteralPath $activacion -PathType Leaf) {
+    Write-Output ('  Primer acceso: ' + $activacion + ' (código de activación de un solo uso)')
 } else {
-    Write-Output '  Acceso inicial: la base ya existía; se conservan sus usuarios.'
+    Write-Output '  Primer acceso: la base ya existía; se conservan sus usuarios.'
 }
 Write-Output ''
 Write-Output 'Arrancar:'
 Write-Output ('  .\start-odoo.ps1 -Config "' + $config + '" -Database ' + $Database)
 Write-Output ''
-Write-Output 'Antes de abrir caja: cambiar la contraseña inicial, completar los datos'
-Write-Output 'fiscales de la empresa, los métodos de pago, la impresora y el cajón, la'
-Write-Output 'carpeta de copias en el SSD externo y el usuario de dependienta (INSTALACION.md).'
+Write-Output 'Primer acceso: en la pantalla de acceso, escribir el código de activación'
+Write-Output 'del archivo de arriba, elegir la contraseña (12+ caracteres) y guardar la'
+Write-Output 'clave de recuperación que aparece. Después, completar los datos fiscales de'
+Write-Output 'la empresa, los métodos de pago, la impresora y el cajón, y la carpeta de'
+Write-Output 'copias en el SSD externo (INSTALACION.md).'

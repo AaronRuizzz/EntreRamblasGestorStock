@@ -49,15 +49,25 @@ class MgsConfig(models.Model):
              "hay que elegirla a mano si alguna vez hay más de una configurada.")
 
     # ==================================================================
-    # Datos de la tienda que salen en el ticket y en las facturas: sin
-    # "Ajustes" (donde vivía Compañías) no había ya ninguna pantalla desde
-    # la que corregir el NIF o la dirección. `name` se enseña de solo
-    # lectura porque `res_company._mgs_apply_branding` lo reescribe en cada
-    # `-u`: si se dejara editable aquí, un cambio a mano se perdería en la
-    # siguiente actualización sin avisar.
+    # Datos de la tienda. Sin "Ajustes" (donde vivía Compañías) no hay otra
+    # pantalla desde la que corregirlos.
+    #
+    # Se separan el NOMBRE COMERCIAL (lo que ve la clienta: emblema, pantalla
+    # de inicio, título de la pestaña) de la RAZÓN SOCIAL fiscal
+    # (`res.company.name`, lo que va en el ticket y en las facturas). Una
+    # actualización del programa ya NO sobrescribe la razón social cuando
+    # tiene un valor de verdad (ver res_company._mgs_apply_branding), así que
+    # los dos son editables aquí.
     # ==================================================================
+    mgs_commercial_name = fields.Char(
+        "Nombre comercial", compute="_compute_company_fields",
+        inverse="_inverse_commercial_name",
+        help="El nombre que ve la clienta. No aparece en el ticket ni en las facturas.")
     mgs_company_name = fields.Char(
-        "Nombre de la tienda", compute="_compute_company_fields", readonly=True)
+        "Razón social (fiscal)", compute="_compute_company_fields",
+        inverse="_inverse_company_fields",
+        help="El nombre legal de la tienda: el que sale en el ticket y en las "
+             "facturas. Una actualización del programa no lo cambia.")
     mgs_company_vat = fields.Char(
         "NIF/CIF", compute="_compute_company_fields", inverse="_inverse_company_fields")
     mgs_company_street = fields.Char(
@@ -71,7 +81,10 @@ class MgsConfig(models.Model):
 
     def _compute_company_fields(self):
         company = self.env.company
+        commercial = self.env["ir.config_parameter"].sudo().get_param(
+            "mgs.commercial_name") or company.name
         for config in self:
+            config.mgs_commercial_name = commercial
             config.mgs_company_name = company.name
             config.mgs_company_vat = company.vat
             config.mgs_company_street = company.street
@@ -85,13 +98,21 @@ class MgsConfig(models.Model):
         # puede escribir aquí) ya hace de guarda: quien llega a este inverse
         # es porque ya pudo escribir en el propio mgs.config.
         for config in self:
-            self.env.company.sudo().write({
+            vals = {
                 "vat": config.mgs_company_vat,
                 "street": config.mgs_company_street,
                 "city": config.mgs_company_city,
                 "zip": config.mgs_company_zip,
                 "phone": config.mgs_company_phone,
-            })
+            }
+            if config.mgs_company_name:
+                vals["name"] = config.mgs_company_name
+            self.env.company.sudo().write(vals)
+
+    def _inverse_commercial_name(self):
+        for config in self:
+            self.env["ir.config_parameter"].sudo().set_param(
+                "mgs.commercial_name", (config.mgs_commercial_name or "").strip())
 
     # ==================================================================
     # 1 y 2. Lectores de códigos de barras (HID: se comportan como teclado)
@@ -240,13 +261,15 @@ class MgsConfig(models.Model):
                 pos_config = candidates
             elif not candidates:
                 raise UserError(_(
-                    "No hay ninguna caja configurada. Pide a la propietaria "
-                    "que cree una en Ajustes → Punto de venta."))
+                    "No hay ninguna caja de tienda. El programa la crea solo al "
+                    "instalar o actualizar; si ves esto, la instalación quedó a "
+                    "medias. Vuelve a ejecutar la actualización del módulo o "
+                    "avisa a quien mantiene el equipo."))
             else:
                 raise UserError(_(
                     "Hay más de una caja configurada y no se ha dicho cuál es "
-                    "la de la tienda. Pide a la propietaria que elija una en "
-                    "Configuración → Dispositivos → «Caja de la tienda»."))
+                    "la de la tienda. Elígela en Configuración → Dispositivos → "
+                    "«Caja de la tienda»."))
         return pos_config.open_ui()
 
     def write(self, vals):

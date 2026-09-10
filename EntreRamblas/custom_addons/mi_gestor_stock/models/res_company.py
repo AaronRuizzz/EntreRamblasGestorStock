@@ -37,7 +37,18 @@ class ResCompany(models.Model):
         if not company:
             return
 
-        vals = {"name": COMPANY_NAME}
+        # NOMBRE COMERCIAL vs. RAZÓN SOCIAL FISCAL. `res.company.name` es el
+        # nombre legal: sale en el ticket y en las facturas, y una vez que la
+        # dueña pone el de verdad, una actualización NO lo sobrescribe. El
+        # nombre comercial (emblema, inicio, título de pestaña) vive aparte,
+        # en el parámetro `mgs.commercial_name`, con este valor de partida.
+        icp = self.env["ir.config_parameter"].sudo()
+        if not icp.get_param("mgs.commercial_name"):
+            icp.set_param("mgs.commercial_name", COMPANY_NAME)
+
+        vals = {}
+        if not company.name or company.name in ("My Company", "YourCompany", COMPANY_NAME):
+            vals["name"] = COMPANY_NAME
         # Emblema definitivo (mismo que el login) con respaldo al antiguo.
         logo = _img_b64("logo-emblema.png") or _img_b64("logo.png")
         if logo:

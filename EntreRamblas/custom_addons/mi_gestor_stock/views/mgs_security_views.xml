@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Configuración → Seguridad
+         Un único registro (models/mgs_access.py). Sirve para ver el
+         estado de la clave de recuperación y regenerarla (exige la
+         contraseña actual).
+         ============================================================ -->
+    <record id="view_mgs_access_form" model="ir.ui.view">
+        <field name="name">mgs.access.form</field>
+        <field name="model">mgs.access</field>
+        <field name="arch" type="xml">
+            <form string="Seguridad" create="false" duplicate="false" delete="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Seguridad y acceso</h1>
+                        <p class="text-muted">
+                            El programa entra solo con contraseña. Si la olvidas, la única
+                            forma de recuperar el acceso es la <b>clave de recuperación</b>:
+                            una tira de letras y números que se enseña una sola vez y que
+                            debes guardar impresa fuera de este ordenador.
+                        </p>
+                    </div>
+
+                    <group>
+                        <field name="activation_state" string="Primer acceso"/>
+                        <field name="has_recovery_key" string="Clave de recuperación creada"/>
+                        <field name="recovery_generated_at"/>
+                        <field name="recovery_hint" string="Huella (comprobación)"/>
+                        <field name="recovery_ack" string="Custodia confirmada por la dueña"/>
+                    </group>
+
+                    <div class="alert alert-warning" role="status" invisible="has_recovery_key">
+                        Todavía no hay clave de recuperación. Créala ahora y guárdala:
+                        sin ella, olvidar la contraseña obliga a usar la herramienta local
+                        (administrador de Windows).
+                    </div>
+
+                    <div class="mt-3">
+                        <button name="action_regenerate_recovery_key" type="object"
+                                string="Generar / regenerar la clave de recuperación"
+                                class="btn-primary"/>
+                    </div>
+                    <p class="text-muted mt-2">
+                        Regenerar invalida la clave anterior al instante. Pide la contraseña
+                        actual para confirmarlo.
+                    </p>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mgs_security" model="ir.actions.server">
+        <field name="name">Seguridad</field>
+        <field name="model_id" ref="model_mgs_access"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_mgs_open()</field>
+    </record>
+
+    <!-- Asistente de regeneración: contraseña actual -> clave nueva, una vez. -->
+    <record id="view_mgs_access_regenerate_form" model="ir.ui.view">
+        <field name="name">mgs.access.regenerate.form</field>
+        <field name="model">mgs.access.regenerate</field>
+        <field name="arch" type="xml">
+            <form string="Regenerar la clave de recuperación">
+                <div invisible="done">
+                    <p>
+                        Escribe tu contraseña actual. Se generará una clave nueva y la
+                        anterior dejará de servir de inmediato.
+                    </p>
+                    <group>
+                        <field name="current_password" password="True" nolabel="0"/>
+                    </group>
+                </div>
+                <div invisible="not done">
+                    <p class="alert alert-success" role="status">
+                        Clave nueva generada. <b>Cópiala o imprímela ahora</b>: no se vuelve
+                        a mostrar. La clave anterior ya no sirve.
+                    </p>
+                    <div class="border rounded p-3 my-2 text-center"
+                         style="font-family:monospace;font-size:1.05rem;word-break:break-all;background:#f8f9fa">
+                        <field name="new_key" nolabel="1" readonly="1"/>
+                    </div>
+                </div>
+                <field name="done" invisible="1"/>
+                <footer>
+                    <button name="action_confirm" type="object" string="Generar clave"
+                            class="btn-primary" invisible="done"/>
+                    <button string="Hecho" special="cancel" class="btn-primary" invisible="not done"/>
+                    <button string="Cancelar" special="cancel" invisible="done"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Rastro de restablecimientos de acceso -->
+    <record id="view_mgs_access_event_list" model="ir.ui.view">
+        <field name="name">mgs.access.event.list</field>
+        <field name="model">mgs.access.event</field>
+        <field name="arch" type="xml">
+            <list string="Restablecimientos de acceso" create="false" edit="false" delete="false">
+                <field name="create_date" string="Fecha"/>
+                <field name="source" string="Vía"/>
+                <field name="create_uid" string="Usuario"/>
+                <field name="note" string="Detalle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mgs_access_events" model="ir.actions.act_window">
+        <field name="name">Restablecimientos de acceso</field>
+        <field name="res_model">mgs.access.event</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_mgs_access_event_list"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin restablecimientos.</p>
+            <p>Aquí queda constancia de cada primer acceso, recuperación con clave y
+               regeneración de clave.</p>
+        </field>
+    </record>
+
+    <!-- Menús: Configuración → Seguridad / Restablecimientos -->
+    <menuitem id="menu_mgs_settings_security" name="Seguridad" parent="menu_mgs_settings"
+              action="action_mgs_security" sequence="5"
+              groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_settings_access_events" name="Restablecimientos de acceso"
+              parent="menu_mgs_settings" action="action_mgs_access_events" sequence="40"
+              groups="mi_gestor_stock.group_mgs_manager"/>
+</odoo>

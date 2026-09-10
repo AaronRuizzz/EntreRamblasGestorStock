@@ -31,8 +31,8 @@
     </template>
 
     <template id="mgs_login" inherit_id="web.login">
-        <!-- Quita el selector "Elija un usuario": aqui solo entra el
-             administrador, no interesa el listado de ultimos usuarios. -->
+        <!-- Quita el selector "Elija un usuario": aqui solo entra la
+             propietaria, no interesa el listado de ultimos usuarios. -->
         <xpath expr="//owl-component[@name='web.user_switch']" position="replace"/>
         <!-- El formulario ya no lo destapa el componente user_switch:
              hay que quitarle la clase d-none para que se vea siempre.
@@ -48,11 +48,49 @@
             <t t-set="x_icon">/mi_gestor_stock/static/src/img/favicon.png</t>
             <!-- Oculta el pie con "Manage Databases" y "Powered by Odoo" -->
             <t t-set="disable_footer" t-value="True"/>
+            <!-- Modo estricto: la dueña ya fijo su contrasena, asi que el
+                 servidor autentica SIEMPRE su cuenta y el formulario no
+                 muestra el campo de usuario. Antes de configurarla (o en la
+                 base de validacion, sin propietaria) el campo sigue visible
+                 para poder entrar con otra cuenta. -->
+            <t t-set="mgs_strict"
+               t-value="bool(request.env['res.users'].sudo()._mgs_owner().mgs_password_set)"/>
 
             <div class="o_mgs_login_title text-center mb-3">
                 <small class="text-muted">Gestor de stock y punto de venta</small>
             </div>
         </xpath>
+
+        <!-- Campo de usuario: solo cuando NO hay propietaria configurada. -->
+        <xpath expr="//div[hasclass('field-login')]" position="replace">
+            <div class="mb-3 field-login" t-if="not mgs_strict">
+                <label for="login" class="form-label">Usuario</label>
+                <input type="text" placeholder="Usuario" name="login" t-att-value="login" id="login"
+                       class="form-control" required="required" autocapitalize="off" autocomplete="username"/>
+            </div>
+        </xpath>
+
+        <!-- Boton: «Entrar», no «Log in». -->
+        <xpath expr="//div[hasclass('oe_login_buttons')]/button[@type='submit']" position="replace">
+            <button type="submit" class="btn btn-primary">Entrar</button>
+        </xpath>
+
+        <!-- Mostrar la contrasena temporalmente. -->
+        <xpath expr="//div[hasclass('oe_login_buttons')]" position="before">
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="mgs_show_login_pw"
+                       data-mgs-toggle-password="password"/>
+                <label class="form-check-label small" for="mgs_show_login_pw">Mostrar la contraseña</label>
+            </div>
+        </xpath>
+
+        <!-- Recuperacion sin correo: la clave impresa. -->
+        <xpath expr="//div[hasclass('oe_login_buttons')]" position="after">
+            <div class="text-center mt-2">
+                <a href="/mgs/recuperar" class="btn btn-link btn-sm">He olvidado mi contraseña</a>
+            </div>
+        </xpath>
+
         <!-- Sin pie de marca: el emblema ya lleva el nombre de la floristeria,
              repetirlo abajo sobraba. Se deja solo una linea de cierre. -->
         <xpath expr="//form" position="after">
