@@ -10,6 +10,7 @@ claves, rutas privadas, NIF, ni datos de tienda.
 import json
 import logging
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,16 +29,6 @@ _NATIVE_ROOT_MENUS = [
     "stock.menu_stock_root", "base.menu_management", "base.menu_tests",
     "base.menu_administration",
 ]
-
-
-def _git(cwd, *args):
-    try:
-        done = subprocess.run(
-            ["git", "-C", str(cwd), *args],
-            capture_output=True, text=True, timeout=15, check=False)
-        return done
-    except (OSError, subprocess.SubprocessError):
-        return None
 
 
 def _module_tail(version):
@@ -89,19 +80,32 @@ class MgsDiagnostic(models.TransientModel):
         }
 
     def _section_engine(self):
-        odoo_dir = _RUNTIME_ROOT / "odoo"
+        # Mismo criterio que el arranque: tools/verificar_motor.py distingue una
+        # manipulación del motor (fichero versionado modificado/añadido) de la
+        # simple ausencia de documentación/empaquetado/ficheros de prueba, que
+        # no rompe la igualdad de comportamiento entre equipos.
+        script = _RUNTIME_ROOT / "tools" / "verificar_motor.py"
+        report = None
         try:
-            pinned = (_RUNTIME_ROOT / "odoo-revision.txt").read_text(encoding="utf-8").strip()
-        except OSError:
-            pinned = None
-        head = _git(odoo_dir, "rev-parse", "HEAD")
-        diff = _git(odoo_dir, "diff", "--quiet", "HEAD")
-        head_sha = head.stdout.strip() if head and head.returncode == 0 else None
+            done = subprocess.run(
+                [sys.executable, str(script), "--json"],
+                capture_output=True, text=True, timeout=30, check=False)
+            report = json.loads(done.stdout)
+        except (OSError, subprocess.SubprocessError, ValueError):
+            report = None
+        if not report:
+            return {"revision_fijada": None, "revision_actual": None,
+                    "coincide": None, "motor_intacto": None,
+                    "detalle": "no se pudo verificar (git no disponible)"}
         return {
-            "revision_fijada": pinned,
-            "revision_actual": head_sha,
-            "coincide": bool(head_sha and pinned and head_sha == pinned),
-            "sin_modificaciones_locales": (diff.returncode == 0) if diff else None,
+            "revision_fijada": report.get("revision_fijada"),
+            "revision_actual": report.get("revision_actual"),
+            "coincide": report.get("revision_coincide"),
+            "motor_intacto": report.get("ok"),
+            "estado": report.get("estado"),
+            "ficheros_versionados_modificados": report.get("ficheros_modificados") or [],
+            "ficheros_ejecucion_ausentes": report.get("ficheros_ejecucion_ausentes") or [],
+            "ficheros_no_ejecucion_ausentes": report.get("ficheros_no_ejecucion_ausentes", 0),
         }
 
     def _section_common_config(self):

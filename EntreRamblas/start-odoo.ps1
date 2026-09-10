@@ -41,16 +41,19 @@ if (-not $Database) { $Database = 'mi_base_stock' }  # ultimo recurso (equipo de
 if (-not (Test-Path -LiteralPath $odooBin -PathType Leaf)) {
     throw "No se encuentra el código Odoo fijado por el proyecto en '$odooBin'."
 }
-$odooDir = Join-Path $PSScriptRoot 'odoo'
-$expectedRevision = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'odoo-revision.txt') -Raw).Trim()
-$actualRevision = (& git -C $odooDir rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or $actualRevision -ne $expectedRevision) { throw 'La revisión Odoo no coincide con odoo-revision.txt.' }
-# Integridad del motor: además del commit, que el contenido versionado no
-# tenga modificaciones locales (un parche a mano sobre odoo/ rompería la
-# igualdad entre equipos sin cambiar el identificador del commit).
-& git -C $odooDir diff --quiet HEAD
-if ($LASTEXITCODE -ne 0) {
-    throw 'El motor Odoo tiene ficheros modificados respecto al commit fijado. Restáuralo desde un checkout limpio antes de arrancar.'
+# Integridad del motor Odoo: el commit fijado (odoo-revision.txt) y, más allá
+# del identificador, que ningún fichero versionado del motor se haya modificado
+# o añadido (un parche a mano sobre odoo/ rompería la igualdad entre equipos
+# sin cambiar el commit). La ausencia de documentación, empaquetado o ficheros
+# de datos de pruebas NO bloquea: no cambia cómo se ejecuta Odoo. Detalle y
+# criterio en tools/verificar_motor.py.
+$engineReport = (& $python (Join-Path $PSScriptRoot 'tools/verificar_motor.py')) -join "`n"
+switch ($LASTEXITCODE) {
+    0 { if ($engineReport) { Write-Output "Motor Odoo: $engineReport" } }
+    2 { throw "El motor Odoo no está en la revisión fijada por el proyecto ($engineReport). Restáuralo desde un checkout limpio (odoo-revision.txt)." }
+    3 { throw "El motor Odoo tiene ficheros versionados modificados o faltan ficheros de ejecución:`n$engineReport`nRestáuralo desde un checkout limpio antes de arrancar." }
+    4 { throw "No se pudo verificar la integridad del motor Odoo: $engineReport" }
+    default { throw "Verificación del motor Odoo: código $LASTEXITCODE. $engineReport" }
 }
 
 if (-not (Test-NetConnection -ComputerName $configDbHost -Port $configDbPort -InformationLevel Quiet)) {

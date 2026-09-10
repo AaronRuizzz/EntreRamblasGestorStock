@@ -71,8 +71,14 @@ Hecho:
   `tools/check_pending_upgrade.py` comparan versión de código vs. aplicada y
   ejecutan `-u` controlado antes de servir; si falla (sesión de caja abierta,
   etc.) aborta, no sirve una base a medio migrar.
-- **Integridad del motor**: `start-odoo.ps1` comprueba `git diff --quiet HEAD`
-  además del commit.
+- **Integridad del motor**: `tools/verificar_motor.py` (lo usan `start-odoo.ps1`,
+  el diagnóstico y `publicar/empaquetar.ps1`) comprueba el commit fijado y que
+  ningún fichero **versionado** del motor esté modificado o añadido. La ausencia
+  de documentación, empaquetado (`debian/`, `setup/`) o ficheros de datos de
+  pruebas **no bloquea el arranque**: no cambia cómo se ejecuta Odoo y en un
+  equipo de tienda es normal no tenerlos (queda como aviso). Distingue además las
+  «bajas fantasma» del índice (OneDrive evacuando carpetas frías + un `git add`),
+  que no son modificaciones reales.
 - **Orden de instalación**: la caja de tienda se crea ANTES de aplicar los
   ajustes comunes del TPV (`data/branding.xml` reordenado).
 - **Fallo visible**: `install_database.py` aborta y conserva `.pending` si la
@@ -93,6 +99,18 @@ Pendiente en este bloque:
 - Refresco explícito de assets/caché tras migración correcta.
 - Repaso de manuales (`MANUAL_TIENDA.md`, `INSTALACION.md`) — en curso.
 - Checkout limpio del motor «aparte» (va con el instalador, Bloque 4).
+
+Incidencia resuelta (equipo de desarrollo): el checkout de `EntreRamblas/odoo`
+tenía ~2200 bajas en el índice (OneDrive + `git add`) y 15 ficheros de prueba
+sin extraer por el límite de ruta de Windows (260+ caracteres). `start-odoo.ps1`
+rechazaba el arranque con «El motor Odoo tiene ficheros modificados». **Ningún
+fichero del motor estaba modificado** (`git diff --diff-filter=ACMRT HEAD` = 0);
+era ruido del índice. Hecho: `git -C EntreRamblas/odoo config core.longpaths
+true` + `git -C EntreRamblas/odoo restore --staged .` (deshace las bajas
+fantasma) y la verificación pasó a `tools/verificar_motor.py`, que ya no bloquea
+por documentación/empaquetado ausente. Para dejar el checkout idéntico al
+commit: `git -C EntreRamblas/odoo checkout -- .` (restaura `doc/`, `debian/`,
+`setup/` y los 15 ficheros de prueba largos).
 
 ### Bloque 4 — Instalador y actualizaciones 🔶
 

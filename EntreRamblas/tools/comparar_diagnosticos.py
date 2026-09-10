@@ -10,6 +10,13 @@ import json
 import sys
 
 _IGNORE = {"generado", "base_datos"}
+# Campos informativos que NO rompen la igualdad de comportamiento entre equipos:
+# un equipo puede tener menos documentación o ficheros de prueba del motor (o
+# bajas fantasma en el índice de git) y ejecutar exactamente el mismo código.
+_IGNORE_KEYS = {
+    "motor_odoo.ficheros_no_ejecucion_ausentes",
+    "motor_odoo.bajas_fantasma",
+}
 
 
 def _flatten(obj, prefix=""):
@@ -39,7 +46,7 @@ def main():
     args = parser.parse_args()
     a = _flatten(json.load(open(args.a, encoding="utf-8")))
     b = _flatten(json.load(open(args.b, encoding="utf-8")))
-    keys = sorted(set(a) | set(b))
+    keys = sorted((set(a) | set(b)) - _IGNORE_KEYS)
     diffs = [(k, a.get(k, "—(falta)"), b.get(k, "—(falta)")) for k in keys if a.get(k) != b.get(k)]
     if not diffs:
         print("Sin diferencias relevantes.")

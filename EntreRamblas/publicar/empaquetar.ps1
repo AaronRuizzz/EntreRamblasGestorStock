@@ -23,10 +23,16 @@ if ($version -notmatch '^\d+(\.\d+){2,4}$') { throw "Versión no válida: $versi
 Write-Host "Empaquetando versión $version" -ForegroundColor Cyan
 
 # --- integridad del motor -----------------------------------------------------
+# Mismo criterio que el arranque (tools/verificar_motor.py): el commit fijado y
+# que ningún fichero versionado del motor esté modificado o añadido. La falta de
+# documentación/empaquetado/ficheros de prueba no impide publicar (no cambia la
+# ejecución y el paquete quedará igual de recortado en todos los equipos).
 $rev = (Get-Content 'odoo-revision.txt' -Raw).Trim()
-if ((& git -C odoo rev-parse HEAD).Trim() -ne $rev) { throw 'La revisión de odoo/ no coincide con odoo-revision.txt.' }
-& git -C odoo diff --quiet HEAD
-if ($LASTEXITCODE -ne 0) { throw 'El checkout de odoo/ tiene cambios locales.' }
+$engineReport = (& $python (Join-Path $repo 'tools/verificar_motor.py')) -join "`n"
+if ($LASTEXITCODE -ne 0) {
+    throw "El motor de odoo/ no está íntegro respecto al commit fijado; no se publica:`n$engineReport"
+}
+Write-Host "Motor Odoo: $engineReport" -ForegroundColor DarkGray
 
 # --- pruebas ----------------------------------------------------------------
 if (-not $SaltarPruebas) {
