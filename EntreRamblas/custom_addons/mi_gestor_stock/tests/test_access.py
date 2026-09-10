@@ -105,6 +105,32 @@ class TestAccessModel(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
+class TestDiagnostic(TransactionCase):
+    def test_diagnostic_reports_the_expected_sections_without_secrets(self):
+        import json
+        data = self.env["mgs.diagnostic"]._gather()
+        for key in ("modulo", "motor_odoo", "config_comun", "modulos_instalados"):
+            self.assertIn(key, data)
+            if isinstance(data[key], dict):
+                self.assertNotIn("error", data[key])
+        self.assertIn("mi_gestor_stock", {m["nombre"] for m in data["modulos_instalados"]})
+        # Ni huellas de secretos ni contraseñas: el bloque de config, serializado.
+        config_blob = json.dumps(data["config_comun"], ensure_ascii=False).lower()
+        for secret in ("fingerprint", "password", "passwd", "contraseña", "vat", "nif"):
+            self.assertNotIn(secret, config_blob)
+        # El admin_passwd de odoo.conf no aparece por ningún lado.
+        real_admin_passwd = self.env["ir.config_parameter"].sudo().get_param(
+            "database.secret") or "x"
+        self.assertNotIn(real_admin_passwd, self.env["mgs.diagnostic"]._gather_text())
+
+    def test_diagnostic_download_returns_a_json_attachment(self):
+        wizard = self.env["mgs.diagnostic"].create({"report_text": "{}"})
+        action = wizard.action_download()
+        self.assertEqual(action["type"], "ir.actions.act_url")
+        self.assertIn("/web/content/", action["url"])
+
+
+@tagged("post_install", "-at_install")
 class TestAccessHttp(HttpCase):
     def _make_owner(self, password_set):
         return self.env["res.users"].create({

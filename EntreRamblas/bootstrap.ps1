@@ -54,4 +54,14 @@ if ($LASTEXITCODE -ne 0) { throw 'No se pudo reservar una base nueva. No se inst
 if ($LASTEXITCODE -ne 0) { throw 'La instalación ha fallado. Se conserva el marcador pendiente; no arranques esta base.' }
 & $python tools/install_database.py provision --config $Config --database $Database
 if ($LASTEXITCODE -ne 0) { throw 'El alta inicial no se completó. Se mantiene bloqueado el arranque.' }
-Write-Output "Instalación completada. Arranque: start-odoo.ps1 -Config <archivo> -Database $Database"
+
+# Fuente unica del nombre de base: se fija en la configuracion para que
+# start-odoo.ps1 (y las demas herramientas) no necesiten repetirlo.
+$configText = [System.IO.File]::ReadAllText($Config)
+if ($configText -notmatch '(?m)^\s*db_name\s*=') {
+    if (-not $configText.EndsWith("`n")) { $configText += "`r`n" }
+    $configText += "db_name = $Database`r`n"
+    [System.IO.File]::WriteAllText($Config, $configText, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+Write-Output "Instalación completada. Arranque: start-odoo.ps1 -Config <archivo>"

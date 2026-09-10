@@ -43,6 +43,13 @@ def main():
         module = env['ir.module.module'].search([('name', '=', 'mi_gestor_stock')], limit=1)
         if module.state != 'installed':
             raise ValueError('El módulo no se ha instalado correctamente')
+        # La caja de la tienda se crea durante la instalación; si falta, algo
+        # falló al preparar la contabilidad o el TPV. No dejar la instalación
+        # como terminada: se conserva el marcador .pending para poder reanudar.
+        if not env.ref('mi_gestor_stock.pos_config_shop', raise_if_not_found=False):
+            raise ValueError(
+                'La caja de la tienda no se creó (revisa el plan contable en el '
+                'registro). Se conserva el marcador pendiente; corrige y repite.')
         # La cuenta administradora queda SOLO como cuenta técnica de rotura de
         # cristal: login `admin`, sin contraseña utilizable (se restablece con
         # la herramienta local si hiciera falta). El uso diario va con una

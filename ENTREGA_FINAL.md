@@ -11,10 +11,10 @@ Origen del plan: `../PlanFinalizarGestor.md` (fuera del repo).
 | Bloque | Tema | Estado |
 |---|---|---|
 | 1 | Documentación y decisión VeriFactu | ✅ hecho |
-| 2 | Acceso solo con contraseña + recuperación | ☐ pendiente |
-| 3 | Misma aplicación en todos los equipos | ☐ pendiente |
+| 2 | Acceso solo con contraseña + recuperación | ✅ hecho (suite verde) |
+| 3 | Misma aplicación en todos los equipos | 🔶 en curso |
 | 4 | Instalador y actualizaciones firmadas | ☐ pendiente |
-| 5 | Pruebas y condiciones de entrega | ☐ pendiente |
+| 5 | Pruebas y condiciones de entrega | 🔶 en curso |
 
 ## Registro de avance
 
@@ -30,13 +30,52 @@ Origen del plan: `../PlanFinalizarGestor.md` (fuera del repo).
       `README.md` §0bis: corregidos con la misma aclaración y puntero a
       `FACTURACION.md` §2.
 
-### Bloque 2 — Acceso
+### Bloque 2 — Acceso ✅
 
-_(pendiente)_
+Ver `ACCESO.md`. Commit `53abe5b`.
+- Cuenta de propietaria separada de `base.user_admin` (gestión de tienda, sin
+  admin técnico). Instalador + migración `18.0.3.0.0`, historial conservado.
+- Login solo contraseña; servidor fija la cuenta; «Entrar»; «He olvidado…».
+- Primer acceso con código de activación de un solo uso → contraseña (12+) →
+  clave de recuperación (mostrada una vez, sólo se guarda la huella).
+- `/mgs/recuperar` con la clave; invalida sesiones; rota la clave; sin correo.
+- `mgs.auth.throttle`: límite persistente por (ámbito, IP). CSRF. Nada de
+  secretos en el log.
+- Configuración → Seguridad (regenerar clave, pide contraseña actual) +
+  Restablecimientos de acceso (rastro inmodificable).
+- `recuperar-acceso.ps1` (administrador de Windows) para la pérdida total.
+- Menú de usuario filtrado al construirse (patch de `UserMenu.getElements`).
+- 17 pruebas nuevas.
 
-### Bloque 3 — Misma aplicación
+### Bloque 3 — Misma aplicación 🔶
 
-_(pendiente)_
+Hecho:
+- **Arranque normal aplica la actualización pendiente**: `start-odoo.ps1` +
+  `tools/check_pending_upgrade.py` comparan versión de código vs. aplicada y
+  ejecutan `-u` controlado antes de servir; si falla (sesión de caja abierta,
+  etc.) aborta, no sirve una base a medio migrar.
+- **Integridad del motor**: `start-odoo.ps1` comprueba `git diff --quiet HEAD`
+  además del commit.
+- **Orden de instalación**: la caja de tienda se crea ANTES de aplicar los
+  ajustes comunes del TPV (`data/branding.xml` reordenado).
+- **Fallo visible**: `install_database.py` aborta y conserva `.pending` si la
+  caja de tienda no se creó (plan contable, etc.).
+- **Fuente única del nombre de base**: `bootstrap.ps1` fija `db_name` en la
+  config; `start-odoo.ps1` y `reset-catalogo.ps1` lo leen de ahí.
+- **Nombre comercial ≠ razón social**: editables por separado en
+  Configuración → Dispositivos; un `-u` no pisa el nombre legal.
+- **Diagnóstico exportable sin secretos**: `mgs.diagnostic` +
+  Configuración → Diagnóstico + `diagnostico.ps1` (versión, motor, config
+  común, módulos). Para comparar equipos.
+- **Contraseña PostgreSQL por defecto** fuera de `odoo.conf`.
+- Mensaje «Ajustes → Punto de venta» corregido.
+
+Pendiente en este bloque:
+- Manifiesto de versión formal con migraciones aplicadas (el diagnóstico ya
+  cubre versión y estado; falta el histórico de migraciones).
+- Refresco explícito de assets/caché tras migración correcta.
+- Repaso de manuales (`MANUAL_TIENDA.md`, `INSTALACION.md`) — en curso.
+- Checkout limpio del motor «aparte» (va con el instalador, Bloque 4).
 
 ### Bloque 4 — Instalador y actualizaciones
 

@@ -29,3 +29,4 @@ access_mgs_access_event_manager,mgs access event manager,model_mgs_access_event,
 access_mgs_access_event_system,mgs access event system,model_mgs_access_event,base.group_system,1,0,1,0
 access_mgs_auth_throttle_system,mgs auth throttle system,model_mgs_auth_throttle,base.group_system,1,1,1,1
 access_mgs_access_regenerate,mgs access regenerate,model_mgs_access_regenerate,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_diagnostic,mgs diagnostic,model_mgs_diagnostic,mi_gestor_stock.group_mgs_manager,1,1,1,1

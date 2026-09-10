@@ -119,9 +119,43 @@
         </field>
     </record>
 
-    <!-- Menús: Configuración → Seguridad / Restablecimientos -->
+    <!-- ============================================================
+         Diagnóstico exportable de la instalación (comparar equipos)
+         ============================================================ -->
+    <record id="view_mgs_diagnostic_form" model="ir.ui.view">
+        <field name="name">mgs.diagnostic.form</field>
+        <field name="model">mgs.diagnostic</field>
+        <field name="arch" type="xml">
+            <form string="Diagnóstico">
+                <p class="text-muted">
+                    Versión del módulo, motor Odoo, configuración común y módulos
+                    instalados. <b>Sin datos de tienda ni secretos.</b> Descárgalo en
+                    cada equipo y compara los archivos para encontrar diferencias.
+                </p>
+                <field name="report_text" widget="text" nolabel="1" readonly="1"
+                       style="font-family:monospace;white-space:pre"/>
+                <footer>
+                    <button name="action_download" type="object" string="Descargar (JSON)"
+                            class="btn-primary"/>
+                    <button string="Cerrar" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mgs_diagnostic" model="ir.actions.server">
+        <field name="name">Diagnóstico</field>
+        <field name="model_id" ref="model_mgs_diagnostic"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open()</field>
+    </record>
+
+    <!-- Menús: Configuración → Seguridad / Diagnóstico / Restablecimientos -->
     <menuitem id="menu_mgs_settings_security" name="Seguridad" parent="menu_mgs_settings"
               action="action_mgs_security" sequence="5"
+              groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_settings_diagnostic" name="Diagnóstico" parent="menu_mgs_settings"
+              action="action_mgs_diagnostic" sequence="35"
               groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_settings_access_events" name="Restablecimientos de acceso"
               parent="menu_mgs_settings" action="action_mgs_access_events" sequence="40"
