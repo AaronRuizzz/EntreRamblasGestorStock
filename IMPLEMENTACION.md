@@ -662,8 +662,10 @@ vivo en `ENTREGA_FINAL.md`). Módulo `18.0.2.0.0` → **`18.0.3.0.0`**. Suite:
   rastro de restablecimientos; `recuperar-acceso.ps1` (administrador de
   Windows) para la pérdida total. Menú de usuario filtrado al construirse.
 - **Misma app en todos los equipos**: `start-odoo.ps1` aplica la actualización
-  pendiente antes de servir y comprueba la integridad del motor
-  (`tools/check_pending_upgrade.py`); la caja de tienda se crea antes de los
+  pendiente antes de servir (`tools/check_pending_upgrade.py`) y comprueba la
+  integridad del motor (`tools/verificar_motor.py`: commit fijado + sin ficheros
+  versionados modificados/añadidos; la falta de documentación/empaquetado/
+  ficheros de prueba no bloquea); la caja de tienda se crea antes de los
   ajustes comunes del TPV; `install_database.py` no oculta un fallo de la caja;
   `db_name` como fuente única del nombre de base; nombre comercial separado de
   la razón social; **diagnóstico exportable sin secretos** (`mgs.diagnostic`,

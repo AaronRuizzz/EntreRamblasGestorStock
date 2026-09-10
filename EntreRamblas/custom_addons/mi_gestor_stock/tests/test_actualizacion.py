@@ -47,6 +47,56 @@ class TestPackageSignature(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
+class TestEngineIntegrity(TransactionCase):
+    def test_runtime_path_classification(self):
+        mot = _load("verificar_motor")
+        for path in (
+            "odoo/http.py",
+            "odoo/addons/base/models/ir_module.py",
+            "addons/account/models/account_move.py",
+            "addons/account/__manifest__.py",
+            "addons/account/i18n/es.po",
+            "addons/point_of_sale/static/src/app/pos_store.js",
+        ):
+            self.assertTrue(mot._is_runtime_path(path), path)
+        for path in (
+            "doc/index.rst",
+            "LICENSE",
+            "setup.py",
+            "debian/control",
+            "odoo/addons/base/tests/test_ir_model.py",
+            "addons/account/tests/test_account_move.py",
+            "addons/account/README.md",
+        ):
+            self.assertFalse(mot._is_runtime_path(path), path)
+
+    def test_pinned_engine_has_no_local_modifications(self):
+        mot = _load("verificar_motor")
+        result = mot.check()
+        if result["code"] == 4:
+            self.skipTest("git no disponible en este entorno")
+        # El commit fijado y, más allá del identificador, sin ficheros
+        # versionados modificados ni añadidos. La ausencia de documentación o
+        # ficheros de prueba no cuenta como manipulación.
+        self.assertTrue(result["revision_coincide"], result)
+        self.assertEqual(result["ficheros_modificados"], [], result)
+        self.assertEqual(result["ficheros_ejecucion_ausentes"], [], result)
+        self.assertEqual(result["ficheros_ejecucion_borrados"], [], result)
+        self.assertTrue(result["ok"], result)
+
+    def test_text_output_flags_a_tampered_engine(self):
+        mot = _load("verificar_motor")
+        texto = mot._texto({
+            "code": 3, "estado": "modificado",
+            "revision_actual": "abc", "revision_fijada": "abc",
+            "ficheros_modificados": ["odoo/http.py"],
+            "ficheros_ejecucion_ausentes": [], "ficheros_ejecucion_borrados": [],
+        })
+        self.assertIn("modificado", texto)
+        self.assertIn("odoo/http.py", texto)
+
+
+@tagged("post_install", "-at_install")
 class TestUpdateWindow(TransactionCase):
     def _state_file(self, payload):
         path = Path(config.get("data_dir")) / "actualizador" / "estado.json"
