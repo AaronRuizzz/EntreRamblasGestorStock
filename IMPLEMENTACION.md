@@ -401,11 +401,14 @@ todos con partidas automáticas y caducidad. Procedimiento en `APERTURA.md`.
   blanco, nombres largos completos y cabecera de tabla repetida en cada página.
   Evidencia en `.odoo_data/output/pdf/informe-validacion-largo.pdf`.
 - **Facturación** (`FACTURACION.md`): consultadas AEAT y BOE. Los plazos SIF /
-  VERI\*FACTU se ampliaron por el RDL 15/2025 a **1-1-2027** (Impuesto sobre
-  Sociedades) y **1-7-2027** (resto). El programa **no es hoy un SIF conforme**:
-  no encadena huellas, no firma, no lleva registro de eventos ni imprime QR. La
-  factura electrónica B2B del RD 238/2026 **no afecta** a las ventas a consumidor
-  final ni a las simplificadas de minorista.
+  VERI\*FACTU **de usuario** se ampliaron por el RDL 15/2025 a **1-1-2027**
+  (Impuesto sobre Sociedades) y **1-7-2027** (resto). El programa **no es hoy un
+  SIF conforme**: no encadena huellas, no firma, no lleva registro de eventos ni
+  imprime QR. La factura electrónica B2B del RD 238/2026 **no afecta** a las
+  ventas a consumidor final ni a las simplificadas de minorista. _(Corregido el
+  10-09-2026: el plazo de **productores/comercializadores** de software es el
+  **29-07-2025** y no se amplió; si el programa se considera comercializado a la
+  tienda, ese es el que aplica. Ver `FACTURACION.md` §2.)_
 - Dos huecos del ticket frente al artículo 7 del RD 1619/2012, corregidos: ahora
   imprime el **tipo impositivo** (`IVA 21%`) en vez del nombre interno de l10n_es
   (`21% G`), y las devoluciones remiten al ticket rectificado. Con prueba.

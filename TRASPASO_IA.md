@@ -271,9 +271,13 @@ Por orden de lo que bloquea la puesta en producción:
 2. **SSD físico.** Falta conectar el disco y comprobar réplica, retención de
    30 días, desconexión y reconexión, espacio insuficiente y una restauración
    real desde el disco externo. Las restauraciones ensayadas son locales.
-3. **Cumplimiento SIF / VERI\*FACTU** antes de los plazos de `FACTURACION.md`
-   (1-1-2027 / 1-7-2027): elegir vía, y cerrar con la gestoría el régimen, los
-   tipos de IVA por familia y la serie de numeración.
+3. **Cumplimiento SIF / VERI\*FACTU.** Fuera de esta entrega por decisión de la
+   propietaria. Los plazos **de usuario** son 1-1-2027 / 1-7-2027, pero el de
+   **productores/comercializadores** de software (29-07-2025) ya venció y puede
+   aplicar si el programa se considera comercializado a la tienda. Emitir tickets
+   hoy **no equivale a cumplir** ni valida nada. Elegir vía y cerrar con la
+   gestoría el régimen, los tipos de IVA por familia y la serie de numeración.
+   Ver `FACTURACION.md` §2 (reescrito el 10-09-2026).
 4. **Jornada física completa**: lectores HID reales, impresora de 80 mm,
    cajón, datáfono manual, pago mixto, merma, devolución, recuento y cierre de
    caja, con desconexiones y un reinicio por medio. Las simulaciones no valen.

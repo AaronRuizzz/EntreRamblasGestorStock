@@ -107,7 +107,9 @@ juntos, pero son independientes entre sí.
 - **Ticket**: imprime el tipo impositivo (`IVA 21%`) en vez del nombre interno de
   l10n_es, y las devoluciones remiten al ticket rectificado (artículo 7 del
   RD 1619/2012). Ver [FACTURACION.md](FACTURACION.md): el programa **no es** hoy un
-  SIF conforme al RD 1007/2023.
+  SIF conforme al RD 1007/2023, esta entrega **no activa** VeriFactu (decisión de
+  la propietaria) y emitir tickets **no equivale a cumplir** ni valida la
+  facturación.
 
 ---
 
