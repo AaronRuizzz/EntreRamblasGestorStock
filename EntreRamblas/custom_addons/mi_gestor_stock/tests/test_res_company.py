@@ -35,6 +35,19 @@ class TestCompanyBranding(TransactionCase):
         self.env.company._mgs_apply_branding()
         self.assertEqual(stale.name, COMPANY_NAME)
 
+    def test_apply_branding_keeps_a_real_legal_name_and_offers_a_trade_name(self):
+        company = self.env.company
+        company.name = "Floristería Ejemplo SL"
+        company._mgs_apply_branding()
+        self.assertEqual(company.name, "Floristería Ejemplo SL")
+        icp = self.env["ir.config_parameter"].sudo()
+        self.assertTrue(icp.get_param("mgs.commercial_name"))
+        # La pantalla de Configuración separa los dos nombres y cada uno va a su sitio.
+        config = self.env["mgs.config"]._mgs_get()
+        config.write({"mgs_commercial_name": "Entre Ramblas", "mgs_company_name": "Otra Razón SL"})
+        self.assertEqual(company.name, "Otra Razón SL")
+        self.assertEqual(icp.get_param("mgs.commercial_name"), "Entre Ramblas")
+
     def test_rename_picking_types_renames_pos_orders_and_the_default_warehouse(self):
         picking_type = self.env["stock.picking.type"].search([], limit=1)
         original_picking_name = picking_type.name
@@ -90,11 +103,22 @@ class TestCompanyShopPosConfig(TransactionCase):
         return shop
 
     def test_converts_a_restaurant_config_when_it_has_no_open_session(self):
+        shop = self.env.ref("mi_gestor_stock.pos_config_shop")
+        shop.name = "Restaurante"
         shop = self._mark_shop_as_restaurant()
 
         self.env.company._mgs_ensure_shop_pos_config()
 
         self.assertFalse(shop.module_pos_restaurant)
+        self.assertEqual(shop.name, "Tienda")
+
+    def test_preserves_a_custom_shop_name(self):
+        shop = self.env.ref("mi_gestor_stock.pos_config_shop")
+        shop.name = "Caja Centro"
+
+        self.env.company._mgs_ensure_shop_pos_config()
+
+        self.assertEqual(shop.name, "Caja Centro")
 
     def test_defers_conversion_when_the_restaurant_session_is_open(self):
         shop = self._mark_shop_as_restaurant()

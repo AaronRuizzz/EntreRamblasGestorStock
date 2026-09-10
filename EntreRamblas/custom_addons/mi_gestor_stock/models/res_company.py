@@ -37,7 +37,18 @@ class ResCompany(models.Model):
         if not company:
             return
 
-        vals = {"name": COMPANY_NAME}
+        # NOMBRE COMERCIAL vs. RAZÓN SOCIAL FISCAL. `res.company.name` es el
+        # nombre legal: sale en el ticket y en las facturas, y una vez que la
+        # dueña pone el de verdad, una actualización NO lo sobrescribe. El
+        # nombre comercial (emblema, inicio, título de pestaña) vive aparte,
+        # en el parámetro `mgs.commercial_name`, con este valor de partida.
+        icp = self.env["ir.config_parameter"].sudo()
+        if not icp.get_param("mgs.commercial_name"):
+            icp.set_param("mgs.commercial_name", COMPANY_NAME)
+
+        vals = {}
+        if not company.name or company.name in ("My Company", "YourCompany", COMPANY_NAME):
+            vals["name"] = COMPANY_NAME
         # Emblema definitivo (mismo que el login) con respaldo al antiguo.
         logo = _img_b64("logo-emblema.png") or _img_b64("logo.png")
         if logo:
@@ -74,8 +85,31 @@ class ResCompany(models.Model):
             company.country_id = spain
 
         self._mgs_rename_picking_types()
+        self._mgs_stamp_version()
 
         _logger.info("mi_gestor_stock: marca aplicada -> %s", COMPANY_NAME)
+
+    # ------------------------------------------------------------------
+    # Manifiesto de versión: histórico de qué versión del módulo se ha
+    # aplicado a esta base y cuándo. Se anota en cada `-u` (que es cuando
+    # corren también las migraciones). Lo lee el diagnóstico.
+    # ------------------------------------------------------------------
+    def _mgs_stamp_version(self):
+        import json
+        from datetime import datetime, timezone
+        from odoo.modules.module import get_manifest
+        version = get_manifest("mi_gestor_stock").get("version")
+        icp = self.env["ir.config_parameter"].sudo()
+        try:
+            history = json.loads(icp.get_param("mgs.version_history") or "[]")
+        except ValueError:
+            history = []
+        if not history or history[-1].get("version") != version:
+            history.append({
+                "version": version,
+                "aplicada": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            })
+            icp.set_param("mgs.version_history", json.dumps(history[-50:]))
 
     # ------------------------------------------------------------------
     # Nombres de los tipos de operacion que salen en la pantalla de inicio
@@ -158,6 +192,12 @@ class ResCompany(models.Model):
                 "journal_id": journal.id,
                 "payment_method_ids": [(6, 0, payment_method_ids)],
             })
+        # El asistente inicial de Odoo usa estos nombres para su caja de
+        # demostración. Una vez reutilizada como caja normal, no dejar un
+        # rótulo que haga pensar que el modo restaurante sigue activo. Los
+        # nombres elegidos por el usuario se respetan.
+        if shop.name in ("Restaurant", "Restaurante"):
+            shop.name = "Tienda"
         self.env["ir.model.data"]._update_xmlids([{
             "xml_id": "mi_gestor_stock.pos_config_shop",
             "record": shop,

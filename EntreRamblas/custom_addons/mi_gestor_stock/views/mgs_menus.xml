@@ -41,15 +41,15 @@
 
     <menuitem id="menu_mgs_reports" groups="mi_gestor_stock.group_mgs_manager" name="Informes" parent="menu_mgs_root" sequence="30"/>
     <menuitem id="menu_mgs_reports_sales" name="Ventas y balance" parent="menu_mgs_reports"
-              action="action_mgs_report_sales" sequence="10"/>
+              action="action_mgs_report_sales" sequence="10" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_top" name="Productos más vendidos" parent="menu_mgs_reports"
-              action="action_mgs_report_top_products" sequence="20"/>
+              action="action_mgs_report_top_products" sequence="20" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_consumption" name="Consumo de flor" parent="menu_mgs_reports"
-              action="action_mgs_consumption" sequence="25"/>
+              action="action_mgs_consumption" sequence="25" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_monthly" name="Informe mensual (PDF)" parent="menu_mgs_reports"
-              action="action_mgs_monthly_report" sequence="30"/>
+              action="action_mgs_monthly_report" sequence="30" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_sessions" name="Cierres de caja" parent="menu_mgs_reports"
-              action="action_mgs_pos_sessions" sequence="40"/>
+              action="action_mgs_pos_sessions" sequence="40" groups="mi_gestor_stock.group_mgs_manager"/>
 
     <!-- Configuración: solo para el administrador. Los lectores, la impresora
          y el cajón se ajustan una vez al montar la tienda; el uso diario no

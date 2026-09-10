@@ -15,6 +15,11 @@
           <button class="btn btn-outline-dark" t-on-click="() => this.open('mi_gestor_stock.action_mgs_backups')">Revisar copias</button>
         </div>
 
+        <div t-if="state.updateNotice" class="alert alert-primary" role="status">
+          <p t-esc="state.updateNotice"/>
+          <button class="btn btn-outline-dark" t-on-click="() => this.open('mi_gestor_stock.action_mgs_update')">Ver actualización</button>
+        </div>
+
         <div t-if="state.loaded and state.alerts" class="mgs-home-alerts"
              t-on-click="() => this.open('mi_gestor_stock.action_mgs_stock_dashboard')">
           <i class="fa fa-exclamation-triangle" role="img"/>

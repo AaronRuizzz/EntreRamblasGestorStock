@@ -401,11 +401,14 @@ todos con partidas automáticas y caducidad. Procedimiento en `APERTURA.md`.
   blanco, nombres largos completos y cabecera de tabla repetida en cada página.
   Evidencia en `.odoo_data/output/pdf/informe-validacion-largo.pdf`.
 - **Facturación** (`FACTURACION.md`): consultadas AEAT y BOE. Los plazos SIF /
-  VERI\*FACTU se ampliaron por el RDL 15/2025 a **1-1-2027** (Impuesto sobre
-  Sociedades) y **1-7-2027** (resto). El programa **no es hoy un SIF conforme**:
-  no encadena huellas, no firma, no lleva registro de eventos ni imprime QR. La
-  factura electrónica B2B del RD 238/2026 **no afecta** a las ventas a consumidor
-  final ni a las simplificadas de minorista.
+  VERI\*FACTU **de usuario** se ampliaron por el RDL 15/2025 a **1-1-2027**
+  (Impuesto sobre Sociedades) y **1-7-2027** (resto). El programa **no es hoy un
+  SIF conforme**: no encadena huellas, no firma, no lleva registro de eventos ni
+  imprime QR. La factura electrónica B2B del RD 238/2026 **no afecta** a las
+  ventas a consumidor final ni a las simplificadas de minorista. _(Corregido el
+  10-09-2026: el plazo de **productores/comercializadores** de software es el
+  **29-07-2025** y no se amplió; si el programa se considera comercializado a la
+  tienda, ese es el que aplica. Ver `FACTURACION.md` §2.)_
 - Dos huecos del ticket frente al artículo 7 del RD 1619/2012, corregidos: ahora
   imprime el **tipo impositivo** (`IVA 21%`) en vez del nombre interno de l10n_es
   (`21% G`), y las devoluciones remiten al ticket rectificado. Con prueba.
@@ -638,3 +641,51 @@ desde los subtotales reales de cada línea, tarifa o descuento aparte.
 pendiente la **aceptación en navegador** de los seis flujos (no solo las pruebas
 automáticas): es una sesión de pantalla con la propietaria delante, y no se ha
 hecho todavía — ver `TRASPASO_IA.md`.
+
+## Avance verificado (2026-09-10, entrega final: acceso, igualdad, instalador)
+
+Ejecución del plan `PlanFinalizarGestor.md` (rama `finalizar-entrega`; rastro
+vivo en `ENTREGA_FINAL.md`). Módulo `18.0.2.0.0` → **`18.0.3.0.0`**. Suite:
+**249 pruebas, 0 fallos, 0 errores** al cierre (partiendo de 236).
+
+- **Documentación / VeriFactu** (`FACTURACION.md` y otros): VeriFactu queda
+  fuera de la entrega por decisión de la propietaria; corregido el marco de
+  plazos con la fila de **productores/comercializadores de SIF** (29-07-2025,
+  no ampliado) y el matiz «desarrollo propio vs. comercializado». Emitir
+  tickets no equivale a cumplir ni valida la facturación.
+- **Acceso solo con contraseña** (`ACCESO.md`, `models/mgs_access.py`,
+  `controllers/mgs_auth.py`, migración `18.0.3.0.0`): cuenta de propietaria
+  separada de `base.user_admin` (gestión de tienda, sin admin técnico);
+  formulario sin selección de usuario; primer acceso con código de activación
+  de un solo uso; recuperación por **clave impresa** (rota, invalida sesiones,
+  sin correo); límite de intentos persistente; CSRF; Configuración → Seguridad;
+  rastro de restablecimientos; `recuperar-acceso.ps1` (administrador de
+  Windows) para la pérdida total. Menú de usuario filtrado al construirse.
+- **Misma app en todos los equipos**: `start-odoo.ps1` aplica la actualización
+  pendiente antes de servir y comprueba la integridad del motor
+  (`tools/check_pending_upgrade.py`); la caja de tienda se crea antes de los
+  ajustes comunes del TPV; `install_database.py` no oculta un fallo de la caja;
+  `db_name` como fuente única del nombre de base; nombre comercial separado de
+  la razón social; **diagnóstico exportable sin secretos** (`mgs.diagnostic`,
+  `diagnostico.ps1`, `comparar_diagnosticos.py`) + histórico de versiones
+  aplicadas; contraseña PostgreSQL por defecto fuera de `odoo.conf`.
+- **Instalador y actualizaciones firmadas** (`ACTUALIZACIONES.md`,
+  `EntreRamblas/instalador/`, `EntreRamblas/publicar/`): firma **Ed25519**
+  (`tools/paquete_firma.py`, probada, incluido el rechazo de un manifiesto
+  manipulado); **actualizador independiente con estado persistente**
+  (`tools/actualizador.py`): comprobar/preparar/aplicar en 7 pasos con
+  reversión de base y luego código; en la app, «Actualización disponible» y
+  «Actualizar al cerrar»; Inno Setup `.iss` + orquestador (PostgreSQL
+  dedicado, servicio, acceso directo a Edge, PDF, base sin demo,
+  reinstalar/desinstalar conserva datos y copias); pipeline `empaquetar.ps1`.
+
+### Pendiente (no es código)
+
+- Crear `AaronRuizzz/EntreRamblasReleases` y decidir la cuenta de publicación.
+- Generar la clave privada de firma definitiva, offline, y custodiarla fuera.
+- Instalar Inno Setup, compilar el `.exe` y probar instalación limpia.
+- Registrar el servicio en el SCM (consola de administrador) y probar
+  reinicio/apagado/recuperación.
+- Matriz física del plan §5 (hardware, SSD, jornada real, actualización con
+  paquete alterado / disco lleno / corte a mitad).
+- Gestoría: régimen, IVA por familia, serie, vía SIF/VeriFactu.

@@ -1,4 +1,7 @@
 from . import mgs_config
+from . import mgs_access
+from . import mgs_diagnostic
+from . import mgs_update
 from . import mgs_backup
 from . import res_company
 from . import product_category

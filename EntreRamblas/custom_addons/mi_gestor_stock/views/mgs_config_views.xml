@@ -28,18 +28,24 @@
                         <!-- ============ DATOS DE LA TIENDA ============ -->
                         <page string="Datos de la tienda" name="company">
                             <div class="alert alert-info" role="status">
-                                Lo que sale en el ticket y en el presupuesto de eventos:
-                                nombre, NIF, dirección y teléfono. El nombre lo fija el
-                                programa solo y aquí se enseña de solo lectura; el resto
-                                se corrige a mano si hace falta.
+                                El <b>nombre comercial</b> es el que ve la clienta (emblema,
+                                pantalla de inicio). La <b>razón social</b>, el NIF, la
+                                dirección y el teléfono son los datos fiscales: salen en el
+                                ticket y en el presupuesto de eventos. Una actualización del
+                                programa no toca lo que escribas aquí.
                             </div>
                             <group>
-                                <field name="mgs_company_name"/>
-                                <field name="mgs_company_vat"/>
-                                <field name="mgs_company_street"/>
-                                <field name="mgs_company_city"/>
-                                <field name="mgs_company_zip"/>
-                                <field name="mgs_company_phone"/>
+                                <group string="Cara a la clienta">
+                                    <field name="mgs_commercial_name"/>
+                                </group>
+                                <group string="Datos fiscales (ticket y facturas)">
+                                    <field name="mgs_company_name"/>
+                                    <field name="mgs_company_vat"/>
+                                    <field name="mgs_company_street"/>
+                                    <field name="mgs_company_city"/>
+                                    <field name="mgs_company_zip"/>
+                                    <field name="mgs_company_phone"/>
+                                </group>
                             </group>
                         </page>
 

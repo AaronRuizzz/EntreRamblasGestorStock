@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Registro único de acceso: huella de la clave de recuperación y estado
+         del código de activación. Solo se fija `name`; el estado lo llevan
+         métodos, no este XML, así que un -u no lo reinicia. -->
+    <record id="mgs_access_default" model="mgs.access">
+        <field name="name">Acceso de la tienda</field>
+    </record>
+
+    <!-- Sin enlace "¿Restablecer contraseña?" en el login: la recuperación va
+         por clave impresa (/mgs/recuperar), no por correo. -->
+    <function model="ir.config_parameter" name="set_param"
+              eval="('auth_signup.reset_password', 'False')"/>
+</odoo>

@@ -1,6 +1,5 @@
 """Operaciones del instalador sin contraseñas en argumentos ni SQL interpolado."""
 import argparse
-import json
 from pathlib import Path
 import re
 import secrets
@@ -36,24 +35,54 @@ def main():
         print('Base vacía reservada para instalación:', args.database)
         return
     from odoo.modules.registry import Registry
-    credentials = Path(args.config).parent / (args.database + '-first-access.secret')
-    if credentials.exists():
-        raise ValueError('Ya existe un archivo de acceso inicial; no se sobrescribe')
-    password = secrets.token_urlsafe(24)
+    activation_file = Path(args.config).parent / (args.database + '-activacion.txt')
+    if activation_file.exists():
+        raise ValueError('Ya existe un archivo de activación; no se sobrescribe')
     with Registry(args.database).cursor() as cr:
         env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {'no_reset_password': True})
         module = env['ir.module.module'].search([('name', '=', 'mi_gestor_stock')], limit=1)
         if module.state != 'installed':
             raise ValueError('El módulo no se ha instalado correctamente')
+        # La caja de la tienda se crea durante la instalación; si falta, algo
+        # falló al preparar la contabilidad o el TPV. No dejar la instalación
+        # como terminada: se conserva el marcador .pending para poder reanudar.
+        if not env.ref('mi_gestor_stock.pos_config_shop', raise_if_not_found=False):
+            raise ValueError(
+                'La caja de la tienda no se creó (revisa el plan contable en el '
+                'registro). Se conserva el marcador pendiente; corrige y repite.')
+        # La cuenta administradora queda SOLO como cuenta técnica de rotura de
+        # cristal: login `admin`, sin contraseña utilizable (se restablece con
+        # la herramienta local si hiciera falta). El uso diario va con una
+        # cuenta de propietaria separada, con permisos de gestión de tienda y
+        # sin administración técnica de Odoo.
         admin = env.ref('base.user_admin')
-        admin.write({'login': 'propietaria', 'password': password, 'tz': 'Europe/Madrid'})
+        admin.write({'login': 'admin', 'password': secrets.token_urlsafe(48),
+                     'tz': 'Europe/Madrid'})
+        owner = env['res.users'].create({
+            'name': 'Propietaria', 'login': 'propietaria',
+            'password': secrets.token_urlsafe(48),  # inutilizable hasta el primer acceso
+            'groups_id': [(6, 0, [env.ref('mi_gestor_stock.group_mgs_manager').id])],
+            'lang': 'es_ES', 'tz': 'Europe/Madrid', 'mgs_is_owner': True,
+        })
+        home = env.ref('mi_gestor_stock.action_mgs_home', raise_if_not_found=False)
+        if home:
+            owner.action_id = home.id
         # Sin datos fiscales reales no se habilitan tareas ni dispositivos por defecto.
         env['mgs.config']._mgs_get().write({'pos_autoprint': False})
-        with credentials.open('x', encoding='utf-8') as stream:
-            json.dump({'database': args.database, 'login': 'propietaria', 'password': password}, stream)
+        # Primer acceso protegido por un código de activación de un solo uso.
+        code = env['mgs.access']._begin_activation(owner)
+        with activation_file.open('x', encoding='utf-8') as stream:
+            stream.write(
+                'Codigo de activacion para el primer acceso de la propietaria\n'
+                'Base de datos: ' + args.database + '\n\n'
+                '    ' + code + '\n\n'
+                'Abre el programa. En la pantalla de primer acceso escribe este\n'
+                'codigo y elige una contrasena de 12+ caracteres. Guarda despues\n'
+                'la clave de recuperacion que te muestre. Borra este archivo\n'
+                'cuando termines.\n')
         cr.commit()
     pending.unlink()
-    print('Acceso inicial guardado en', credentials)
+    print('Codigo de activacion del primer acceso guardado en', activation_file)
 
 
 if __name__ == '__main__':

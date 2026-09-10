@@ -23,8 +23,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Ha fallado la validación de archivos de copia.' }
     & $python tools/prepare_validation.py
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar la base de pruebas.' }
+    # --db-filter: la plantilla odoo.conf filtra por ^mi_base_stock$; sin
+    # sobrescribirlo, las pruebas HttpCase caen en el selector de bases.
     & $python odoo/odoo-bin -c odoo.conf --db_host=127.0.0.1 --db_port=55432 --db_user=mgs_test `
-        -d mgs_validation -i mi_gestor_stock -u mi_gestor_stock --without-demo=all `
+        -d mgs_validation --db-filter=^mgs_validation$ -i mi_gestor_stock -u mi_gestor_stock --without-demo=all `
         --stop-after-init --test-enable --test-tags $Tags --http-interface=127.0.0.1 --http-port=8075 `
         --logfile=.odoo_data/mgs-validation.log
     if ($LASTEXITCODE -ne 0) { throw 'Las pruebas han fallado. Consulta .odoo_data\mgs-validation.log.' }

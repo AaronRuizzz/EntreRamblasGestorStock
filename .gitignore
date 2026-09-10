@@ -61,6 +61,16 @@ EntreRamblas/env/
 .env.*
 !.env.example
 
+# Clave PRIVADA de firma de actualizaciones: NUNCA en el repo.
+# (la pública, instalador/firma-publica.pem, sí se versiona)
+*firma-privada*
+firma-privada.pem
+claves-firma/
+
+# Árbol de distribución y paquetes generados por publicar/empaquetar.ps1
+/dist/
+**/dist/payload/
+
 # Backups y volcados de bases de datos
 # (las copias automaticas del Gestor de Stock, en .odoo_data/backups/ o en
 #  la carpeta que se indique en Configuracion > Dispositivos)

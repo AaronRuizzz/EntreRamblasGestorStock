@@ -5,7 +5,10 @@
 param(
     [string]$Update = "",
     [string]$Init = "",
-    [ValidatePattern('^[a-z][a-z0-9_]{0,62}$')][string]$Database = "mi_base_stock",
+    # Vacio: se toma db_name de la configuracion (fuente unica del nombre de
+    # base, puerto y rutas). Solo si la configuracion no lo trae se usa el
+    # valor por defecto historico del equipo de desarrollo.
+    [ValidatePattern('^([a-z][a-z0-9_]{0,62})?$')][string]$Database = "",
     [string]$Config = (Join-Path $PSScriptRoot 'odoo.local'),
     [switch]$NoStart
 )
@@ -25,17 +28,30 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 
 $configDbHost = "localhost"
 $configDbPort = 5432
+$configDbName = ""
 foreach ($line in Get-Content -LiteralPath $Config) {
     if ($line -match '^\s*db_host\s*=\s*([^;#]+)') { $configDbHost = $Matches[1].Trim() }
     if ($line -match '^\s*db_port\s*=\s*(\d+)') { $configDbPort = [int]$Matches[1] }
+    if ($line -match '^\s*db_name\s*=\s*([a-z][a-z0-9_]{0,62})') { $configDbName = $Matches[1] }
 }
+# El nombre de base sale de la configuracion; el parametro solo lo fuerza a mano.
+if (-not $Database) { $Database = $configDbName }
+if (-not $Database) { $Database = 'mi_base_stock' }  # ultimo recurso (equipo de desarrollo)
 
 if (-not (Test-Path -LiteralPath $odooBin -PathType Leaf)) {
     throw "No se encuentra el código Odoo fijado por el proyecto en '$odooBin'."
 }
+$odooDir = Join-Path $PSScriptRoot 'odoo'
 $expectedRevision = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'odoo-revision.txt') -Raw).Trim()
-$actualRevision = (& git -C (Join-Path $PSScriptRoot 'odoo') rev-parse HEAD).Trim()
+$actualRevision = (& git -C $odooDir rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $actualRevision -ne $expectedRevision) { throw 'La revisión Odoo no coincide con odoo-revision.txt.' }
+# Integridad del motor: además del commit, que el contenido versionado no
+# tenga modificaciones locales (un parche a mano sobre odoo/ rompería la
+# igualdad entre equipos sin cambiar el identificador del commit).
+& git -C $odooDir diff --quiet HEAD
+if ($LASTEXITCODE -ne 0) {
+    throw 'El motor Odoo tiene ficheros modificados respecto al commit fijado. Restáuralo desde un checkout limpio antes de arrancar.'
+}
 
 if (-not (Test-NetConnection -ComputerName $configDbHost -Port $configDbPort -InformationLevel Quiet)) {
     throw "PostgreSQL no responde en $configDbHost`:$configDbPort. Inicia el servicio PostgreSQL y vuelve a ejecutar este script."
@@ -54,6 +70,23 @@ $serverArgs = @($odooBin, '-c', $Config, '-d', $Database, '--db-filter', "^$Data
 $operationArgs = @()
 if ($Update) { $operationArgs += @('-u', $Update, '--stop-after-init', '--no-http') }
 if ($Init)   { $operationArgs += @('-i', $Init, '--stop-after-init', '--no-http') }
+# Arranque normal (sin -Update/-Init): Odoo NO migra un módulo aunque el código
+# haya cambiado. Se detecta aquí y se ejecuta la actualización controlada ANTES
+# de servir. Si falla (p. ej. una sesión de caja abierta impide migrar la
+# caja), se aborta: no se sirve una instalación a medio normalizar.
+if (-not ($Update -or $Init)) {
+    $pending = (& $python (Join-Path $PSScriptRoot 'tools/check_pending_upgrade.py') `
+        --config $Config --database $Database).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo comprobar si hay una actualización pendiente.' }
+    if ($pending -eq 'upgrade') {
+        Write-Output 'El código es más nuevo que la base. Aplicando la actualización controlada...'
+        & $python @serverArgs -u mi_gestor_stock --stop-after-init --no-http
+        if ($LASTEXITCODE -ne 0) {
+            throw 'La actualización ha fallado. No se arranca sobre una base a medio migrar. Revisa el registro; si hay una sesión de caja abierta, ciérrala y vuelve a arrancar.'
+        }
+    }
+}
+
 & $python @serverArgs @operationArgs
 if ($LASTEXITCODE -ne 0) { throw "Odoo ha terminado con error ($LASTEXITCODE). No se inicia tras una actualización fallida." }
 if ($NoStart) { return }

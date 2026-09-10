@@ -11,13 +11,36 @@
 // sesión».
 import { registry } from "@web/core/registry";
 import { user } from "@web/core/user";
+import { patch } from "@web/core/utils/patch";
+import { UserMenu } from "@web/webclient/user_menu/user_menu";
+
+// Menú de usuario: en lugar de ir quitando entradas en un start() (que compite
+// con CUÁNDO las registra cada módulo — el interruptor de tours, por ejemplo,
+// se añade dentro del start() de su propio servicio), se FILTRA al construir
+// el menú. `getElements` corre en cada apertura, así que da igual el orden de
+// arranque: solo sobreviven «Cambiar contraseña» y «Cerrar sesión».
+const ALLOWED_USER_MENU_IDS = new Set(["mgs_change_password", "logout"]);
+
+patch(UserMenu.prototype, {
+    getElements() {
+        return super.getElements().filter((el) => ALLOWED_USER_MENU_IDS.has(el.id));
+    },
+});
+
+registry.category("user_menuitems").add("mgs_change_password", (env) => ({
+    type: "item",
+    id: "mgs_change_password",
+    description: "Cambiar contraseña",
+    callback: async () => {
+        const action = await env.services.orm.call(
+            "res.users", "preference_change_password", [[user.userId]]);
+        env.services.action.doAction(action);
+    },
+    sequence: 10,
+}));
 
 registry.category("services").add("mgs_title", {
-    // Depende de "tour_service" solo por el ORDEN de arranque: ese servicio
-    // registra su entrada "web_tour.tour_enabled" (el interruptor
-    // "Onboarding") DENTRO de su propio start(), no al cargar el módulo, así
-    // que hay que esperar a que termine de arrancar para poder quitarla.
-    dependencies: ["title", "tour_service"],
+    dependencies: ["title"],
     start(env, { title }) {
         title.setParts({ zopenerp: "Gestión de stock" });
 
@@ -27,28 +50,6 @@ registry.category("services").add("mgs_title", {
                 systray.remove(key);
             }
         }
-
-        const userMenu = registry.category("user_menuitems");
-        for (const key of [
-            "documentation", "support", "odoo_account", "install_pwa",
-            "shortcuts", "profile", "web_tour.tour_enabled",
-            "separator", // sin nada por encima que dividir, quedaría huérfano
-        ]) {
-            if (userMenu.contains(key)) {
-                userMenu.remove(key);
-            }
-        }
-        userMenu.add("mgs_change_password", () => ({
-            type: "item",
-            id: "mgs_change_password",
-            description: "Cambiar contraseña",
-            callback: async () => {
-                const action = await env.services.orm.call(
-                    "res.users", "preference_change_password", [[user.userId]]);
-                env.services.action.doAction(action);
-            },
-            sequence: 55,
-        }));
 
         const cogMenu = registry.category("cogMenu");
         if (cogMenu.contains("import-menu")) {

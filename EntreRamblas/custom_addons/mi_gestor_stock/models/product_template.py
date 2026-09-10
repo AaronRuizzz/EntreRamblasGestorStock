@@ -165,10 +165,12 @@ class ProductTemplate(models.Model):
         require_operator(self.env)
         low = len(self._mgs_low_stock_ids())
         pending = self.env["mgs.stock.alert.notice"].search_count([("is_read", "=", False)])
+        manager = is_manager(self.env)
         return {
             "alerts": low + pending,
-            "is_manager": is_manager(self.env),
-            "backup_warning": self.env["mgs.backup"]._mgs_status_warning() if is_manager(self.env) else False,
+            "is_manager": manager,
+            "backup_warning": self.env["mgs.backup"]._mgs_status_warning() if manager else False,
+            "update_notice": self.env["mgs.update"]._summary()["label"] if manager else "",
             "products": self.search_count([("is_storable", "=", True)]),
         }
 

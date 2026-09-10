@@ -10,6 +10,24 @@ módulos disponibles en el motor (ver §2bis).
 > determina la gestoría. Lo que sigue sirve para que la conversación con ella sea
 > corta y concreta.
 
+> **VeriFactu queda fuera de esta entrega, por decisión de la propietaria.** El
+> TPV se conserva tal cual, **sin activar envíos a la AEAT y sin implementar un
+> SIF alternativo**. Esta entrega es técnica: instalar el programa, igualar las
+> instalaciones y dejar las actualizaciones firmadas. **No acredita cumplimiento
+> fiscal.** Antes de usar el TPV como facturador definitivo hay que cerrar con la
+> gestoría el punto 3 de la sección 4 (régimen, domicilio fiscal, tipos de IVA,
+> serie de numeración y vía de cumplimiento SIF/VeriFactu) y ponerle fecha con
+> margen sobre el plazo que aplique.
+
+> **La facturación actual no puede darse por validada legalmente.** Que la dueña
+> o su gestoría presenten correctamente sus impuestos **no sustituye** los
+> requisitos del RD 1007/2023 (huella encadenada, firma o remisión VeriFactu,
+> registro de eventos, QR). Ninguna afirmación de este repositorio del tipo
+> «basta esperar a 2027» debe tomarse como que el sistema ya cumple: solo
+> significa que la **obligación del usuario** aún no ha vencido (ver los matices
+> de plazos abajo, incluido el de julio de 2025 para quien produce o comercializa
+> el software).
+
 ## 1. Ticket de venta = factura simplificada
 
 La venta al por menor se documenta con **factura simplificada** (el ticket). Se
@@ -71,13 +89,24 @@ electrónica** si el sistema no es VERI\*FACTU, **registro de eventos**, **códi
 en todas las facturas, también las simplificadas**, y **declaración responsable**
 del fabricante del software.
 
-**Plazos vigentes**, ampliados por el **Real Decreto-ley 15/2025, de 2 de
-diciembre** (según la nota informativa de la AEAT):
+**Plazos vigentes**. Los de los **usuarios** se ampliaron por el **Real
+Decreto-ley 15/2025, de 2 de diciembre** (según la nota informativa de la AEAT).
+El de **productores y comercializadores** de software **no se movió**:
 
 | Obligado | Debe tener el SIF adaptado antes de |
 |---|---|
+| **Productores y comercializadores** de sistemas de facturación (deben *ofrecer* el producto ya adaptado) | **29 de julio de 2025** — 9 meses desde la Orden HAC/1177/2024; el RDL 15/2025 **no** amplió este plazo |
 | Entidades que presentan Impuesto sobre Sociedades | **1 de enero de 2027** |
 | Resto de obligados tributarios | **1 de julio de 2027** |
+
+**Por qué importa la primera fila aquí.** Un sistema hecho a medida y usado solo
+por quien lo desarrolla se rige por el plazo del usuario («sistema de desarrollo
+propio»). Pero si el programa **se entrega o se comercializa a un tercero** —aquí,
+la floristería— la AEAT lo trata como producto comercializado, y entonces
+aplican la declaración responsable del fabricante y el plazo de julio de 2025.
+**Cuál de los dos casos es este no está resuelto** y hay que plantearlo
+expresamente a la gestoría y a quien conste como responsable del software. No dar
+por hecho que, por ser «a medida», el plazo es 2027.
 
 ### Estado real del programa
 
@@ -89,10 +118,17 @@ por sí solos** ese cumplimiento.
 
 Qué significa en la práctica:
 
-- Para **abrir la tienda ahora**, con tickets simplificados, esto no impide
-  facturar; la obligación tiene las fechas de arriba.
-- **Antes de esas fechas** hay que decidir una de estas vías, con la gestoría y
-  con quien mantenga el programa (ver el detalle técnico en §2bis):
+- El programa **funciona** y emite tickets simplificados, pero hacerlo **no
+  equivale a cumplir** el RD 1007/2023. La única lectura correcta de «los plazos
+  de usuario son 2027» es que la AEAT todavía no puede sancionar al usuario por
+  ello; no que el sistema esté conforme ni «validado».
+- Si el programa se considera **comercializado** (entregado a la floristería como
+  producto), el plazo del fabricante para ofrecerlo adaptado **ya venció**
+  (29-07-2025). Ese punto hay que aclararlo antes de seguir usándolo como
+  facturador; ver la primera fila de la tabla de plazos.
+- **Antes de las fechas que apliquen** hay que decidir una de estas vías, con la
+  gestoría y con quien conste como responsable del programa (detalle técnico en
+  §2bis):
   1. **Activar los módulos de VERI\*FACTU que ya trae el motor** (`l10n_es_edi_verifactu`
      y `l10n_es_edi_verifactu_pos`) y añadir al ticket térmico lo que esos
      módulos ponen solo en el recibo de pantalla. Es la vía con menos código
@@ -164,7 +200,10 @@ habitual.
 2. Rellenar en el programa el **NIF, nombre y domicilio** de la tienda: sin ellos el
    ticket sale incompleto.
 3. Decidir la vía de cumplimiento SIF/VERI\*FACTU y ponerle fecha, con margen
-   sobre el plazo que aplique.
+   sobre el plazo que aplique. Incluir en esa conversación **si el programa se
+   considera de desarrollo propio o comercializado** (afecta al plazo y a la
+   declaración responsable — ver §2). Esta entrega **no** activa VeriFactu: es
+   una decisión aplazada a propósito, no un descuido.
 4. Volver a comprobar plazos y normas en las fuentes oficiales antes de ejecutar
    esa decisión.
 
@@ -173,6 +212,9 @@ habitual.
 - [AEAT — Sistemas Informáticos de Facturación (SIF) y VERI\*FACTU](https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu.html)
 - [AEAT — Nota informativa: ampliación del plazo de adaptación de los SIF](https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu/nota-informativa-ampliacion-plazo-adaptacion-facturacion.html)
 - [AEAT — Cuestiones generales SIF/VERI\*FACTU](https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu/cuestiones-generales.html)
+- [AEAT — FAQ: cuestiones generales, ámbitos de aplicación (desarrollo propio vs. comercializado, plazo de productores/comercializadores 29-07-2025)](https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu/preguntas-frecuentes/cuestiones-generales-ambitos-aplicacion.html)
+- [AEAT — Manual práctico IVA 2025: sistemas informáticos de facturación](https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/manual-iva-2025/capitulo-01-novedades-destacar-2025/verifactu.html)
+- [BOE — Orden HAC/1177/2024 (desarrolla el RD 1007/2023; plazo de 9 meses para productores/comercializadores)](https://www.boe.es/buscar/act.php?id=BOE-A-2024-22138)
 - [BOE — Real Decreto 1007/2023](https://www.boe.es/buscar/act.php?id=BOE-A-2023-24840)
 - [BOE — Real Decreto 1619/2012 (Reglamento de facturación)](https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696)
 - [AEAT — Facturas simplificadas](https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/folleto-actividades-economicas/5-impuesto-sobre-valor-anadido/5_10-facturas/5_10_6-facturas-simplificadas.html)

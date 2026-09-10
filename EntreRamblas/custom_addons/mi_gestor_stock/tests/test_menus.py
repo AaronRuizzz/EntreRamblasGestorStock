@@ -17,12 +17,13 @@ USER_MENUS = ["mi_gestor_stock." + m for m in (
 # <menuitem> (no solo heredado de un padre): la propietaria las ve, la
 # dependienta no.
 MANAGER_MENUS = ["mi_gestor_stock." + m for m in (
-    "menu_mgs_events", "menu_mgs_reception", "menu_mgs_purchasing",
-    "menu_mgs_purchase", "menu_mgs_purchase_forecast", "menu_mgs_lots",
-    "menu_mgs_replenishment", "menu_mgs_counts", "menu_mgs_expiry",
-    "menu_mgs_bouquet_recipes", "menu_mgs_pricelists", "menu_mgs_catalog_import",
-    "menu_mgs_opening", "menu_mgs_reports", "menu_mgs_settings",
+    "menu_mgs_events", "menu_mgs_reception", "menu_mgs_catalog_import",
+    "menu_mgs_reports", "menu_mgs_reports_sales", "menu_mgs_reports_top",
+    "menu_mgs_reports_consumption", "menu_mgs_reports_monthly",
+    "menu_mgs_reports_sessions", "menu_mgs_settings",
     "menu_mgs_settings_devices", "menu_mgs_settings_backups", "menu_mgs_hardware_jobs",
+    "menu_mgs_settings_security", "menu_mgs_settings_access_events",
+    "menu_mgs_settings_diagnostic", "menu_mgs_settings_updates",
 )]
 NATIVE_ROOT_MENUS = [
     "mail.menu_root_discuss", "contacts.menu_contacts",
@@ -102,18 +103,6 @@ class TestActionsUseOwnViews(TransactionCase):
         self.assertTrue(pages, "falta la pestaña pos")
         self.assertEqual(pages[0].get("invisible"), "1")
         self.assertFalse(arch.xpath("//chatter"), "el chatter debería haberse quitado")
-
-    def test_lots_action_uses_its_own_list_and_form(self):
-        views = self.view_ids_of("action_mgs_lots")
-        self.assertIn(self.env.ref("mi_gestor_stock.view_mgs_lot_list").id, views)
-        self.assertIn(self.env.ref("mi_gestor_stock.view_mgs_lot_form").id, views)
-        self.assertNotIn(self.env.ref("stock.view_production_lot_form").id, views)
-
-    def test_pricelists_action_uses_its_own_list_and_form(self):
-        views = self.view_ids_of("action_mgs_pricelists")
-        self.assertIn(self.env.ref("mi_gestor_stock.view_mgs_pricelist_list").id, views)
-        self.assertIn(self.env.ref("mi_gestor_stock.view_mgs_pricelist_form").id, views)
-        self.assertNotIn(self.env.ref("product.product_pricelist_view").id, views)
 
     def test_sales_reports_use_their_own_list_and_search(self):
         for action_xmlid in ("action_mgs_report_sales", "action_mgs_report_top_products"):
