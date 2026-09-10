@@ -4,6 +4,17 @@ Estado de la entrega y pruebas: [IMPLEMENTACION.md](IMPLEMENTACION.md).
 Esta guía sustituye los comandos históricos del README. La puesta en servicio
 de la tienda sigue pendiente de completar la aceptación allí indicada.
 
+## Instalador para la tienda (`EntreRamblas-Setup.exe`)
+
+Para el PC de la tienda, un único ejecutable hace todo: PostgreSQL dedicado,
+servicio de Windows, acceso directo, motor PDF y base nueva sin demo, sin que
+la dueña toque Git ni la consola. Cómo se compila y qué hace exactamente:
+`EntreRamblas/instalador/README.md`. Reinstalar o desinstalar **no** borra la
+base ni las copias.
+
+El resto de esta guía es el procedimiento **manual** (equipo de desarrollo o
+mantenimiento).
+
 ## Preparar un equipo
 
 En un equipo nuevo, `preparar-equipo.ps1` encadena todos los pasos de este
@@ -60,19 +71,26 @@ el registro quedan dentro de esa carpeta. No sobrescribe archivos existentes.
 
 ```powershell
 .\bootstrap.ps1 -Config "$env:LOCALAPPDATA/EntreRamblas/odoo.local" -Database entre_ramblas
-.\start-odoo.ps1 -Config "$env:LOCALAPPDATA/EntreRamblas/odoo.local" -Database entre_ramblas
+.\start-odoo.ps1 -Config "$env:LOCALAPPDATA/EntreRamblas/odoo.local"
 ```
 
-El servidor escucha solo en `127.0.0.1:8069`. La instalación no abre HTTP hasta
-completarse. Genera el usuario inicial `propietaria` y una contraseña aleatoria
-en `entre_ramblas-first-access.secret`, junto a la configuración. Guardar ese
-acceso de forma privada y cambiar la contraseña desde las preferencias.
-No se incluyen contraseñas en Git ni se cambian cuentas de bases existentes.
+`bootstrap.ps1` fija `db_name` en la configuración, así que `start-odoo.ps1` ya
+no necesita repetir `-Database`.
 
-Antes de abrir caja: completar identidad y correo de la propietaria, datos
-reales de la empresa, configuración contable/fiscal aplicable, métodos de pago,
-impresora, SSD y usuario de dependienta. No se inventan estos datos al instalar.
-La impresión automática queda desactivada hasta configurar los dispositivos.
+El servidor escucha solo en `127.0.0.1:8069`. La instalación no abre HTTP hasta
+completarse. Crea la cuenta `propietaria` **sin contraseña utilizable** y deja
+el **primer acceso pendiente**: un **código de activación de un solo uso** en
+`entre_ramblas-activacion.txt`, junto a la configuración. En la pantalla de
+acceso se escribe ese código, se elige la contraseña (12+ caracteres) y se
+**guarda la clave de recuperación** que aparece (ver `ACCESO.md`). La cuenta
+`admin` queda solo como cuenta técnica, sin contraseña utilizable. No se
+incluyen contraseñas en Git ni se cambian cuentas de bases existentes.
+
+Antes de abrir caja: completar el nombre comercial y los **datos fiscales**
+reales de la empresa (Configuración → Dispositivos → «Datos de la tienda»),
+configuración contable/fiscal aplicable, métodos de pago, impresora y SSD. No
+se inventan estos datos al instalar. La impresión automática queda desactivada
+hasta configurar los dispositivos.
 
 Si falla la instalación, `odoo.local.pending` bloquea el arranque. Conservar el
 registro para diagnóstico. No borrar ese marcador para saltarse un fallo: el
@@ -80,14 +98,29 @@ alta inicial y el módulo deben estar completados. El instalador no borra bases.
 
 ## Actualizar
 
-Con el servidor parado y una copia verificada:
+**En una tienda instalada con `EntreRamblas-Setup.exe`**: las actualizaciones
+llegan firmadas y se aplican solas al cerrar, tras aceptación de la dueña. Todo
+el flujo (publicación, recepción y aplicación segura en 7 pasos) está en
+`../ACTUALIZACIONES.md`.
+
+**A mano** (equipo de desarrollo o mantenimiento), con el servidor parado y una
+copia verificada:
 
 ```powershell
-.\start-odoo.ps1 -Config "$env:LOCALAPPDATA/EntreRamblas/odoo.local" -Database entre_ramblas -Update mi_gestor_stock
+.\start-odoo.ps1 -Config "$env:LOCALAPPDATA/EntreRamblas/odoo.local" -Update mi_gestor_stock
 ```
+
+Un **arranque normal** ya detecta si el código es más nuevo que la base y aplica
+la actualización controlada antes de servir; si falla (por ejemplo, una sesión
+de caja abierta), aborta y no sirve una base a medio migrar. Comprueba también
+que el motor Odoo no tenga modificaciones locales, además del commit.
 
 Una actualización fallida impide el arranque posterior. La base seleccionada y
 su filtro se mantienen al arrancar. No se cambia la revisión Odoo implícitamente.
+
+Para **comparar dos equipos** (misma versión, mismos módulos, misma
+configuración): `.\diagnostico.ps1 -Config <odoo.local>` en cada uno y comparar
+los JSON; también desde la app en Configuración → Diagnóstico.
 
 ## Recuperar una copia
 

@@ -85,8 +85,31 @@ class ResCompany(models.Model):
             company.country_id = spain
 
         self._mgs_rename_picking_types()
+        self._mgs_stamp_version()
 
         _logger.info("mi_gestor_stock: marca aplicada -> %s", COMPANY_NAME)
+
+    # ------------------------------------------------------------------
+    # Manifiesto de versión: histórico de qué versión del módulo se ha
+    # aplicado a esta base y cuándo. Se anota en cada `-u` (que es cuando
+    # corren también las migraciones). Lo lee el diagnóstico.
+    # ------------------------------------------------------------------
+    def _mgs_stamp_version(self):
+        import json
+        from datetime import datetime, timezone
+        from odoo.modules.module import get_manifest
+        version = get_manifest("mi_gestor_stock").get("version")
+        icp = self.env["ir.config_parameter"].sudo()
+        try:
+            history = json.loads(icp.get_param("mgs.version_history") or "[]")
+        except ValueError:
+            history = []
+        if not history or history[-1].get("version") != version:
+            history.append({
+                "version": version,
+                "aplicada": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            })
+            icp.set_param("mgs.version_history", json.dumps(history[-50:]))
 
     # ------------------------------------------------------------------
     # Nombres de los tipos de operacion que salen en la pantalla de inicio

@@ -75,11 +75,17 @@ class MgsDiagnostic(models.TransientModel):
         module = self.env["ir.module.module"].sudo().search(
             [("name", "=", "mi_gestor_stock")], limit=1)
         code_version = get_manifest("mi_gestor_stock").get("version")
+        try:
+            history = json.loads(
+                self.env["ir.config_parameter"].sudo().get_param("mgs.version_history") or "[]")
+        except ValueError:
+            history = []
         return {
             "codigo": code_version,
             "aplicado": module.latest_version or None,
             "estado": module.state or None,
             "coincide": _module_tail(module.latest_version) == _module_tail(code_version),
+            "historico_versiones": history,
         }
 
     def _section_engine(self):

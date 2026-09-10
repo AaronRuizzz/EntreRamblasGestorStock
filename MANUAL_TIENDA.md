@@ -43,26 +43,22 @@ siguen sirviendo como detalle: [APERTURA.md](APERTURA.md), [EVENTOS.md](EVENTOS.
 
 ## 1. Quién puede hacer qué
 
-| | Dependienta | Propietaria |
-|---|---|---|
-| Vender, cobrar, devolver | Sí | Sí |
-| Registrar mermas | Sí | Sí |
-| Recibir mercancía | Sí | Sí |
-| Ver costes y márgenes | **No** | Sí |
-| Montar un ramo a medida en el TPV | Sí | Sí |
-| Eventos y encargos (presupuestos, alquiler) | **No** | Sí |
-| Alta de catálogo, existencias iniciales | **No** | Sí |
-| Recuentos, informes, configuración, copias | **No** | Sí |
+La tienda trabaja con **una sola cuenta, la de la propietaria**, que puede hacer
+todo: vender y devolver, recibir mercancía, ver costes y márgenes, montar ramos,
+eventos y encargos, alta de catálogo, informes, configuración y copias.
 
-Los permisos se comprueban **en el servidor**, no solo escondiendo botones: una
-dependienta no puede llegar a los costes ni cambiando la dirección del navegador.
+Por dentro el programa distingue dos niveles de permiso —«Dependienta»
+(operación diaria, sin costes ni configuración) y «Propietaria» (todo)— y los
+comprueba **en el servidor**, no solo escondiendo botones. Hoy la cuenta que se
+usa es la de Propietaria; ese doble nivel queda por si en el futuro se añade una
+cuenta aparte para una dependienta.
 
-**Dar de alta a una dependienta nueva o restablecerle la contraseña no es algo
-que se haga desde dentro del programa**: el menú «Ajustes» de Odoo, donde vivía
-esa pantalla, está deliberadamente oculto (ver «7bis. Pantalla de inicio y
-menús ocultos» en `README.md`). Es tarea de quien mantiene el equipo — ver
-«13. Mantenimiento» más abajo. Lo que sí puede hacer cualquiera desde el menú
-de su propio avatar (arriba a la derecha) es **cambiar su propia contraseña**.
+**El programa entra solo con contraseña**, sin elegir usuario: hay **una
+cuenta, la de la propietaria**, y las dos personas de la tienda trabajan con
+ella. El servidor la selecciona solo; el formulario no deja cambiar de cuenta.
+El primer acceso, la recuperación con clave impresa y el cambio de contraseña
+se explican en `ACCESO.md`. Desde el menú del avatar (arriba a la derecha) solo
+quedan **«Cambiar contraseña»** y **«Cerrar sesión»**.
 
 ## 2. Encender y apagar
 
@@ -308,42 +304,36 @@ el ticket, y solo después toca el programa. Nunca repitas un cobro «por si aca
 
 ## 13. Mantenimiento
 
-### Alta de una dependienta nueva o restablecer una contraseña
+### Acceso y contraseña
 
-El menú «Ajustes» de Odoo (donde vivían Usuarios y compañías) está oculto a
-propósito: es de administración de Odoo, no de gestión de la tienda. Esto es
-tarea de consola, por quien mantenga el equipo, desde `EntreRamblas`
-(PowerShell, con el servidor **parado**):
+Todo lo del acceso está en **`ACCESO.md`**: primer acceso con código de
+activación, «He olvidado mi contraseña» con la clave impresa, regenerar la
+clave (Configuración → Seguridad) y, para la pérdida total, la herramienta
+local `recuperar-acceso.ps1` (administrador de Windows).
+
+**Cambiar la contraseña del día a día**: menú del avatar → «Cambiar
+contraseña».
+
+**Si hiciera falta una cuenta separada para una dependienta** (hoy no la hay):
+es tarea de consola, con el servidor **parado**, desde `EntreRamblas`:
 
 ```powershell
-.\venv\Scripts\python.exe odoo\odoo-bin shell -c odoo.local -d mi_base_stock --db-filter=^mi_base_stock$ --no-http
+.\venv\Scripts\python.exe odoo\odoo-bin shell -c odoo.local --no-http
 ```
-
-Dentro del intérprete que se abre:
 
 ```python
-# Alta de una dependienta nueva (grupo "Dependienta"; usa "Propietaria" para
-# darle también acceso de gestión):
-usuario = env['res.users'].create({
+env['res.users'].create({
     'name': 'Nombre de la dependienta',
-    'login': 'su-email@ejemplo.com',
+    'login': 'dependienta',
+    'password': 'una-provisional-de-12+',
     'groups_id': [(6, 0, [env.ref('mi_gestor_stock.group_mgs_user').id])],
 })
-usuario.action_reset_password()   # le manda un correo para que elija su contraseña
-env.cr.commit()
-
-# Restablecer la contraseña de alguien que la ha olvidado:
-env['res.users'].search([('login', '=', 'su-email@ejemplo.com')]).action_reset_password()
 env.cr.commit()
 ```
 
-`action_reset_password()` manda un correo con un enlace, así que hace falta
-tener el correo saliente configurado (`ir.mail_server`); si no lo está, se
-puede fijar la contraseña directamente con `usuario.write({'password': '...'})`,
-siempre una contraseña provisional que la interesada cambie en su primer
-acceso desde su propio menú de usuario («Cambiar contraseña»). No hace falta
-tocar nada más: `/odoo/settings` sigue respondiendo por URL para quien
-mantenga el equipo, aunque el menú esté oculto.
+Ten en cuenta que **el formulario de acceso sólo atiende a la propietaria**: dar
+de alta otra cuenta hoy no basta para que pueda entrar por la web (haría falta
+un cambio en la pantalla de acceso).
 
 - **Cada día**: cerrar la caja al terminar y apagar bien el ordenador.
 - **Cada semana**: mirar el panel de Stock (avisos y caducidades) y comprobar que
