@@ -12,8 +12,8 @@ Origen del plan: `../PlanFinalizarGestor.md` (fuera del repo).
 |---|---|---|
 | 1 | Documentación y decisión VeriFactu | ✅ hecho |
 | 2 | Acceso solo con contraseña + recuperación | ✅ hecho (suite verde) |
-| 3 | Misma aplicación en todos los equipos | 🔶 en curso |
-| 4 | Instalador y actualizaciones firmadas | ☐ pendiente |
+| 3 | Misma aplicación en todos los equipos | 🔶 casi todo hecho |
+| 4 | Instalador y actualizaciones firmadas | 🔶 código hecho; falta build/repo/claves |
 | 5 | Pruebas y condiciones de entrega | 🔶 en curso |
 
 ## Registro de avance
@@ -77,13 +77,56 @@ Pendiente en este bloque:
 - Repaso de manuales (`MANUAL_TIENDA.md`, `INSTALACION.md`) — en curso.
 - Checkout limpio del motor «aparte» (va con el instalador, Bloque 4).
 
-### Bloque 4 — Instalador y actualizaciones
+### Bloque 4 — Instalador y actualizaciones 🔶
 
-_(pendiente)_
+Ver `ACTUALIZACIONES.md` y `EntreRamblas/instalador/README.md`.
 
-### Bloque 5 — Pruebas
+Hecho (código, probado donde se puede):
+- **Firma Ed25519** (`tools/paquete_firma.py`): generar claves, firmar y
+  verificar manifiesto. Clave **pública** en `instalador/firma-publica.pem`
+  (versionada); la privada NUNCA en el repo.
+- **Actualizador** (`tools/actualizador.py`), independiente de Odoo, con
+  estado persistente: `comprobar` (descarga manifiesto, **verifica firma**,
+  compara versión y compatibilidad — probado, incluido el rechazo de un
+  manifiesto manipulado), `preparar` (descarga + SHA-256 + firma), `aplicar`
+  (los 7 pasos: preconds → mantenimiento → copia → parar/instalar/migrar →
+  comprobar → reabrir; reversión de base y luego código si algo falla).
+- **En la app**: pantalla de inicio y Configuración → Actualizaciones muestran
+  «Actualización disponible»; botón **«Actualizar al cerrar»**. Cron diario de
+  comprobación (`mgs.update._cron_check`, sin `mgs.update.releases_url` no hace
+  nada).
+- **Instalador Inno Setup** (`instalador/EntreRamblas-Setup.iss` +
+  `pasos-instalacion.ps1` + `abrir-app.ps1`): PostgreSQL dedicado (cluster e
+  instancia propios, solo local), servicio de Windows con arranque automático
+  y dependencia de esa instancia, acceso directo que espera al servicio y abre
+  Edge en modo app, comprobación del motor PDF, base nueva sin demo,
+  reinstalar/desinstalar conserva base y copias.
+- **Pipeline de publicación** (`publicar/empaquetar.ps1`,
+  `generar-clave-firma.ps1`, `PUBLICAR.md`): pruebas → árbol de distribución →
+  `.zip` + `manifest.json` + firma. Un `git push` normal no publica.
 
-_(pendiente)_
+Necesita una persona (fuera del alcance del agente):
+- **Crear el repositorio** `AaronRuizzz/EntreRamblasReleases` y decidir con qué
+  cuenta se publica (la de `gh` aquí es `UM-Ruben`).
+- **Generar la clave privada de firma de verdad**, offline, y custodiarla
+  fuera del repo y del PC (ahora hay una de arranque; ver notas al final).
+- **Instalar Inno Setup** y **compilar el `.exe`**; probar la instalación de
+  cero en una máquina limpia.
+- **Registrar el servicio en el SCM** (consola de administrador) y probar
+  reinicio, apagado y recuperación ante fallo.
+- Firmar el `.exe` con un certificado de firma de código (SmartScreen).
+
+### Bloque 5 — Pruebas 🔶
+
+- Suite Odoo del módulo: **verde** (0 fallos, 0 errores) tras cada bloque.
+  Pruebas nuevas: acceso (activación, recuperación, throttle, propietaria sin
+  admin técnico, rastro), diagnóstico, firma Ed25519 y ventana de
+  actualización.
+- `test.ps1` ahora incluye `--db-filter=^mgs_validation$` para HttpCase.
+- Pendiente (no es código): matriz física completa del plan §5 — acceso real
+  en navegador, reproducibilidad base nueva vs. actualizada, interfaz en dos
+  equipos, jornada con hardware, actualización con paquete alterado / disco
+  lleno / corte a mitad, restauración real desde SSD.
 
 ## Lo que necesita una persona (no es código)
 
@@ -97,3 +140,14 @@ _(pendiente)_
 - Gestoría: régimen fiscal, tipos de IVA por familia, serie de numeración y vía
   de cumplimiento SIF/VeriFactu.
 - Catálogo real y datos fiscales de la empresa.
+
+## Nota sobre la clave de firma
+
+Para que el pipeline funcione hoy de punta a punta, hay una pareja de claves
+Ed25519 «de arranque»: la **pública** está en
+`EntreRamblas/instalador/firma-publica.pem` (versionada); la **privada** está
+sólo en el scratchpad de esta sesión (`.../scratchpad/claves-firma/firma-privada.pem`),
+NO en el repo. **Antes de publicar nada de verdad**, genera tu propia pareja
+con `publicar\generar-clave-firma.ps1` (así nadie más ha visto nunca la
+privada) y sustituye `instalador/firma-publica.pem`. Si decides quedarte con la
+de arranque, muévela ya a custodia segura offline y bórrala del scratchpad.

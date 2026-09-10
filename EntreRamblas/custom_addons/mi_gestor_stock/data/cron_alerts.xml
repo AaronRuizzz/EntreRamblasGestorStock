@@ -14,4 +14,18 @@
         <field name="user_id" ref="base.user_root"/>
         <field name="active" eval="True"/>
     </record>
+
+    <!-- Comprueba una vez al día si hay una actualización firmada más nueva.
+         No instala nada: sólo deja el estado en el archivo del actualizador.
+         Sin `mgs.update.releases_url` configurado no hace nada. -->
+    <record id="ir_cron_mgs_check_update" model="ir.cron">
+        <field name="name">Gestor de stock: comprobar actualizaciones</field>
+        <field name="model_id" ref="model_mgs_update"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="active" eval="True"/>
+    </record>
 </odoo>

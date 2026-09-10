@@ -2,6 +2,7 @@ from . import test_reception
 from . import test_pos_stock
 from . import test_security
 from . import test_access
+from . import test_actualizacion
 from . import test_backup
 from . import test_catalog_import
 from . import test_bouquet

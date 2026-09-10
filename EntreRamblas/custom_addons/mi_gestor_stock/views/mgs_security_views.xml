@@ -150,9 +150,67 @@
         <field name="code">action = model.action_open()</field>
     </record>
 
-    <!-- Menús: Configuración → Seguridad / Diagnóstico / Restablecimientos -->
+    <!-- ============================================================
+         Configuración → Actualizaciones (ventana sobre tools/actualizador.py)
+         ============================================================ -->
+    <record id="view_mgs_update_form" model="ir.ui.view">
+        <field name="name">mgs.update.form</field>
+        <field name="model">mgs.update</field>
+        <field name="arch" type="xml">
+            <form string="Actualizaciones">
+                <sheet>
+                    <div class="oe_title"><h1>Actualizaciones</h1></div>
+                    <group>
+                        <field name="installed_version" string="Versión instalada"/>
+                        <field name="available_version" string="Versión disponible"
+                               invisible="not available_version"/>
+                        <field name="phase" string="Estado"/>
+                        <field name="checked_at" string="Última comprobación"/>
+                        <field name="accepted" string="Aceptada para instalar al cerrar"/>
+                    </group>
+                    <field name="notes" string="Cambios / notas" readonly="1"
+                           invisible="not notes"/>
+                    <div class="alert alert-info" role="status"
+                         invisible="phase in ('disponible', 'preparado', 'fallo')">
+                        El programa está al día. Comprueba si hay novedades al arrancar y
+                        una vez al día; sin internet sigue funcionando y vuelve a mirar
+                        más adelante.
+                    </div>
+                    <div class="alert alert-warning" role="status" invisible="phase != 'fallo'">
+                        <field name="message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-primary" role="status"
+                         invisible="phase not in ('disponible', 'preparado')">
+                        La actualización se comprueba y se descarga entera antes de tocar
+                        nada. Al aceptar, se instalará <b>al cerrar el programa</b>, con
+                        copia de seguridad previa y vuelta atrás si algo falla.
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_accept" type="object" string="Actualizar al cerrar"
+                            class="btn-primary"
+                            invisible="phase not in ('disponible', 'preparado') or accepted"/>
+                    <button name="action_defer" type="object" string="Ahora no"
+                            invisible="not accepted"/>
+                    <button string="Cerrar" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mgs_update" model="ir.actions.server">
+        <field name="name">Actualizaciones</field>
+        <field name="model_id" ref="model_mgs_update"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open()</field>
+    </record>
+
+    <!-- Menús: Configuración → Seguridad / Actualizaciones / Diagnóstico / Restablecimientos -->
     <menuitem id="menu_mgs_settings_security" name="Seguridad" parent="menu_mgs_settings"
               action="action_mgs_security" sequence="5"
+              groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_settings_updates" name="Actualizaciones" parent="menu_mgs_settings"
+              action="action_mgs_update" sequence="7"
               groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_settings_diagnostic" name="Diagnóstico" parent="menu_mgs_settings"
               action="action_mgs_diagnostic" sequence="35"
