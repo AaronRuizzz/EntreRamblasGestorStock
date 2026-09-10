@@ -342,9 +342,14 @@ IVA 21/10/4, plan PYMEs, validación NIF), `point_of_sale`, `contacts`, `stock_s
 ## 4. Acceso e instalación actuales
 
 La configuración con credenciales se guarda en un archivo privado `odoo.local`,
-ignorado por Git. `odoo.conf` es una plantilla sin secretos para pruebas.
-Las instalaciones nuevas generan una contraseña única en un archivo local
-`<base>-first-access.secret`. El módulo no cambia contraseñas existentes.
+ignorado por Git. `odoo.conf` es una plantilla **sin contraseña** para pruebas.
+
+El acceso está en **[ACCESO.md](ACCESO.md)**: una sola cuenta (la propietaria),
+sólo contraseña, primer acceso con **código de activación** de un solo uso
+(archivo local `<base>-activacion.txt`), recuperación por **clave impresa** y
+herramienta local `recuperar-acceso.ps1` para la pérdida total. El módulo no
+cambia contraseñas de bases existentes; la migración `18.0.3.0.0` crea la
+cuenta de propietaria y deja el primer acceso pendiente.
 
 ## 5. Arranque, actualización y recuperación
 

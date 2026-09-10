@@ -1,5 +1,19 @@
 # Estado del proyecto — gestor de stock Entre Ramblas
 
+> **Actualización del 10 de septiembre de 2026 — entrega final (plan
+> `PlanFinalizarGestor.md`).** Rama `finalizar-entrega`, módulo → `18.0.3.0.0`,
+> suite **249 pruebas en verde**. Hecho: acceso solo con contraseña + primer
+> acceso con código + recuperación por clave impresa + herramienta local
+> (`ACCESO.md`); arranque que aplica la actualización pendiente e integridad del
+> motor; diagnóstico exportable sin secretos; nombre comercial ≠ razón social;
+> firma Ed25519 + actualizador con estado y aplicación segura en 7 pasos
+> (`ACTUALIZACIONES.md`); instalador Inno Setup + pipeline de publicación
+> (`EntreRamblas/instalador/`, `EntreRamblas/publicar/`); VeriFactu documentado
+> como fuera de la entrega. **Rastro y pendientes en `ENTREGA_FINAL.md`.** Lo
+> que sigue necesitando una persona: crear el repo de releases, la clave privada
+> de firma definitiva, compilar y probar el `.exe`, registrar el servicio en el
+> SCM, la jornada física y la gestoría.
+
 > **Actualización del 9 de septiembre de 2026 — recorte del módulo.** A petición
 > del usuario se han **eliminado del código** nueve secciones que la tienda no va
 > a usar: **Compras** (pedidos a proveedor y previsión), la pantalla **Partidas**
@@ -284,9 +298,10 @@ Por orden de lo que bloquea la puesta en producción:
 5. **Catálogo real.** El asistente de alta está hecho y probado, pero los
    datos los tiene que dar la dueña.
 6. **Instalación realmente limpia**: descarga y venv nuevos en una máquina sin
-   nada previo, **y el plan contable español cargado a mano** (ver sección 2 —
-   hoy no es automático y una instalación limpia real lo necesita para que el
-   IVA funcione).
+   nada previo. _(10-09-2026: el plan contable español ya lo carga el addon
+   (`_mgs_ensure_spanish_chart`), y el instalador `EntreRamblas-Setup.exe`
+   monta PostgreSQL dedicado + servicio + acceso directo. Falta compilar el
+   `.exe` con Inno Setup y probarlo en una máquina limpia — `ENTREGA_FINAL.md`.)_
 7. **Aceptación de UI de lo más nuevo**: los flujos de esta sesión
    (compras, consumo de flor, bajas de caducados, recetas, previsión de
    compra, tarifas de campaña) están verificados por test pero no recorridos
@@ -294,17 +309,21 @@ Por orden de lo que bloquea la puesta en producción:
 8. **Auditoría de caminos RPC alternativos**: queda por barrer sistemáticamente
    si alguna ruta RPC permite modificar o borrar trazas, y si los datos propios
    del TPV sobreviven a recarga y a trabajo sin conexión.
-9. **Commits.** El trabajo de esta sesión sigue sin commit, a la espera de que
-   lo revises. Comprobado que no hay secretos en lo que entraría y que el
-   runtime privado (`odoo.local`, `.odoo_data`, `venv`, `odoo/`) está ignorado.
+9. **Commits.** El trabajo hasta el 9-09-2026 y la entrega final del 10-09-2026
+   están commiteados en la rama **`finalizar-entrega`** (5 commits, desde
+   `14d474d`), a la espera de revisión y de fusionar a `main`. Comprobado que
+   no entran secretos (la clave privada de firma vive fuera del repo) y que el
+   runtime privado sigue ignorado.
 10. **No bloquea nada, es una decisión ya tomada**: el menú «Ajustes» de Odoo
     (Usuarios y compañías, Ajustes generales, modo desarrollador) se oculta
     del todo — no solo las otras ocho apps nativas — porque esta app es de
-    gestión de tienda, no de administración de Odoo. Consecuencia real: dar de
-    alta a una dependienta nueva o restablecerle la contraseña deja de tener
-    pantalla propia y pasa a ser tarea de consola (`odoo-bin shell`,
-    procedimiento en `MANUAL_TIENDA.md` §13). No revoca ningún permiso:
-    `/odoo/settings` sigue respondiendo por URL para quien mantenga el equipo.
+    gestión de tienda, no de administración de Odoo. _(10-09-2026: el acceso
+    pasa a ser **una sola cuenta, la propietaria**, con su propia recuperación
+    por clave impresa y herramienta local — `ACCESO.md`. `/odoo/settings`
+    sigue respondiendo por URL para quien mantenga el equipo, pero la cuenta
+    `admin` ya no tiene contraseña utilizable: se restablece con
+    `recuperar-acceso.ps1 -Admin`. Una cuenta separada de dependienta hoy no
+    entra por el formulario; sería un cambio en la pantalla de acceso.)_
 
 ## 6. Comandos
 

@@ -12,9 +12,26 @@ Origen del plan: `../PlanFinalizarGestor.md` (fuera del repo).
 |---|---|---|
 | 1 | Documentación y decisión VeriFactu | ✅ hecho |
 | 2 | Acceso solo con contraseña + recuperación | ✅ hecho (suite verde) |
-| 3 | Misma aplicación en todos los equipos | 🔶 casi todo hecho |
-| 4 | Instalador y actualizaciones firmadas | 🔶 código hecho; falta build/repo/claves |
-| 5 | Pruebas y condiciones de entrega | 🔶 en curso |
+| 3 | Misma aplicación en todos los equipos | ✅ código hecho (suite verde) |
+| 4 | Instalador y actualizaciones firmadas | 🔶 código hecho; falta build/repo/claves/servicio |
+| 5 | Pruebas y condiciones de entrega | 🔶 suite verde; falta la matriz física |
+
+Commits en `finalizar-entrega`: `14d474d` (docs), `53abe5b` (acceso),
+`a00f9ab` (misma app), `2dd898a` (instalador+actualizador), `1f22db0`
+(manifiesto+manuales).
+
+## Cómo continuar
+
+1. Revisar la rama y fusionar a `main` si conforme.
+2. `publicar\generar-clave-firma.ps1` → clave privada a custodia offline,
+   pública a `instalador/firma-publica.pem` (sustituye la de arranque).
+3. Crear `AaronRuizzz/EntreRamblasReleases` (decidir cuenta) y fijar
+   `mgs.update.releases_url` en cada equipo.
+4. Instalar Inno Setup, `publicar\empaquetar.ps1`, compilar el `.exe`,
+   probar instalación limpia + reinicio + hardware (plan §5).
+5. Consola de administrador: comprobar el servicio en el SCM (el instalador
+   lo registra; falta la aceptación de reinicio/apagado/recuperación).
+6. Gestoría: régimen, IVA por familia, serie, vía SIF/VeriFactu.
 
 ## Registro de avance
 
