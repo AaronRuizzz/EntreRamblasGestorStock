@@ -80,7 +80,8 @@ class MgsAuth(Home):
         try:
             throttle._assert_open("login")
         except ThrottleError as err:
-            return self._render("web.login", error=self._wait_message(err))
+            return self._render("web.login", error=self._wait_message(err),
+                                databases=None, disable_database_manager=True)
 
         if strict:
             # El servidor elige la cuenta. Se ignora cualquier `login` recibido.
