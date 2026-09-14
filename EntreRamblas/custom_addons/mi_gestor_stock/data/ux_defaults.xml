@@ -81,17 +81,25 @@
          `active`, añadido en models/product_category.py) para que
          desaparezcan de todos los desplegables. La dueña crea las suyas
          desde Recepción → «Producto nuevo» y quedan disponibles al instante.
-         No se pueden borrar: Odoo las protege como categorías genéricas. -->
-    <record id="product.product_category_all" model="product.category">
-        <field name="active" eval="False"/>
-    </record>
-    <record id="product.product_category_1" model="product.category">
-        <field name="active" eval="False"/>
-    </record>
-    <record id="product.cat_expense" model="product.category">
-        <field name="active" eval="False"/>
-    </record>
-    <record id="point_of_sale.product_category_pos" model="product.category">
-        <field name="active" eval="False"/>
-    </record>
+         No se pueden borrar: Odoo las protege como categorías genéricas.
+
+         Desde Python y no con <record>: las cuatro están en bloques
+         noupdate="1" de `product` y `point_of_sale`, y un <record> sobre un
+         xml_id así se salta en cada `-u` (solo valía al instalar). El porqué
+         completo, en models/product_category.py. -->
+    <function model="product.category" name="_mgs_archive_factory_categories" eval="[]"/>
+
+    <!-- ==========================================================
+         Las categorías del almacén son también las de la caja.
+         ==========================================================
+         Va DESPUÉS de archivar las de fábrica (arriba): así no se les crea
+         botón en el TPV. Repasa la lista entera en cada `-u`, no solo al
+         instalar, para que una base que ya viene con categorías y productos
+         de antes se ponga al día de una vez. El detalle, en
+         models/product_category.py.
+
+         Los dos van con `eval="[]"` y no con la lista de ids de branding.xml:
+         son métodos `@api.model` y `call_kw` les pasa tal cual lo que haya
+         aquí, sin quitarle delante los ids. -->
+    <function model="product.category" name="_mgs_sync_all_pos_categories" eval="[]"/>
 </odoo>

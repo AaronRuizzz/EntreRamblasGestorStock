@@ -104,6 +104,22 @@ eso el margen del informe sale bien y el TPV vende antes lo que caduca antes.
 - Si el producto tenía existencias sin partida, el programa no deja activar las
   partidas hasta regularizarlas: primero un recuento.
 
+### La categoría se elige una vez y vale para todo
+
+La categoría que le pongas al producto al darlo de alta es **la misma** para el
+almacén y para la caja: agrupa el panel de Stock y los informes, y además es el
+**botón** bajo el que ese producto aparece en la pantalla de venta.
+
+- Una categoría nueva sale sola en el TPV, sin configurar nada más. Si la
+  renombras, el botón se renombra. La pantalla de venta carga las categorías al
+  abrirse: si la tenías abierta mientras dabas de alta la categoría, recárgala
+  (o vuelve a entrar) para ver el botón nuevo.
+- Si archivas una categoría, su botón desaparece de la caja. Los productos que
+  tuviera **no** se pierden: siguen a la venta, solo que sin botón propio, en la
+  pantalla general y en el buscador.
+- Con una **caja abierta** el botón no se retira en ese momento (no se toca el
+  TPV a media venta): se va al cerrar la caja, en el siguiente arranque.
+
 ### Pedidos a proveedor
 
 **Gestor de Stock → Pedidos a proveedor.** Para saber qué se ha pedido y qué
@@ -129,6 +145,10 @@ sesión abierta, el propio botón la abre.
 
 En el TPV: escanea o toca el producto, cobra y valida.
 
+- **Los botones de categoría de la pantalla de venta son las categorías del
+  almacén**, las mismas que se eligen al recibir mercancía (ver
+  [§4](#4-recibir-mercancía)). Salen por orden alfabético y se ponen al día
+  solos: no hay una segunda lista que mantener.
 - **El programa elige la partida sola**: primero la que caduca antes y, a
   igualdad, la más antigua.
 - **No deja vender caducado ni más unidades de las que hay.** Si salta el aviso,
