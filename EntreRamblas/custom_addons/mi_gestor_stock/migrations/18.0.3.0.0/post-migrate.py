@@ -49,7 +49,12 @@ def migrate(cr, version):
     manager_group = env.ref("mi_gestor_stock.group_mgs_manager")
 
     # 1) La cuenta administradora recupera su login y se queda de reserva.
+    #    El cambio se vuelca a la base ANTES de crear la nueva cuenta: `create`
+    #    lanza el INSERT sin descargar los `write` pendientes, así que sin este
+    #    flush el índice único de `login` aún vería «propietaria» en la fila
+    #    antigua y el alta fallaría con UniqueViolation.
     admin.write({"login": "admin"})
+    admin.flush_recordset(["login"])
     _logger.warning(
         "mi_gestor_stock: la cuenta administradora vuelve a llamarse «admin» y "
         "queda solo como cuenta técnica. Deshabilita su acceso diario cuando "
