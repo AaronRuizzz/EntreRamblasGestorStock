@@ -116,6 +116,52 @@ class TestActionsUseOwnViews(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
+class TestSettingsMenusRunAsOwner(TransactionCase):
+    """La propietaria (solo lectura sobre mgs.access) debe poder abrir TODAS
+    las entradas de Configuración. «Seguridad» fallaba: era un server action
+    de tipo code sin groups_id, que exige permiso de escritura (hallazgo 14)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.env["res.users"].sudo().search(
+            [("mgs_is_owner", "=", True)]).write({"mgs_is_owner": False})
+        cls.owner = new_test_user(
+            cls.env, login="mgs_settings_owner",
+            groups="mi_gestor_stock.group_mgs_manager")
+        cls.owner.mgs_is_owner = True
+
+    def _settings_children(self):
+        parent = self.env.ref("mi_gestor_stock.menu_mgs_settings")
+        return self.env["ir.ui.menu"].search([("parent_id", "=", parent.id)])
+
+    def test_every_settings_menu_opens_for_the_owner(self):
+        failures = []
+        for menu in self._settings_children().with_user(self.owner):
+            action = menu.action
+            if not action:
+                continue
+            try:
+                if action._name == "ir.actions.server":
+                    action.with_context(
+                        active_model=action.model_id.model, active_ids=[], active_id=False
+                    ).run()
+                else:
+                    # act_window: lo que hace el cliente al abrirlo -> leer.
+                    self.env[action.res_model].with_user(self.owner).check_access("read")
+                    if action.res_id:
+                        self.env[action.res_model].browse(action.res_id).read(["display_name"])
+            except Exception as exc:  # noqa: BLE001
+                failures.append("%s -> %s" % (menu.name, exc))
+        self.assertFalse(failures, "\n".join(failures))
+
+    def test_security_menu_is_a_window_over_mgs_access(self):
+        action = self.env.ref("mi_gestor_stock.action_mgs_security")
+        self.assertEqual(action._name, "ir.actions.act_window")
+        self.assertEqual(action.res_model, "mgs.access")
+
+
+@tagged("post_install", "-at_install")
 class TestEventQuotePrintButton(TransactionCase):
     def test_the_event_form_has_a_header_button_to_print_the_quote(self):
         # event_form llevó js_class="mgs_clean_form" (quita el engranaje de

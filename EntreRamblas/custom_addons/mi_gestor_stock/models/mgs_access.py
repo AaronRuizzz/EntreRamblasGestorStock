@@ -44,6 +44,9 @@ _RECOVERY_BYTES = 20      # 160 bits (el plan pide >= 128)
 _ACTIVATION_BYTES = 10    # 80 bits, código local de un solo uso
 
 
+_B32_ALPHABET = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+
+
 def _b32(raw):
     return base64.b32encode(raw).decode("ascii").rstrip("=")
 
@@ -53,11 +56,15 @@ def _group(code, size=4):
 
 
 def normalize_secret(value):
-    """Deja el código como lo comparamos: solo letras y dígitos, en mayúsculas."""
-    return "".join(ch for ch in (value or "").upper() if ch.isalnum())
+    """Deja el código como lo comparamos: SOLO el alfabeto Base32 real
+    (A-Z, 2-7), que es lo que generan `_b32`/`_group`. Con `isalnum` colaban
+    dígitos y letras Unicode que luego reventaban al codificar en ASCII para el
+    hash (`ññññ` -> UnicodeEncodeError -> HTTP 500)."""
+    return "".join(ch for ch in (value or "").upper() if ch in _B32_ALPHABET)
 
 
 def fingerprint(value):
+    # normalize_secret ya deja solo caracteres ASCII del alfabeto Base32.
     return hashlib.sha256(normalize_secret(value).encode("ascii")).hexdigest()
 
 
@@ -101,6 +108,20 @@ class ResUsers(models.Model):
         """Deja la cuenta sin contraseña utilizable (técnico / rotura de cristal)."""
         for user in self.sudo():
             user.write({"password": secrets.token_urlsafe(48)})
+
+    def write(self, vals):
+        """Aplica la política de contraseña (12+ caracteres, nada trivial) a
+        CUALQUIER cambio de la contraseña de la propietaria, no solo al alta y a
+        la recuperación: el asistente nativo del menú de perfil admitía `abc`.
+        Un único punto que cubre `change_password`, el asistente y el ORM. Las
+        contraseñas internas aleatorias (rotura de cristal) pasan sin cambios."""
+        password = vals.get("password")
+        if password and not self.env.context.get("mgs_skip_password_policy"):
+            for user in self:
+                if user.mgs_is_owner:
+                    self.env["mgs.access"]._check_password_policy(
+                        password, vals.get("login") or user.login)
+        return super().write(vals)
 
 
 class MgsAccess(models.Model):
@@ -156,6 +177,120 @@ class MgsAccess(models.Model):
             "view_mode": "form",
             "target": "current",
         }
+
+    # ---- Provisión de la propietaria (cualquier base) ---------------
+    @api.model
+    def _mgs_provision_owner(self, neutralize_admin=False):
+        """Deja lista la cuenta de la propietaria en CUALQUIER base soportada.
+
+        Idempotente: se puede llamar en cada arranque/migración. Devuelve el
+        código de activación en claro si acaba de dejar el primer acceso
+        pendiente, o ``None`` si la cuenta ya estaba provisionada.
+
+        Reglas:
+          1. Si ya hay una cuenta con ``mgs_is_owner`` → se asegura grupo,
+             pantalla de inicio, idioma/zona y remitente; no se toca nada más.
+          2. Si la cuenta administradora se llama ``propietaria`` (instalaciones
+             antiguas que renombraban el admin) → recupera el login ``admin`` y
+             la propietaria pasa a ser una cuenta separada.
+          3. Si ya existe una cuenta con login ``propietaria`` distinta del
+             admin → se reutiliza.
+          4. En otro caso → se crea.
+
+        ``neutralize_admin`` deja ``admin`` sin contraseña utilizable (rotura
+        de cristal). El instalador lo pide; la migración no, para conservar el
+        acceso de reserva hasta comprobar el nuevo (ver ``ACCESO.md``).
+        """
+        Users = self.env["res.users"].sudo()
+        manager_group = self.env.ref("mi_gestor_stock.group_mgs_manager")
+        home = self.env.ref("mi_gestor_stock.action_mgs_home", raise_if_not_found=False)
+        admin = self.env.ref("base.user_admin", raise_if_not_found=False)
+
+        def _finish(owner):
+            vals = {"mgs_is_owner": True}
+            if manager_group not in owner.groups_id:
+                vals["groups_id"] = [(4, manager_group.id)]
+            if not owner.lang:
+                vals["lang"] = "es_ES"
+            if not owner.tz:
+                vals["tz"] = "Europe/Madrid"
+            owner.write(vals)
+            if home and owner.action_id != home:
+                owner.action_id = home.id
+            self._mgs_ensure_owner_sender(owner)
+
+        owner = Users.search([("mgs_is_owner", "=", True)], limit=1)
+        if owner:
+            _finish(owner)
+            if admin and admin != owner and admin.login == "propietaria":
+                admin.write({"login": "admin"})
+            self._mgs_ensure_company_sender()
+            return None
+
+        # Instalaciones antiguas: el admin se llamaba «propietaria».
+        if admin and admin.login == "propietaria":
+            admin.write({"login": "admin", "tz": admin.tz or "Europe/Madrid"})
+            _logger.warning(
+                "mi_gestor_stock: la cuenta administradora vuelve a llamarse "
+                "«admin» y queda solo como cuenta técnica.")
+
+        owner = Users.search([("login", "=", "propietaria")], limit=1)
+        if admin and owner == admin:
+            owner = Users.browse()
+        if not owner:
+            owner = Users.create({
+                "name": "Propietaria", "login": "propietaria",
+                "password": secrets.token_urlsafe(48),  # inutilizable hasta el primer acceso
+                "groups_id": [(6, 0, [manager_group.id])],
+                "lang": "es_ES", "tz": "Europe/Madrid", "mgs_is_owner": True,
+            })
+        _finish(owner)
+
+        if admin and admin != owner and neutralize_admin:
+            admin._mgs_scramble_password()
+
+        self._mgs_ensure_company_sender()
+        code = self._begin_activation(owner)
+        self._log_event(
+            "primer-acceso",
+            _("Cuenta de propietaria provisionada; primer acceso pendiente."))
+        return code
+
+    @api.model
+    def _mgs_ensure_owner_sender(self, owner):
+        """El TPV publica un mensaje al abrir caja con el usuario actual como
+        autor; si su partner no tiene correo, Odoo aborta la apertura. Se pone
+        un remitente local NO enrutable (``.invalid``, RFC 2606). No se pide en
+        el registro: la propietaria nunca escribe un correo."""
+        partner = owner.sudo().partner_id
+        if partner and not partner.email:
+            partner.email = "%s@entreramblas.invalid" % (owner.login or "propietaria")
+
+    @api.model
+    def _mgs_ensure_company_sender(self):
+        """Dominio de alias y correo de empresa locales no enrutables, para que
+        cualquier envío interno tenga remitente sin depender de que la tienda
+        configure un correo real."""
+        ICP = self.env["ir.config_parameter"].sudo()
+        company = (self.env.ref("base.main_company", raise_if_not_found=False)
+                   or self.env["res.company"].sudo().search([], order="id", limit=1))
+        domain = "entreramblas.invalid"
+        alias_domain = self.env["mail.alias.domain"].sudo().search(
+            [("name", "=", domain)], limit=1)
+        if not alias_domain:
+            alias_domain = self.env["mail.alias.domain"].sudo().search([], limit=1)
+        if not alias_domain:
+            alias_domain = self.env["mail.alias.domain"].sudo().create({
+                "name": domain, "default_from": "tienda"})
+        if company:
+            if not company.alias_domain_id:
+                company.sudo().alias_domain_id = alias_domain.id
+            if not company.email:
+                company.sudo().email = "tienda@%s" % domain
+        if not ICP.get_param("mail.catchall.domain"):
+            ICP.set_param("mail.catchall.domain", alias_domain.name)
+        if not ICP.get_param("mail.default.from"):
+            ICP.set_param("mail.default.from", "tienda")
 
     # ---- Política de contraseña --------------------------------------
     @api.model
@@ -372,28 +507,53 @@ class MgsAccessRegenerate(models.TransientModel):
     _name = "mgs.access.regenerate"
     _description = "Regenerar la clave de recuperación"
 
-    current_password = fields.Char("Contraseña actual", required=True)
-    new_key = fields.Char("Nueva clave", readonly=True)
+    # Ni la contraseña ni la clave nueva se ALMACENAN: eran campos Char de un
+    # modelo transitorio y quedaban legibles por SQL (y podían entrar en una
+    # copia antes de la limpieza). Mismo patrón que res.users.password.
+    current_password = fields.Char(
+        "Contraseña actual", compute="_compute_transient", inverse="_inverse_current_password",
+        store=False)
+    new_key = fields.Char("Nueva clave", compute="_compute_new_key", store=False, readonly=True)
+    verified = fields.Boolean(readonly=True)   # huella inocua: solo dice "credencial correcta"
     done = fields.Boolean(readonly=True)
+
+    def _compute_transient(self):
+        for rec in self:
+            rec.current_password = ""
+
+    def _compute_new_key(self):
+        # La clave viaja en el contexto de la acción que reabre el asistente,
+        # nunca por la base de datos. Un recargar la pierde: hay que copiarla ya.
+        for rec in self:
+            rec.new_key = rec.env.context.get("mgs_new_key", "")
+
+    def _inverse_current_password(self):
+        for rec in self:
+            secret = rec.current_password
+            if not secret:
+                continue
+            try:
+                rec.env.user._check_credentials(
+                    {"type": "password", "password": secret}, {"interactive": True})
+            except AccessDenied:
+                raise UserError(_("La contraseña actual no es correcta."))
+            rec.verified = True
 
     def action_confirm(self):
         self.ensure_one()
         from .mgs_permissions import require_manager
         require_manager(self.env)
-        try:
-            self.env.user._check_credentials(
-                {"type": "password", "password": self.current_password},
-                {"interactive": True})
-        except AccessDenied:
-            raise UserError(_("La contraseña actual no es correcta."))
+        if not self.verified:
+            raise UserError(_("Escribe tu contraseña actual para confirmar."))
         key = self.env["mgs.access"].sudo()._new_recovery_key()
         self.env["mgs.access"].sudo()._log_event(
             "configuracion", _("Clave de recuperación regenerada desde Configuración → Seguridad."))
-        self.write({"new_key": key, "done": True})
+        self.write({"done": True, "verified": False})
         return {
             "type": "ir.actions.act_window",
             "res_model": "mgs.access.regenerate",
             "res_id": self.id,
             "view_mode": "form",
             "target": "new",
+            "context": dict(self.env.context, mgs_new_key=key),
         }
