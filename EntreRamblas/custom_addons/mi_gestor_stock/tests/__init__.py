@@ -4,6 +4,8 @@ from . import test_security
 from . import test_access
 from . import test_actualizacion
 from . import test_backup
+from . import test_mantenimiento
+from . import test_pos_receipt
 from . import test_catalog_import
 from . import test_bouquet
 from . import test_event

@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from odoo import Command, fields
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import Form, TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
@@ -118,6 +118,32 @@ class TestReception(TransactionCase):
         wizard.action_add_new_product()
         product = self.env["product.template"].search([("name", "=", "Peonía rosa")])
         self.assertEqual(product.categ_id, categ)
+
+    def test_form_can_be_saved_after_creating_a_new_product(self):
+        # Hallazgo 18, prueba del RECORRIDO DEL FORMULARIO (no solo del
+        # método de negocio): Producto nuevo -> rellenar -> Crear y añadir ->
+        # Guardar en almacén. action_add_new_product limpiaba new_categ_id
+        # pero dejaba mode="nuevo"; la vista exige esa categoría en ese modo
+        # (required="mode == 'nuevo'"), así que el siguiente guardado del
+        # asistente (lo que hace "Guardar en almacén") fallaba con «Campos no
+        # válidos: Categoría» aunque el producto ya se hubiera creado.
+        form = Form(self.env["mgs.reception"])
+        form.mode = "nuevo"
+        form.new_name = "Peonía rosa de formulario"
+        form.new_barcode = "8499999999991"
+        form.new_price = 3.5
+        form.new_cost = 1.2
+        form.new_categ_id = self.env["product.category"].create({"name": "Planta de temporada 2"})
+        wizard = form.save()
+
+        wizard.action_add_new_product()
+        self.assertEqual(wizard.mode, "existente")
+
+        # Reabrir el asistente en un Form (como hace el cliente antes de
+        # "Guardar en almacén") y guardar: antes del arreglo, esto lanzaba
+        # ValidationError por el campo requerido de la categoría.
+        reloaded = Form(wizard)
+        reloaded.save()
 
     def test_factory_categories_are_archived_and_hidden(self):
         for xmlid in ("product.product_category_all", "product.product_category_1",
