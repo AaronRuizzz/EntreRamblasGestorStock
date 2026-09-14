@@ -18,6 +18,11 @@ def main():
     parser.add_argument('--db-user', default='odoo')
     parser.add_argument('--http-port', type=int, default=8069)
     parser.add_argument('--pg-bin', help='Carpeta bin de PostgreSQL (psql y pg_dump)')
+    parser.add_argument('--allow-existing', action='store_true',
+                        help='El instalador ya reservo este directorio (logs, pgdata, '
+                             'secretos). Salta SOLO la guarda de carpeta vacia; se '
+                             'mantienen la de OneDrive/Dropbox, la de odoo.local ya '
+                             'existente y el open(x) que nunca sobrescribe.')
     args = parser.parse_args()
     directory = Path(args.directory).resolve()
     for sync_root in [os.environ.get('OneDrive'), os.environ.get('OneDriveConsumer'), os.environ.get('OneDriveCommercial')]:
@@ -28,7 +33,7 @@ def main():
     target = directory / 'odoo.local'
     if target.exists():
         raise ValueError('La configuración ya existe; no se sobrescribe')
-    if directory.exists() and any(directory.iterdir()):
+    if not args.allow_existing and directory.exists() and any(directory.iterdir()):
         raise ValueError('Usa una carpeta nueva o vacía para preparar la instalación')
     config = configparser.ConfigParser(interpolation=None)
     if args.source:
@@ -62,8 +67,13 @@ def main():
         raise ValueError('Indica --pg-bin con la carpeta bin de PostgreSQL')
     opts['pg_path'] = str(pg_bin)
     opts.pop('dbfilter', None)
+    preexisting = directory.exists() and any(directory.iterdir())
     directory.mkdir(parents=True, exist_ok=True)
-    if os.name == 'nt':
+    # No reescribir las ACL de un directorio que el instalador ya preparo (puede
+    # contener el cluster PostgreSQL en marcha): '/inheritance:r' sobre esa
+    # carpeta romperia el acceso del servicio. El instalador fija los permisos
+    # en la seccion [Dirs] de EntreRamblas-Setup.iss.
+    if os.name == 'nt' and not (args.allow_existing and preexisting):
         identity = os.environ['USERDOMAIN'] + '\\' + os.environ['USERNAME']
         subprocess.run(['icacls', str(directory), '/inheritance:r', '/grant:r',
                         identity + ':(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F'],
