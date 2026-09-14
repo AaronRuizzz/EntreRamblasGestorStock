@@ -93,10 +93,48 @@ class MgsUpdate(models.TransientModel):
 
     def action_accept(self):
         self.ensure_one()
+        state = _read_state()
+        manifest = state.get("manifest") or {}
+        version = state.get("version_disponible")
+        sha256 = manifest.get("sha256")
+        if not version or not sha256:
+            raise UserError(_(
+                "No hay ninguna actualización preparada para aceptar todavía."))
         self._write_state(aceptada_por_duena=True)
+        # Consentimiento vinculado a ESTA versión y ESTE paquete exactos: el
+        # servicio aplicador no se fía de `aceptada_por_duena` a secas (un
+        # booleano en un archivo que la app puede escribir), solo de esto
+        # cruzado contra el manifiesto que él mismo re-verifica.
+        self._write_acceptance(version, sha256)
         self.env["mgs.access"].sudo()._log_event(
             "configuracion", _("La propietaria aceptó instalar la actualización al cerrar."))
+        self._start_update_service()
         return {"type": "ir.actions.act_window_close"}
+
+    def _write_acceptance(self, version, sha256):
+        import json as _json
+        path = _state_path().parent / "aceptacion.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_json.dumps({
+            "version": version, "sha256": sha256,
+            "fecha": fields.Datetime.now().isoformat(),
+            "usuario": self.env.user.login,
+        }, ensure_ascii=False), encoding="utf-8")
+
+    def _start_update_service(self):
+        # «Se instalará al cerrar», de verdad: esto es lo que arranca el
+        # componente con privilegios (tools/update_service.py). Él decide
+        # CUÁNDO es seguro aplicar (sin caja abierta ni ventas en curso) y
+        # reintenta durante horas si hace falta; aquí solo se le avisa.
+        import subprocess
+        try:
+            subprocess.run(["sc", "start", "EntreRamblasActualizador"],
+                           capture_output=True, timeout=10, check=False)
+        except (OSError, subprocess.SubprocessError):
+            _logger.warning(
+                "mi_gestor_stock: no se pudo iniciar el servicio EntreRamblasActualizador; "
+                "la actualización queda aceptada pero no se aplicará hasta el próximo "
+                "arranque del servicio.", exc_info=True)
 
     def action_defer(self):
         self.ensure_one()
@@ -119,9 +157,19 @@ class MgsUpdate(models.TransientModel):
         runtime = config.get("data_dir") or "."
         script = Path(__file__).resolve().parents[3] / "tools" / "actualizador.py"
         try:
-            subprocess.run(
+            result = subprocess.run(
                 [sys.executable, str(script), "--runtime", runtime, "comprobar",
                  "--releases-url", url],
                 timeout=180, capture_output=True, check=False)
+            # Si hay una versión nueva y compatible, descargarla y verificarla
+            # YA (firma + SHA-256): cuando la dueña acepte, el paquete ya está
+            # listo en disco y el servicio aplicador no tiene que esperar a
+            # una descarga. `preparar` no instala nada por sí solo.
+            output = (result.stdout or b"").decode("utf-8", "replace").strip()
+            if output.startswith("disponible"):
+                subprocess.run(
+                    [sys.executable, str(script), "--runtime", runtime, "preparar",
+                     "--releases-url", url],
+                    timeout=300, capture_output=True, check=False)
         except (OSError, subprocess.SubprocessError):
             _logger.warning("mi_gestor_stock: no se pudo comprobar actualizaciones", exc_info=True)
