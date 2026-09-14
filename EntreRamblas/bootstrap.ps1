@@ -23,16 +23,36 @@ if (-not (Test-Path -LiteralPath $source)) {
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo seleccionar la revisión Odoo.' }
 }
 if (-not (Test-Path -LiteralPath $odooBin)) { throw 'La carpeta Odoo existe pero está incompleta. Revísala antes de continuar.' }
-$actual = (& git -C $source rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or $actual -ne $revision) { throw 'La revisión Odoo no coincide. No se modifica el checkout existente.' }
+
+# Vendorizado: el paquete de la tienda trae su propio CPython bajo python\ y las
+# ruedas bajo wheels\. En desarrollo no existen y se usan `py -3.12` y el índice.
+$vendoredPython = Join-Path $PSScriptRoot 'python\python.exe'
+$wheelDir = Join-Path $PSScriptRoot 'wheels'
 $python = Join-Path $PSScriptRoot 'venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
-    & py -3.12 -m venv (Join-Path $PSScriptRoot 'venv')
-    if ($LASTEXITCODE -ne 0) { throw 'Instala Python 3.12 antes de continuar.' }
+    if (Test-Path -LiteralPath $vendoredPython -PathType Leaf) {
+        & $vendoredPython -m venv (Join-Path $PSScriptRoot 'venv')
+    } else {
+        & py -3.12 -m venv (Join-Path $PSScriptRoot 'venv')
+    }
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el entorno Python 3.12.' }
 }
 & $python -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3,12) else 1)'
 if ($LASTEXITCODE -ne 0) { throw 'El entorno requiere Python 3.12.' }
-& $python -m pip install --disable-pip-version-check -r (Join-Path $PSScriptRoot 'requirements-windows.lock')
+
+# Integridad del motor: en desarrollo por commit de Git; en la tienda (sin Git)
+# por firma + hashes de integridad.json.
+if (Test-Path -LiteralPath (Join-Path $source '.git')) {
+    $actual = (& git -C $source rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or $actual -ne $revision) { throw 'La revisión Odoo no coincide. No se modifica el checkout existente.' }
+} else {
+    & $python (Join-Path $PSScriptRoot 'tools\verificar_motor.py')
+    if ($LASTEXITCODE -ne 0) { throw 'La integridad del código instalado no se pudo verificar (firma/hashes).' }
+}
+
+$pipArgs = @('-m', 'pip', 'install', '--disable-pip-version-check', '-r', (Join-Path $PSScriptRoot 'requirements-windows.lock'))
+if (Test-Path -LiteralPath $wheelDir) { $pipArgs += @('--no-index', '--find-links', $wheelDir) }
+& $python @pipArgs
 if ($LASTEXITCODE -ne 0) { throw 'No se han instalado las dependencias fijadas.' }
 & $python -m pip check
 if ($LASTEXITCODE -ne 0) { throw 'Hay dependencias incompatibles.' }

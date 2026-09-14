@@ -9,7 +9,14 @@
 
 #define AppName "Entre Ramblas - Gestor de stock"
 #define AppShort "EntreRamblas"
-#define AppVersion "18.0.3.0.0"
+; empaquetar.ps1 genera dist\version.iss con el AppVersion real (leído del
+; __manifest__.py) para que no haya que recordar sincronizarlo a mano; sin
+; ese archivo (compilación suelta del .iss) se usa este valor de reserva.
+#ifexist "..\..\dist\version.iss"
+  #include "..\..\dist\version.iss"
+#else
+  #define AppVersion "18.0.4.0.0"
+#endif
 #define Publisher "Entre Ramblas"
 ; Carpeta con el arbol ya preparado (code + venv + odoo + tools\wkhtmltox).
 #ifndef PayloadDir

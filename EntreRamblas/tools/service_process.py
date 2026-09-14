@@ -17,10 +17,18 @@ class OdooProcess:
             raise ValueError('Nombre de base no válido')
         if Path(str(self.config) + '.pending').exists():
             raise ValueError('La instalación está incompleta')
-        revision = (ROOT / 'odoo-revision.txt').read_text().strip()
-        current = subprocess.check_output([git_executable, '-C', str(ROOT / 'odoo'), 'rev-parse', 'HEAD'], text=True).strip()
-        if revision != current:
-            raise ValueError('La revisión Odoo no coincide con el proyecto')
+        # Integridad del código: en desarrollo compara el commit de Git; en una
+        # tienda instalada (sin Git) verifica la firma y los hashes de
+        # integridad.json. Mismo criterio que el arranque manual.
+        sys.path.insert(0, str(ROOT / 'tools'))
+        import verificar_motor
+        report = verificar_motor.check()
+        if report.get('code') == 4:
+            raise ValueError('No se pudo verificar la integridad del código: %s'
+                             % report.get('detalle', report.get('estado')))
+        if report.get('code') != 0:
+            raise ValueError('La revisión Odoo no coincide con el proyecto (%s)'
+                             % report.get('estado'))
         settings = configparser.ConfigParser(interpolation=None)
         settings.read(self.config, encoding='utf-8')
         options = settings['options']
@@ -36,9 +44,12 @@ class OdooProcess:
 
     def start(self):
         environment = os.environ.copy()
-        wk = self.config.parent / 'tools/wkhtmltox/bin'
-        if (wk / 'wkhtmltopdf.exe').is_file():
-            environment['PATH'] = str(wk) + os.pathsep + environment['PATH']
+        # wkhtmltopdf: junto a la configuración (instalación manual) o el que
+        # viaja en el paquete bajo tools/wkhtmltox (instalación de la tienda).
+        for wk in (self.config.parent / 'tools/wkhtmltox/bin', ROOT / 'tools/wkhtmltox/bin'):
+            if (wk / 'wkhtmltopdf.exe').is_file():
+                environment['PATH'] = str(wk) + os.pathsep + environment['PATH']
+                break
         self.output = (self.config.parent / 'service-process.log').open('ab')
         try:
             command = [
