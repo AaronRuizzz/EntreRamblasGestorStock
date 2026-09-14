@@ -2,11 +2,15 @@
 <odoo>
     <!-- ============================================================
          Gestor de Stock — única app visible del sistema.
-         Flujos: Vender · Eventos y encargos · Recepción ·
-         Stock (Panel/Productos/Alertas/Alta de catálogo) ·
+         Flujos: Vender · Eventos y encargos ·
+         Stock (Recepción/Panel/Productos/Alertas/Alta de catálogo) ·
          Mermas · Informes · Configuración.
          El TPV sigue instalado y registrando ventas, pero se abre
          aparte a pantalla completa (/pos/ui), no desde este menú.
+
+         Recepción vive DENTRO de Stock (no es un menú raíz aparte): es la
+         forma de meter mercancía en el mismo sitio donde luego se consulta,
+         en vez de una sección suelta que hay que saber que existe.
          ============================================================ -->
     <!-- La acción va en el propio menú raíz: al pulsar "Gestor de Stock" en la
          barra superior (o el icono en el lanzador de apps) se abre la página de
@@ -21,12 +25,13 @@
               action="action_mgs_open_pos" sequence="5" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_events" name="Eventos y encargos" parent="menu_mgs_root"
               action="action_mgs_events" sequence="7" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_reception" name="Recepción" parent="menu_mgs_root"
-              action="action_mgs_reception" sequence="10" groups="mi_gestor_stock.group_mgs_manager"/>
-
-    <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="20"
+    <menuitem id="menu_mgs_stock" name="Stock" parent="menu_mgs_root" sequence="10"
               groups="mi_gestor_stock.group_mgs_user"/>
-    <!-- De uso diario a de una sola vez, de 10 en 10, sin secuencias repetidas. -->
+    <!-- De uso diario a de una sola vez, de 10 en 10, sin secuencias repetidas.
+         Recepción va primero: es lo primero que se toca del bloque (entra
+         mercancía) antes de consultar el resto. -->
+    <menuitem id="menu_mgs_reception" name="Recepción" parent="menu_mgs_stock"
+              action="action_mgs_reception" sequence="5" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_stock_panel" name="Panel" parent="menu_mgs_stock"
               action="action_mgs_stock_dashboard" sequence="10" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_stock_products" name="Productos" parent="menu_mgs_stock"

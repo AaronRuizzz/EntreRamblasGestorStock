@@ -14,6 +14,8 @@ programa hable con los cuatro aparatos de la factura:
 
 Todo lo que se manda a la impresora se construye en models/mgs_escpos.py.
 """
+import base64
+import io
 import logging
 
 from odoo import api, fields, models, _
@@ -354,9 +356,83 @@ class MgsConfig(models.Model):
             raise UserError(str(err)) from err
         return True
 
-    def _mgs_company_header(self, doc):
-        """Cabecera del ticket: nombre, dirección y NIF de la tienda."""
+    def _mgs_logo_bitmap(self, doc):
+        """Convierte el logo de la empresa (PNG, `res.company.logo`) al mapa
+        de bits que entiende la impresora (doc.raster_image), escalado al
+        ancho del papel.
+
+        Antes de esto el ticket era solo texto: no se mandaba ninguna
+        imagen, así que nunca podía salir el logotipo por mucho que
+        estuviera puesto en Configuración → Datos de la tienda.
+
+        Cualquier fallo (Pillow no disponible, PNG corrupto…) se traga y
+        deja el ticket sin logo en vez de romper la venta: el logo es
+        decorativo, la razón social y el NIF de debajo son lo que de verdad
+        tiene que salir siempre.
+        """
         company = self.env.company
+        if not company.logo:
+            return None
+        try:
+            from PIL import Image, ImageEnhance
+        except ImportError:
+            _logger.warning("mi_gestor_stock: Pillow no disponible; el ticket sale sin logo.")
+            return None
+        try:
+            img = Image.open(io.BytesIO(base64.b64decode(company.logo)))
+            if img.mode not in ("L", "1"):
+                img = img.convert("RGBA")
+                # Recorta el margen transparente sobrante: el emblema real
+                # (un dibujo detallado en un círculo) ocupa una fracción del
+                # lienzo cuadrado del PNG, y sin recortar se imprime más
+                # pequeño de lo necesario. Sin bbox (imagen totalmente
+                # transparente) se deja tal cual.
+                bbox = img.split()[-1].getbbox()
+                if bbox:
+                    img = img.crop(bbox)
+                # Fondo blanco antes de aplanar: la transparencia no debe
+                # volverse negro.
+                background = Image.new("RGBA", img.size, (255, 255, 255, 255))
+                img = Image.alpha_composite(background, img)
+            # Encaja en el ancho del papel (mismo criterio que
+            # WIDTH_BY_PAPER: fuente A, 12 puntos por columna) Y limita la
+            # altura a un logo discreto (~27 mm a 203 ppp): con un emblema
+            # cuadrado, ajustar solo al ancho ocuparía la mitad del ticket.
+            # El más restrictivo de los dos manda; luego queda centrado
+            # (align("center")) porque casi nunca llega a ocupar todo el
+            # ancho del papel.
+            max_paper_w = doc.width * 12
+            max_logo_h = 220
+            ratio = min(max_paper_w / img.width, max_logo_h / img.height)
+            target_w = max(1, round(img.width * ratio))
+            target_h = max(1, round(img.height * ratio))
+            gray = img.convert("L").resize((target_w, target_h))
+            # Un dibujo detallado con líneas finas y sombreados suaves (no un
+            # bloque de color plano) pierde casi todo el contraste al
+            # reducirlo a 160-220 puntos de alto; sin esto sale gris borroso
+            # e ilegible. Con más contraste, el trazo del dibujo se conserva
+            # nítido en blanco y negro puro.
+            gray = ImageEnhance.Contrast(gray).enhance(1.6)
+            pixels = gray.load()
+            width_bytes = (target_w + 7) // 8
+            data = bytearray(width_bytes * target_h)
+            threshold = 160  # más oscuro que esto -> punto negro impreso
+            for y in range(target_h):
+                for x in range(target_w):
+                    if pixels[x, y] < threshold:
+                        data[y * width_bytes + x // 8] |= 0x80 >> (x % 8)
+            return width_bytes, target_h, bytes(data)
+        except Exception:  # noqa: BLE001 - un logo mal formado no debe tumbar la venta
+            _logger.exception("mi_gestor_stock: no se pudo convertir el logo para el ticket")
+            return None
+
+    def _mgs_company_header(self, doc):
+        """Cabecera del ticket: logo (si hay), nombre, dirección y NIF."""
+        company = self.env.company
+        bitmap = self._mgs_logo_bitmap(doc)
+        if bitmap:
+            width_bytes, height, data = bitmap
+            doc.align("center").raster_image(width_bytes, height, data).ln()
         doc.align("center").bold(True).size(1, 2).ln(company.name).size().bold(False)
         street = ", ".join(part for part in [company.street, company.city] if part)
         if street:

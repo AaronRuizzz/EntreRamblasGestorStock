@@ -206,6 +206,22 @@ class EscposDocument:
         self.raw(GS + b"(k" + bytes([length % 256, length // 256]) + b"\x31\x50\x30" + payload)
         return self.raw(GS + b"(k\x03\x00\x31\x51\x30")                  # imprimir
 
+    def raster_image(self, width_bytes, height, data):
+        """GS v 0: imprime un mapa de bits ya convertido a 1 bit por pixel
+        (1 = punto negro), fila a fila, `width_bytes` bytes por fila.
+
+        La conversion de una imagen (PNG del logo) a estos bytes vive fuera
+        de este modulo, en mgs_config.py, con Pillow: este fichero sigue
+        "puro" (ver docstring de arriba), solo entiende bytes ya preparados.
+        """
+        if width_bytes <= 0 or height <= 0 or len(data) != width_bytes * height:
+            return self
+        header = GS + b"v0" + bytes([0]) + bytes([
+            width_bytes & 0xFF, (width_bytes >> 8) & 0xFF,
+            height & 0xFF, (height >> 8) & 0xFF,
+        ])
+        return self.raw(header + bytes(data))
+
     # -- final del ticket -------------------------------------------------
     def cut(self, feed=4):
         """Avanza el papel y hace corte parcial (GS V 66 n)."""

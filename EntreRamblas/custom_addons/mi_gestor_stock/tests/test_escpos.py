@@ -95,6 +95,32 @@ class TestEscposCutAndDrawer(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
+class TestEscposRasterImage(TransactionCase):
+    """raster_image (GS v 0): imprime el logo de la tienda en el ticket.
+
+    La conversión de PNG a estos bytes vive en mgs_config.py (con Pillow);
+    aquí solo se comprueba que el driver, ya con los bytes preparados, arma
+    bien la cabecera GS v 0 con el ancho/alto en little-endian.
+    """
+
+    def doc(self):
+        document = EscposDocument()
+        document._buf = bytearray()
+        return document
+
+    def test_raster_image_sends_the_header_then_the_bitmap_bytes(self):
+        # GS v 0 m=0 xL xH yL yH + datos: 1 byte de ancho (8 puntos), 2 filas.
+        payload = self.doc().raster_image(1, 2, b"\xff\x00").to_bytes()
+        self.assertEqual(payload, b"\x1dv0\x00\x01\x00\x02\x00\xff\x00")
+
+    def test_raster_image_with_data_length_mismatching_width_and_height_is_a_noop(self):
+        self.assertEqual(self.doc().raster_image(1, 2, b"\xff").to_bytes(), b"")
+
+    def test_raster_image_with_zero_width_or_height_is_a_noop(self):
+        self.assertEqual(self.doc().raster_image(0, 2, b"").to_bytes(), b"")
+
+
+@tagged("post_install", "-at_install")
 class TestEscposBarcode(TransactionCase):
     def doc(self):
         document = EscposDocument()

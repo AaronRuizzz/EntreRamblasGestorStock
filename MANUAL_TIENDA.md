@@ -85,7 +85,7 @@ caducidad. A partir de ahí, la mercancía entra **siempre** por Recepción.
 
 ## 4. Recibir mercancía
 
-**Gestor de Stock → Recepción.**
+**Gestor de Stock → Stock → Recepción.**
 
 1. Elige **Producto existente** y escanea. Cada lectura suma una unidad.
    Para un artículo nuevo, cambia a **Producto nuevo**, rellena los datos y
