@@ -14,7 +14,9 @@ Reglas:
     CSRF en cada formulario;
   * ni contraseñas ni claves llegan al log.
 """
+import hmac
 import logging
+import secrets
 
 from odoo import _, http
 from odoo.http import request
@@ -61,6 +63,18 @@ class MgsAuth(Home):
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return response
+
+    def _finish_and_show_key(self, key, first_time):
+        """Cierra la sesión, la ROTA y deja la clave en la sesión nueva para
+        enseñarla en una petición aparte (GET). Así el formulario de
+        confirmación de custodia lleva un `csrf_token` de la sesión definitiva
+        y no de la que se está descartando (hallazgo 13: el recorrido devolvía
+        «Session expired (invalid CSRF token)»)."""
+        request.session.logout(keep_db=True)
+        request.session["mgs_recovery_key"] = key
+        request.session["mgs_recovery_first"] = bool(first_time)
+        request.session["mgs_key_ack_token"] = secrets.token_urlsafe(24)
+        return request.redirect(KEY_URL)
 
     # ------------------------------------------------------------------- /web/login
     @http.route()
@@ -123,8 +137,7 @@ class MgsAuth(Home):
             throttle._register_failure("primer-acceso")
             return self._render("mi_gestor_stock.mgs_first_access", error=err.args[0])
         throttle._register_success("primer-acceso")
-        request.session.logout(keep_db=True)
-        return self._render("mi_gestor_stock.mgs_recovery_key", key=key, first_time=True)
+        return self._finish_and_show_key(key, first_time=True)
 
     # ------------------------------------------------------------- /mgs/recuperar
     @http.route(RECOVER_URL, type="http", auth="none", sitemap=False)
@@ -157,14 +170,44 @@ class MgsAuth(Home):
             throttle._register_failure("recuperar")
             return self._render("mi_gestor_stock.mgs_recover", error=err.args[0])
         throttle._register_success("recuperar")
-        request.session.logout(keep_db=True)
-        return self._render("mi_gestor_stock.mgs_recovery_key", key=new_key, first_time=False)
+        return self._finish_and_show_key(new_key, first_time=False)
 
     # ------------------------------------------------- /mgs/clave-recuperacion
+    @http.route(KEY_URL, type="http", auth="none", sitemap=False, methods=["GET"])
+    def mgs_recovery_key_page(self, **kw):
+        """Enseña la clave UNA vez, en una petición propia con la sesión ya
+        rotada. Recargar no la vuelve a mostrar (se saca de la sesión)."""
+        ensure_db()
+        # Como el resto de rutas auth="none": sin esto, request.env.user queda
+        # vacío tras el logout de _finish_and_show_key y la plantilla base
+        # (que pide el estado de sesión) revienta con "Expected singleton".
+        self._mgs_public_env()
+        key = request.session.pop("mgs_recovery_key", None)
+        if not key:
+            return request.redirect("/web/login")
+        first = request.session.pop("mgs_recovery_first", False)
+        return self._render("mi_gestor_stock.mgs_recovery_key", key=key, first_time=first,
+                            ack_token=request.session.get("mgs_key_ack_token") or "")
+
+    # readonly=False: por defecto una ruta auth="none" arranca con un cursor
+    # de solo lectura y, si escribe (aquí, _mark_recovery_ack), Odoo REPITE
+    # toda la función con un cursor de escritura (http.py:_transactioning).
+    # Como esta función CONSUME el token de un solo uso con session.pop(),
+    # ese reintento silencioso lo encontraba ya retirado en el segundo
+    # intento y nunca llegaba a marcar la custodia — sin ningún error visible.
     @http.route(KEY_URL + "/confirmar", type="http", auth="none", sitemap=False,
-                methods=["POST"])
+                methods=["POST"], readonly=False)
     def mgs_recovery_key_ack(self, **post):
+        """Marca la custodia SOLO si esta sesión acaba de ver la clave (tiene el
+        token de un solo uso) y la casilla está marcada. Mantiene CSRF. Una
+        petición desde una sesión anónima cualquiera no marca nada."""
         ensure_db()
         self._mgs_public_env()
-        request.env["mgs.access"].sudo()._mark_recovery_ack()
+        # El token de un solo uso solo lo pone _finish_and_show_key tras un
+        # primer acceso o una recuperación correctos. Una sesión anónima que
+        # llame a esta ruta directamente no lo tiene.
+        expected = request.session.pop("mgs_key_ack_token", None)
+        submitted = post.get("ack_token") or ""
+        if expected and post.get("ack") and hmac.compare_digest(str(expected), str(submitted)):
+            request.env["mgs.access"].sudo()._mark_recovery_ack()
         return request.redirect("/web/login")

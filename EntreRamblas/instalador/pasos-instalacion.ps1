@@ -89,21 +89,55 @@ if (-not (Test-Path $rolePwFile)) {
 $rolePass = (Get-Content -LiteralPath $rolePwFile -Raw)
 $env:PGPASSWORD = $superPass
 try {
+    # -tAqc no devuelve filas si el rol no existe: $exists queda $null y .Trim()
+    # lanzaba una excepción. Se comprueba primero el código de salida de psql y
+    # luego si alguna línea es exactamente '1'.
     $exists = & (Join-Path $pgBin 'psql.exe') -U postgres -h 127.0.0.1 -p $PgPort -d postgres -tAqc "SELECT 1 FROM pg_roles WHERE rolname='odoo'"
-    if ($exists.Trim() -ne '1') {
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar los roles de PostgreSQL.' }
+    $roleExists = @($exists) | Where-Object { $_ -and $_.Trim() -eq '1' }
+    if (-not $roleExists) {
         "SET client_min_messages=warning; CREATE ROLE odoo LOGIN CREATEDB PASSWORD '$($rolePass.Replace("'","''"))';" |
             & (Join-Path $pgBin 'psql.exe') -U postgres -h 127.0.0.1 -p $PgPort -d postgres -v ON_ERROR_STOP=1 -f -
         if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el rol de la aplicación.' }
     }
 } finally { Remove-Item Env:\PGPASSWORD -EA SilentlyContinue }
 
+# ------------------------------------------------------------ Entorno Python
+Write-Paso 'Entorno Python (propio del paquete, sin internet)'
+$venvPython = Join-Path $CodeDir 'venv\Scripts\python.exe'
+$vendoredPython = Join-Path $CodeDir 'python\python.exe'
+$wheelDir = Join-Path $CodeDir 'wheels'
+if (-not (Test-Path -LiteralPath $venvPython)) {
+    if (-not (Test-Path -LiteralPath $vendoredPython)) {
+        throw 'Falta el CPython del paquete en python\. Reconstruye el paquete con empaquetar.ps1.'
+    }
+    & $vendoredPython -m venv (Join-Path $CodeDir 'venv')
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el entorno virtual.' }
+    $pipArgs = @('-m', 'pip', 'install', '--no-warn-script-location',
+                 '-r', (Join-Path $CodeDir 'requirements-windows.lock'))
+    if (Test-Path -LiteralPath $wheelDir) { $pipArgs += @('--no-index', '--find-links', $wheelDir) }
+    & $venvPython @pipArgs
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudieron instalar las dependencias del paquete.' }
+    & $venvPython -m pip check
+    if ($LASTEXITCODE -ne 0) { throw 'Hay dependencias incompatibles en el entorno.' }
+}
+& $venvPython (Join-Path $CodeDir 'tools\verificar_entorno.py')
+if ($LASTEXITCODE -ne 0) {
+    & $venvPython (Join-Path $CodeDir 'tools\verificar_entorno.py') --json | Out-File (Join-Path $logDir 'entorno.json')
+    throw 'El entorno Python del paquete no es propio o está incompleto (revisa instalacion\entorno.json).'
+}
+
 # ------------------------------------------------------------ Config privada
 Write-Paso 'Configuración privada'
 if (-not (Test-Path $config)) {
     $env:MGS_DB_PASSWORD = $rolePass
     try {
+        # --allow-existing: el instalador YA reservó $DataDir (pgdata, logs,
+        # secretos). configure_runtime salta solo la guarda de "carpeta vacía";
+        # sigue rechazando OneDrive, un odoo.local ya presente, y nunca
+        # sobrescribe archivos.
         & $python (Join-Path $CodeDir 'tools\configure_runtime.py') --directory $DataDir `
-            --db-user odoo --db-port $PgPort --pg-bin $pgBin
+            --db-user odoo --db-port $PgPort --pg-bin $pgBin --allow-existing
         if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear la configuración privada.' }
     } finally { Remove-Item Env:\MGS_DB_PASSWORD -EA SilentlyContinue }
     # data_dir dentro de %ProgramData%, y locale de Windows.
@@ -115,9 +149,18 @@ if (-not (Test-Path $config)) {
 
 # ------------------------------------------------------------------- Motor PDF
 Write-Paso 'Motor PDF'
-& (Join-Path $CodeDir 'install-pdf.ps1') -Config $config
-$env:Path = (Join-Path $CodeDir 'tools\wkhtmltox\bin') + ';' + $env:Path
-& (Join-Path $CodeDir 'tools\wkhtmltox\bin\wkhtmltopdf.exe') --version | Out-File (Join-Path $logDir 'pdf-version.txt')
+# El paquete ya trae wkhtmltopdf bajo tools\wkhtmltox: se usa ese (instalación
+# sin internet). Solo si faltara se recurre a install-pdf.ps1 (descarga).
+$pdfBin = Join-Path $CodeDir 'tools\wkhtmltox\bin\wkhtmltopdf.exe'
+if (-not (Test-Path -LiteralPath $pdfBin)) {
+    & (Join-Path $CodeDir 'install-pdf.ps1') -Config $config
+    $pdfBin = Join-Path (Split-Path $config -Parent) 'tools\wkhtmltox\bin\wkhtmltopdf.exe'
+}
+if (-not (Test-Path -LiteralPath $pdfBin)) { throw 'No se encuentra el motor PDF (wkhtmltopdf).' }
+$pdfBinDir = Split-Path $pdfBin -Parent
+$env:Path = $pdfBinDir + ';' + $env:Path
+& $pdfBin --version | Out-File (Join-Path $logDir 'pdf-version.txt')
+if ($LASTEXITCODE -ne 0) { throw 'El motor PDF no se puede ejecutar en este equipo.' }
 
 # --------------------------------------------------------------- Base de datos
 Write-Paso 'Base de datos (nueva, sin demo; se conserva si ya existe)'
@@ -133,6 +176,31 @@ if (-not (Get-Service -Name $OdooServiceName -EA SilentlyContinue)) {
 }
 Start-Service -Name $OdooServiceName
 
+# ------------------------------------------------ Servicio actualizador (H9)
+# Componente SEPARADO con privilegios (LocalSystem) para aplicar
+# actualizaciones: el servicio de la app (arriba) corre como LocalService y
+# no puede reemplazar su propio código/venv en Program Files. Arranque BAJO
+# DEMANDA: nunca se inicia solo; solo lo arranca mgs.update.action_accept().
+Write-Paso 'Servicio actualizador (bajo demanda)'
+$updaterServiceName = 'EntreRamblasActualizador'
+if (-not (Get-Service -Name $updaterServiceName -EA SilentlyContinue)) {
+    & $venvPython (Join-Path $CodeDir 'tools\update_service.py') install `
+        --config $config --database $Database --odoo-service $OdooServiceName `
+        --postgres-service $PgServiceName
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo registrar el servicio actualizador.' }
+}
+# LocalService (la app) solo puede ARRANCARLO, no pararlo, reconfigurarlo ni
+# borrarlo: se toma la lista de control de acceso actual del servicio y se le
+# añade una entrada mínima para SOLO iniciar (RP) + consultar (CCLCRC), sin
+# tocar los permisos de SYSTEM/Administradores ya presentes.
+$sddlLines = & sc.exe sdshow $updaterServiceName
+$currentSddl = ($sddlLines | Where-Object { $_ -match '^D:' } | Select-Object -First 1)
+if ($currentSddl -and $currentSddl -notmatch 'S-1-5-19') {
+    $newSddl = $currentSddl -replace '^(D:)', ('$1(A;;CCLCRPRC;;;S-1-5-19)')
+    & sc.exe sdset $updaterServiceName $newSddl | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo limitar el permiso del servicio actualizador.' }
+}
+
 # ----------------------------------------------------------- Acceso directo
 Write-Paso 'Acceso directo'
 $lnk = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) 'Entre Ramblas.lnk'
@@ -146,10 +214,15 @@ $sc.Save()
 
 # ----------------------------------------------------- Informe de prueba PDF
 Write-Paso 'Informe de prueba'
-try {
-    & (Join-Path $CodeDir 'venv\Scripts\python.exe') (Join-Path $CodeDir 'tools\check_report_pdf.py') 2>&1 |
-        Out-File (Join-Path $logDir 'informe-prueba.txt')
-} catch { Write-Warning "El informe de prueba no se pudo generar ahora: $_" }
+# Contra la base recién instalada, con los permisos reales (la propietaria) y el
+# servidor ya en marcha. Si falla, la instalación falla: un PDF roto en el PC de
+# la tienda no es aceptable.
+& $venvPython (Join-Path $CodeDir 'tools\check_report_pdf.py') `
+    --config $config --database $Database `
+    --wkhtmltopdf-bin $pdfBinDir `
+    --salida (Join-Path $logDir 'informe-prueba.pdf') 2>&1 |
+    Tee-Object -FilePath (Join-Path $logDir 'informe-prueba.txt')
+if ($LASTEXITCODE -ne 0) { throw 'El informe de prueba PDF no se generó correctamente. Revisa instalacion\informe-prueba.txt.' }
 
 Write-Host ''
 Write-Host 'Instalación completada.' -ForegroundColor Green

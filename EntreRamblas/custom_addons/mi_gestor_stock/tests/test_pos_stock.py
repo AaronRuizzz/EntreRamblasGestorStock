@@ -64,6 +64,25 @@ class TestPosStock(TestPointOfSaleCommon):
             })],
         })
 
+    def test_owner_without_email_can_open_the_register(self):
+        # Revisión 2026-09-10, hallazgo 17: con la propietaria y la empresa sin
+        # correo, «Abrir caja registradora» abortaba porque publicar un mensaje
+        # como la propietaria (no superusuario) exige un remitente.
+        self.env["res.users"].sudo().search(
+            [("mgs_is_owner", "=", True)]).write({"mgs_is_owner": False})
+        owner = new_test_user(
+            self.env, login="mgs_owner_sin_correo",
+            groups="mi_gestor_stock.group_mgs_manager")
+        owner.mgs_is_owner = True
+        owner.partner_id.email = False
+        self.env.company.partner_id.email = False
+        self.env.company.write({"email": False})
+        # self.session (de setUpClass) ya ocupa self.pos_config en
+        # opening_control: crear una segunda sesión para la misma caja
+        # violaría "Ya hay otra sesión abierta para este punto de venta".
+        self.session.with_user(owner).set_opening_control(0, "")
+        self.assertEqual(self.session.state, "opened")
+
     def test_pos_sale_and_partial_refunds(self):
         first = self.receive(5, 2, 3)
         second = self.receive(10, 4, 8)

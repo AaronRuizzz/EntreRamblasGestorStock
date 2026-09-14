@@ -64,6 +64,7 @@ class MgsBackup(models.Model):
         ("auto", "Automática"),
         ("manual", "Manual"),
         ("close", "Cierre de caja"),
+        ("pre-actualizacion", "Antes de actualizar"),
     ], string="Origen", default="auto", readonly=True)
     state = fields.Selection([
         ("done", "Correcta"),

@@ -50,11 +50,18 @@
         </field>
     </record>
 
-    <record id="action_mgs_security" model="ir.actions.server">
+    <!-- act_window, no ir.actions.server: un server action de tipo `code` sin
+         `groups_id` exige permiso de ESCRITURA sobre el modelo antes de
+         ejecutarse (ir_actions.py:run), y la propietaria solo tiene lectura
+         sobre mgs.access. Las comprobaciones siguen dentro de los métodos
+         (require_manager) y del asistente de regeneración. -->
+    <record id="action_mgs_security" model="ir.actions.act_window">
         <field name="name">Seguridad</field>
-        <field name="model_id" ref="model_mgs_access"/>
-        <field name="state">code</field>
-        <field name="code">action = model.action_mgs_open()</field>
+        <field name="res_model">mgs.access</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_mgs_access_form"/>
+        <field name="res_id" ref="mgs_access_default"/>
+        <field name="target">current</field>
     </record>
 
     <!-- Asistente de regeneración: contraseña actual -> clave nueva, una vez. -->

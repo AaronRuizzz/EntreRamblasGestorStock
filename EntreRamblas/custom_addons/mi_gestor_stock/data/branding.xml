@@ -37,6 +37,12 @@
          comentario junto al metodo, en models/res_company.py). -->
     <function model="res.company" name="_mgs_apply_event_sequence" eval="[[]]"/>
 
+    <!-- Remitente de correo local NO enrutable (entreramblas.invalid): abrir
+         caja publica un mensaje con el usuario actual como autor y Odoo aborta
+         si no hay remitente. El correo NO es un requisito de registro; la
+         propietaria nunca escribe uno. Ver mgs.access._mgs_ensure_company_sender. -->
+    <function model="mgs.access" name="_mgs_ensure_company_sender" eval="()"/>
+
     <!-- Sin registro publico de cuentas ("Don't have an account?"):
          solo el administrador crea usuarios. -->
     <function model="ir.config_parameter" name="set_param"

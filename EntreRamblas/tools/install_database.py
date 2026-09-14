@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 import re
-import secrets
+# secrets ya no se usa aquí: la provisión vive en mgs.access._mgs_provision_owner
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,27 +50,17 @@ def main():
             raise ValueError(
                 'La caja de la tienda no se creó (revisa el plan contable en el '
                 'registro). Se conserva el marcador pendiente; corrige y repite.')
-        # La cuenta administradora queda SOLO como cuenta técnica de rotura de
-        # cristal: login `admin`, sin contraseña utilizable (se restablece con
-        # la herramienta local si hiciera falta). El uso diario va con una
-        # cuenta de propietaria separada, con permisos de gestión de tienda y
-        # sin administración técnica de Odoo.
-        admin = env.ref('base.user_admin')
-        admin.write({'login': 'admin', 'password': secrets.token_urlsafe(48),
-                     'tz': 'Europe/Madrid'})
-        owner = env['res.users'].create({
-            'name': 'Propietaria', 'login': 'propietaria',
-            'password': secrets.token_urlsafe(48),  # inutilizable hasta el primer acceso
-            'groups_id': [(6, 0, [env.ref('mi_gestor_stock.group_mgs_manager').id])],
-            'lang': 'es_ES', 'tz': 'Europe/Madrid', 'mgs_is_owner': True,
-        })
-        home = env.ref('mi_gestor_stock.action_mgs_home', raise_if_not_found=False)
-        if home:
-            owner.action_id = home.id
+        # Provisión única de la propietaria (mismo código que la migración):
+        # cuenta separada con permisos de gestión de tienda, `admin` queda solo
+        # como cuenta técnica de rotura de cristal SIN contraseña utilizable, y
+        # el primer acceso queda pendiente de un código de activación de un
+        # solo uso. Ver models/mgs_access.py:_mgs_provision_owner.
+        code = env['mgs.access']._mgs_provision_owner(neutralize_admin=True)
+        if not code:
+            raise ValueError('La cuenta de propietaria ya estaba provisionada; '
+                             'no se genera un código de activación nuevo')
         # Sin datos fiscales reales no se habilitan tareas ni dispositivos por defecto.
         env['mgs.config']._mgs_get().write({'pos_autoprint': False})
-        # Primer acceso protegido por un código de activación de un solo uso.
-        code = env['mgs.access']._begin_activation(owner)
         with activation_file.open('x', encoding='utf-8') as stream:
             stream.write(
                 'Codigo de activacion para el primer acceso de la propietaria\n'

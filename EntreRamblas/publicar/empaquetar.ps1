@@ -1,8 +1,13 @@
+#Requires -Version 7
 <#
-    Prepara una publicación por versión: pruebas, árbol de distribución,
-    paquete .zip, manifiesto y (opcional) firma.
+    Prepara una publicación por versión: pruebas, runtime propio, árbol de
+    distribución, paquete .zip, manifiesto firmado e integridad.json firmado.
 
         .\publicar\empaquetar.ps1 -Salida ..\dist [-Firmar "D:\claves\firma-privada.pem"] [-SaltarPruebas]
+
+    Requiere PowerShell 7: PowerShell 5.1 no tiene `Get-Date -AsUTC` y su
+    `Set-Content -Encoding utf8` escribe BOM, que rompe el lector del
+    actualizador. Aun así, fecha y manifiesto se escriben de forma portable.
 
     Un `git push` normal NO actualiza la tienda. Sólo se distribuyen las
     versiones que salen de aquí y se publican expresamente (ver PUBLICAR.md).
@@ -10,33 +15,29 @@
 param(
     [string]$Salida = (Join-Path $PSScriptRoot '..\..\dist'),
     [string]$Firmar,
+    [string]$PythonBase,
     [switch]$SaltarPruebas
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repo
 $python = Join-Path $repo 'venv\Scripts\python.exe'
+if (-not (Test-Path $python)) { throw "No hay entorno en venv\; prepáralo antes de publicar." }
 
 # --- versión (del manifiesto del módulo) --------------------------------------
 $version = (& $python -c "import ast,pathlib;print(ast.literal_eval(pathlib.Path('custom_addons/mi_gestor_stock/__manifest__.py').read_text('utf-8'))['version'])").Trim()
 if ($version -notmatch '^\d+(\.\d+){2,4}$') { throw "Versión no válida: $version" }
 Write-Host "Empaquetando versión $version" -ForegroundColor Cyan
 
-# --- integridad del motor -----------------------------------------------------
-# Mismo criterio que el arranque (tools/verificar_motor.py): el commit fijado y
-# que ningún fichero versionado del motor esté modificado o añadido. La falta de
-# documentación/empaquetado/ficheros de prueba no impide publicar (no cambia la
-# ejecución y el paquete quedará igual de recortado en todos los equipos).
+# --- integridad del motor (commit fijado) ------------------------------------
 $rev = (Get-Content 'odoo-revision.txt' -Raw).Trim()
 $engineReport = (& $python (Join-Path $repo 'tools/verificar_motor.py')) -join "`n"
-if ($LASTEXITCODE -ne 0) {
-    throw "El motor de odoo/ no está íntegro respecto al commit fijado; no se publica:`n$engineReport"
-}
+if ($LASTEXITCODE -ne 0) { throw "El motor de odoo/ no está íntegro; no se publica:`n$engineReport" }
 Write-Host "Motor Odoo: $engineReport" -ForegroundColor DarkGray
 
 # --- pruebas ----------------------------------------------------------------
 if (-not $SaltarPruebas) {
-    & (Join-Path $repo 'test.ps1')
+    & (Join-Path $repo 'test.ps1') -Restore
     if ($LASTEXITCODE -ne 0) { throw 'Las pruebas no pasan; no se publica.' }
 }
 
@@ -46,7 +47,8 @@ $payload = Join-Path $dist 'payload'
 if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $payload | Out-Null
 
-$incluir = @('custom_addons', 'tools', 'instalador', 'odoo', 'venv', 'odoo-revision.txt',
+# `venv` NO viaja: se construye en destino desde el CPython vendorizado.
+$incluir = @('custom_addons', 'tools', 'instalador', 'odoo', 'odoo-revision.txt',
              'requirements-windows.lock', 'bootstrap.ps1', 'start-odoo.ps1', 'install-pdf.ps1',
              'preparar-equipo.ps1', 'restore-backup.ps1', 'reset-catalogo.ps1', 'service.ps1',
              'recuperar-acceso.ps1', 'diagnostico.ps1', 'test.ps1', 'odoo.conf')
@@ -57,49 +59,103 @@ foreach ($item in $incluir) {
         robocopy $src (Join-Path $payload $item) /E /NFL /NDL /NJH /NJS /NP `
             /XD '__pycache__' '.git' '.pytest_cache' '.odoo_data' 'sessions' 'filestore' `
             /XF '*.pyc' '*.log' '*.err' 'odoo.local' 'odoo.local.pending' '*.secret' | Out-Null
+        if ($LASTEXITCODE -ge 8) { throw "robocopy falló copiando $item" }
     } else {
         Copy-Item $src (Join-Path $payload $item) -Force
     }
 }
-# La clave PÚBLICA de verificación tiene que ir dentro.
 if (-not (Test-Path (Join-Path $payload 'instalador\firma-publica.pem'))) {
-    throw 'Falta instalador\firma-publica.pem (la clave pública de verificación). Genera las claves con generar-clave-firma.ps1 y copia la pública.'
+    throw 'Falta instalador\firma-publica.pem. Genera las claves con generar-clave-firma.ps1 y copia la pública.'
 }
 
-# --- .zip -------------------------------------------------------------------
+# --- runtime Python propio (CPython base + ruedas offline) -------------------
+Write-Host 'Runtime Python: copiando CPython base y descargando ruedas...' -ForegroundColor DarkGray
+if (-not $PythonBase) {
+    $PythonBase = (& $python -c "import sys;print(sys.base_prefix)").Trim()
+}
+if (-not (Test-Path (Join-Path $PythonBase 'python.exe'))) {
+    throw "No se encuentra un CPython base en '$PythonBase'. Indica -PythonBase."
+}
+$pyVer = (& (Join-Path $PythonBase 'python.exe') -c "import sys;print('%d.%d'%sys.version_info[:2])").Trim()
+if ($pyVer -ne '3.12') { throw "El CPython base es $pyVer; se requiere 3.12." }
+$payloadPython = Join-Path $payload 'python'
+# El CPython base completo, sin site-packages (las dependencias van en wheels\)
+# ni Scripts\ (se recrean con el venv). Lib\venv y Lib\ensurepip SÍ viajan.
+robocopy $PythonBase $payloadPython /E /NFL /NDL /NJH /NJS /NP `
+    /XD '__pycache__' 'Lib\site-packages' /XF '*.pyc' | Out-Null
+if ($LASTEXITCODE -ge 8) { throw 'No se pudo copiar el CPython base.' }
+New-Item -ItemType Directory -Force -Path (Join-Path $payload 'wheels') | Out-Null
+& $python -m pip download --disable-pip-version-check --only-binary=:all: `
+    -r (Join-Path $repo 'requirements-windows.lock') -d (Join-Path $payload 'wheels')
+if ($LASTEXITCODE -ne 0) { throw 'No se pudieron descargar todas las ruedas del lock.' }
+
+# --- integridad.json (mapa hashes) + firma ---------------------------------
+& $python (Join-Path $repo 'tools/generar_integridad.py') --root $payload `
+    --salida (Join-Path $payload 'integridad.json')
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo generar integridad.json.' }
+if ($Firmar) {
+    & $python (Join-Path $repo 'tools/paquete_firma.py') firmar `
+        --archivo (Join-Path $payload 'integridad.json') --clave $Firmar
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo firmar integridad.json.' }
+    & $python (Join-Path $repo 'tools/paquete_firma.py') verificar `
+        --archivo (Join-Path $payload 'integridad.json') --firma (Join-Path $payload 'integridad.json.sig') `
+        --clave (Join-Path $payload 'instalador\firma-publica.pem')
+    if ($LASTEXITCODE -ne 0) { throw 'integridad.json.sig no verifica con la clave pública incluida.' }
+}
+
+# --- .zip (ZipFile, no Compress-Archive: árbol grande, sin límite de 2 GB) ---
 $zipName = "EntreRamblas-$version.zip"
 $zipPath = Join-Path $dist $zipName
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-Compress-Archive -Path (Join-Path $payload '*') -DestinationPath $zipPath -CompressionLevel Optimal
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    $payload, $zipPath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 $sha = (Get-FileHash -Algorithm SHA256 $zipPath).Hash.ToLower()
+$zipBytes = (Get-Item $zipPath).Length
+$treeBytes = (Get-ChildItem $payload -Recurse -File | Measure-Object -Sum Length).Sum
 
-# --- manifiesto -----------------------------------------------------------
+# --- manifiesto (fecha y UTF-8 sin BOM portables) --------------------------
 $manifest = [ordered]@{
-    version       = $version
-    fecha         = (Get-Date -AsUTC -Format 'yyyy-MM-ddTHH:mm:ssZ')
-    archivo       = $zipName
-    sha256        = $sha
-    incluye_motor = $true
-    requisitos    = [ordered]@{ odoo_revision = $rev; python = '3.12'; so = 'windows' }
-    notas         = @("Versión $version de Entre Ramblas - Gestor de stock.")
+    version          = $version
+    fecha            = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+    archivo          = $zipName
+    sha256           = $sha
+    tamano           = $zipBytes
+    tamano_instalado = $treeBytes
+    incluye_motor    = $true
+    unidad_version   = @('odoo', 'custom_addons', 'tools', 'instalador', 'python',
+                         'wheels', 'requirements-windows.lock', 'odoo-revision.txt',
+                         'integridad.json', 'integridad.json.sig')
+    requisitos       = [ordered]@{ odoo_revision = $rev; python = '3.12'; so = 'windows' }
+    notas            = @("Versión $version de Entre Ramblas - Gestor de stock.")
 }
 $manifestPath = Join-Path $dist 'manifest.json'
-$manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath -Encoding utf8
+$json = $manifest | ConvertTo-Json -Depth 6
+[System.IO.File]::WriteAllText($manifestPath, $json, (New-Object System.Text.UTF8Encoding($false)))
 
-# --- firma --------------------------------------------------------------
+# El manifiesto se lee con el MISMO lector de la aplicación: sin BOM.
+& $python (Join-Path $repo 'tools/check_manifest_encoding.py') --archivo $manifestPath
+if ($LASTEXITCODE -ne 0) { throw 'El manifiesto no lo lee el actualizador (¿BOM?).' }
+
+# --- firma del manifiesto -------------------------------------------------
 if ($Firmar) {
-    & $python tools\paquete_firma.py firmar --archivo $manifestPath --clave $Firmar
+    & $python (Join-Path $repo 'tools/paquete_firma.py') firmar --archivo $manifestPath --clave $Firmar
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo firmar el manifiesto.' }
-    & $python tools\paquete_firma.py verificar --archivo $manifestPath --firma "$manifestPath.sig" `
+    & $python (Join-Path $repo 'tools/paquete_firma.py') verificar --archivo $manifestPath --firma "$manifestPath.sig" `
         --clave (Join-Path $payload 'instalador\firma-publica.pem')
     if ($LASTEXITCODE -ne 0) { throw 'La firma generada no verifica con la clave pública incluida.' }
 }
+
+# --- versión del instalador (Inno) ---------------------------------------
+$issVersion = Join-Path $dist 'version.iss'
+[System.IO.File]::WriteAllText($issVersion, "#define AppVersion `"$version`"`r`n",
+    (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host ''
 Write-Host 'Listo:' -ForegroundColor Green
 Write-Host "  Paquete   : $zipPath ($sha)"
 Write-Host "  Manifiesto: $manifestPath"
-if ($Firmar) { Write-Host "  Firma     : $manifestPath.sig" }
+if ($Firmar) { Write-Host "  Firmas    : $manifestPath.sig  +  payload\integridad.json.sig" }
 Write-Host ''
 Write-Host 'Siguiente: compila el instalador (instalador\README.md) y publica'
 Write-Host 'manifest.json(.sig) y el .zip en el repositorio de releases (PUBLICAR.md).'

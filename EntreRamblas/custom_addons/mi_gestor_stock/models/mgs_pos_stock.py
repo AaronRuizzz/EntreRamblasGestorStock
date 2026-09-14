@@ -5,7 +5,8 @@ import math
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_is_zero
-from .mgs_permissions import COST_GROUPS, is_manager, require_operator, checked_session
+from .mgs_permissions import COST_GROUPS, is_manager, require_operator, checked_session, \
+    assert_not_maintenance
 
 
 class ProductProduct(models.Model):
@@ -127,7 +128,17 @@ class PosOrder(models.Model):
     _inherit = "pos.order"
 
     @api.model
+    def sync_from_ui(self, orders):
+        # mgs.maintenance lo pone el actualizador justo antes de copiar y
+        # aplicar una actualización: sin este control, el TPV seguía
+        # aceptando ventas mientras se preparaba el cambio de versión
+        # (hallazgo 11). El error queda claro para quien esté cobrando.
+        assert_not_maintenance(self.env)
+        return super().sync_from_ui(orders)
+
+    @api.model
     def mgs_check_stock(self, session_id, lines, order_uuid=None):
+        assert_not_maintenance(self.env)
         session = checked_session(self.env, session_id)
         if order_uuid:
             existing = self.search([("uuid", "=", order_uuid), ("session_id", "=", session.id)], limit=1)

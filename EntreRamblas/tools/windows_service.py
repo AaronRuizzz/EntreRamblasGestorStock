@@ -94,7 +94,11 @@ def main():
     if not ctypes.windll.shell32.IsUserAnAdmin():
         raise PermissionError('Abre PowerShell como administrador para registrar o controlar el servicio')
     if OPTIONS.action == 'install':
-        if not OPTIONS.git_executable:
+        # Git solo es necesario en un equipo de desarrollo (checkout de odoo/).
+        # Una tienda instalada verifica la integridad por firma + hashes
+        # (integridad.json), sin Git ni su historial.
+        engine_uses_git = (Path(__file__).resolve().parents[1] / 'odoo' / '.git').exists()
+        if engine_uses_git and not OPTIONS.git_executable:
             raise ValueError('No se encuentra Git; indica --git-executable')
         worker = OdooProcess(OPTIONS.config, OPTIONS.database, OPTIONS.git_executable)
         if not OPTIONS.postgres_service:
@@ -107,17 +111,22 @@ def main():
                 raise
         else:
             raise ValueError('El servicio ya existe; no se reemplaza')
-        git_directory = Path(OPTIONS.git_executable).resolve().parent
-        if (git_directory.parent / 'mingw64').is_dir():
-            git_directory = git_directory.parent
         # Servicio con privilegios limitados. Acceso solo al código y runtime elegidos.
-        for directory, access in [(Path(__file__).resolve().parents[1], 'RX'),
-                                  (Path(sys.base_prefix), 'RX'), (git_directory, 'RX'),
-                                  (worker.config.parent, 'M')]:
+        grants = [(Path(__file__).resolve().parents[1], 'RX'),
+                  (Path(sys.base_prefix), 'RX'),
+                  (worker.config.parent, 'M')]
+        if engine_uses_git and OPTIONS.git_executable:
+            git_directory = Path(OPTIONS.git_executable).resolve().parent
+            if (git_directory.parent / 'mingw64').is_dir():
+                git_directory = git_directory.parent
+            grants.append((git_directory, 'RX'))
+        for directory, access in grants:
             subprocess.run(['icacls', str(directory), '/grant', '*S-1-5-19:(OI)(CI)' + access], check=True)
-        arguments = subprocess.list2cmdline([str(Path(__file__).resolve()), 'run', '--name', OPTIONS.name,
-            '--config', str(worker.config), '--database', OPTIONS.database,
-            '--git-executable', str(Path(OPTIONS.git_executable).resolve())])
+        run_args = [str(Path(__file__).resolve()), 'run', '--name', OPTIONS.name,
+                    '--config', str(worker.config), '--database', OPTIONS.database]
+        if engine_uses_git and OPTIONS.git_executable:
+            run_args += ['--git-executable', str(Path(OPTIONS.git_executable).resolve())]
+        arguments = subprocess.list2cmdline(run_args)
         win32serviceutil.InstallService('windows_service.StoreService', OPTIONS.name, StoreService._svc_display_name_,
             startType=win32service.SERVICE_AUTO_START, delayedstart=True,
             serviceDeps=[OPTIONS.postgres_service], userName='NT AUTHORITY\\LocalService',

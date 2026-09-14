@@ -31,10 +31,19 @@ registry.category("user_menuitems").add("mgs_change_password", (env) => ({
     type: "item",
     id: "mgs_change_password",
     description: "Cambiar contraseña",
-    callback: async () => {
-        const action = await env.services.orm.call(
-            "res.users", "preference_change_password", [[user.userId]]);
-        env.services.action.doAction(action);
+    callback: () => {
+        // Acción construida aquí para NOMBRAR el diálogo: la nativa
+        // (preference_change_password) no trae `name` y el diálogo salía
+        // titulado «Odoo». La política de 12+ caracteres se aplica en
+        // servidor (res.users.write en models/mgs_access.py).
+        env.services.action.doAction({
+            type: "ir.actions.act_window",
+            name: "Cambiar contraseña",
+            target: "new",
+            res_model: "change.password.own",
+            view_mode: "form",
+            views: [[false, "form"]],
+        });
     },
     sequence: 10,
 }));

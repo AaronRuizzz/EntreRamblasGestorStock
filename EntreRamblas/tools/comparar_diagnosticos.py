@@ -2,8 +2,12 @@
 
     python tools/comparar_diagnosticos.py equipo-a.json equipo-b.json
 
-Ignora campos que SIEMPRE difieren (fecha, nombre de base). Sirve para la
-prueba de reproducibilidad del plan: una base nueva frente a una actualizada.
+Ignora campos que SIEMPRE difieren (fecha, nombre de base) y el historial de
+versiones aplicadas (fechas de instalación de cada equipo, que nunca
+coinciden entre una base nueva y una migrada aunque ejecuten exactamente lo
+mismo). Compara lo que sí define el comportamiento: versión aplicada,
+módulos, permisos y configuración. Sirve para la prueba de reproducibilidad
+del plan: una base nueva frente a una actualizada.
 """
 import argparse
 import json
@@ -17,6 +21,15 @@ _IGNORE_KEYS = {
     "motor_odoo.ficheros_no_ejecucion_ausentes",
     "motor_odoo.bajas_fantasma",
 }
+# Subárboles que se muestran como información pero NUNCA cuentan como
+# diferencia: el historial trae la fecha de cada instalación/actualización,
+# que por diseño es distinta entre una base nueva y una migrada aunque el
+# resultado final (modulo.aplicado, más abajo) sea idéntico.
+_IGNORE_SUBTREES = ("modulo.historico_versiones",)
+
+
+def _ignored_subtree(path):
+    return any(path == subtree or path.startswith(subtree + ".") for subtree in _IGNORE_SUBTREES)
 
 
 def _flatten(obj, prefix=""):
@@ -25,7 +38,10 @@ def _flatten(obj, prefix=""):
         for key, value in obj.items():
             if prefix == "" and key in _IGNORE:
                 continue
-            out.update(_flatten(value, prefix + key + "."))
+            path = prefix + key
+            if _ignored_subtree(path):
+                continue
+            out.update(_flatten(value, path + "."))
     elif isinstance(obj, list):
         # listas de módulos: {nombre: version}; el resto, por índice
         if obj and isinstance(obj[0], dict) and "nombre" in obj[0]:
@@ -39,15 +55,30 @@ def _flatten(obj, prefix=""):
     return out
 
 
+def _history_summary(data):
+    history = (data.get("modulo") or {}).get("historico_versiones") or []
+    if not history:
+        return "(sin historial)"
+    return ", ".join("%s (%s)" % (h.get("version"), h.get("aplicada")) for h in history)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("a")
     parser.add_argument("b")
     args = parser.parse_args()
-    a = _flatten(json.load(open(args.a, encoding="utf-8")))
-    b = _flatten(json.load(open(args.b, encoding="utf-8")))
+    raw_a = json.load(open(args.a, encoding="utf-8"))
+    raw_b = json.load(open(args.b, encoding="utf-8"))
+    a = _flatten(raw_a)
+    b = _flatten(raw_b)
     keys = sorted((set(a) | set(b)) - _IGNORE_KEYS)
     diffs = [(k, a.get(k, "—(falta)"), b.get(k, "—(falta)")) for k in keys if a.get(k) != b.get(k)]
+
+    print("Historial (informativo, no cuenta como diferencia):")
+    print("  %s: %s" % (args.a, _history_summary(raw_a)))
+    print("  %s: %s" % (args.b, _history_summary(raw_b)))
+    print()
+
     if not diffs:
         print("Sin diferencias relevantes.")
         return 0

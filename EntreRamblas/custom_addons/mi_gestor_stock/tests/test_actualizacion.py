@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 from odoo.tools import config
 
@@ -118,9 +119,26 @@ class TestUpdateWindow(TransactionCase):
         self.assertEqual(self.env["mgs.update"]._summary()["label"], "")
 
     def test_owner_accepts_update_at_close(self):
-        path = self._state_file({"fase": "preparado", "version_disponible": "18.0.9.0.0",
-                                 "aceptada_por_duena": False})
+        path = self._state_file({
+            "fase": "preparado", "version_disponible": "18.0.9.0.0",
+            "aceptada_por_duena": False,
+            "manifest": {"version": "18.0.9.0.0", "sha256": "0" * 64}})
         wizard = self.env["mgs.update"].action_open()
         rec = self.env["mgs.update"].browse(wizard["res_id"])
         rec.action_accept()
         self.assertTrue(json.loads(path.read_text(encoding="utf-8"))["aceptada_por_duena"])
+        # Consentimiento vinculado a la versión y el hash exactos (hallazgo 9):
+        # el servicio aplicador no se fía del booleano a secas.
+        acceptance_path = path.parent / "aceptacion.json"
+        self.assertTrue(acceptance_path.is_file())
+        acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+        self.assertEqual(acceptance["version"], "18.0.9.0.0")
+        self.assertEqual(acceptance["sha256"], "0" * 64)
+
+    def test_accept_refuses_without_a_verified_manifest(self):
+        self._state_file({"fase": "preparado", "version_disponible": "18.0.9.0.0",
+                          "aceptada_por_duena": False})
+        wizard = self.env["mgs.update"].action_open()
+        rec = self.env["mgs.update"].browse(wizard["res_id"])
+        with self.assertRaises(UserError):
+            rec.action_accept()

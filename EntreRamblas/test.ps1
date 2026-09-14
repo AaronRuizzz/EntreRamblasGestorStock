@@ -23,6 +23,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Ha fallado la validación de archivos de copia.' }
     & $python tools/prepare_validation.py
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar la base de pruebas.' }
+    # Instalación sobre una base REALMENTE vacía: la suite reutiliza
+    # mgs_validation y no detectaba que una vista se cargara antes que su
+    # acción de informe. Crea y borra una base nueva cada vez.
+    & $python tools/check_fresh_install.py --db-host 127.0.0.1 --db-port 55432 --db-user mgs_test
+    if ($LASTEXITCODE -ne 0) { throw 'La instalación limpia sobre base vacía ha fallado. Revisa .odoo_data\fresh-install.log.' }
     # --db-filter: la plantilla odoo.conf filtra por ^mi_base_stock$; sin
     # sobrescribirlo, las pruebas HttpCase caen en el selector de bases.
     & $python odoo/odoo-bin -c odoo.conf --db_host=127.0.0.1 --db_port=55432 --db_user=mgs_test `

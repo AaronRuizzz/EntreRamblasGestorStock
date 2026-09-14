@@ -1,5 +1,16 @@
 # Entrega final — ejecución del plan `PlanFinalizarGestor.md`
 
+> **Addendum 2026-09-13.** `REVISION_2026-09-10.md` encontró 24 defectos
+> (15 P1 bloqueantes) sobre el estado descrito más abajo: instalación limpia
+> rota, paquete dependiente del PC del desarrollador, actualizador sin
+> componente que lo aplique, CSRF en la confirmación de custodia, menú
+> Seguridad inaccesible para la propietaria, secretos en claro, entre otros.
+> Los 24 quedan corregidos en código y cubiertos por pruebas (suite verde,
+> 225+ pruebas). Lo que sigue pendiente por depender de máquina limpia o
+> hardware físico está en `../ACEPTACION.md`, no en este documento (que
+> describe una entrega anterior). Detalle del actualizador (ahora con un
+> servicio dedicado con privilegios propios) en `../ACTUALIZACIONES.md`.
+
 Rama de trabajo: **`finalizar-entrega`**. Este documento es el rastro vivo de la
 ejecución: qué queda hecho en código, qué se verifica con la suite y qué sigue
 necesitando una persona (hardware, consola de administrador, gestoría, claves).

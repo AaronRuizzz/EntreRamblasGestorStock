@@ -4,6 +4,8 @@ import pytz
 from odoo import Command, api, fields, models, _
 from odoo.exceptions import UserError
 
+from .mgs_permissions import assert_not_maintenance
+
 
 class MgsReception(models.TransientModel):
     """Pantalla de recepción de mercancía, con dos modos:
@@ -175,6 +177,12 @@ class MgsReception(models.TransientModel):
         self.new_price = 0.0
         self.new_cost = 0.0
         self.new_expiry_date = False
+        # Hallazgo 18: se limpiaba new_categ_id pero el formulario seguía en
+        # modo "nuevo", que la vista exige rellenar (required="mode == 'nuevo'")
+        # — "Guardar en almacén" quedaba bloqueado con «Campos no válidos:
+        # Categoría» hasta cambiar el modo a mano. La categoría solo hace
+        # falta al CREAR el producto, ya creado; volver a modo existente.
+        self.mode = "existente"
 
     def action_mgs_generate_barcode(self):
         """Modo 'nuevo': código interno para un producto que llega sin EAN.
@@ -219,6 +227,10 @@ class MgsReception(models.TransientModel):
 
     def action_confirm(self):
         self.ensure_one()
+        # Sin esto, mgs.maintenance (lo pone el actualizador antes de copiar
+        # y aplicar una actualización) no bloqueaba nada aquí: la recepción
+        # no pasa por require_manager (hallazgo 11).
+        assert_not_maintenance(self.env)
         # Serializa reintentos y doble clic sobre el mismo asistente.
         self.env.cr.execute("SELECT id FROM mgs_reception WHERE id = %s FOR UPDATE", [self.id])
         self.invalidate_recordset(["picking_id"])

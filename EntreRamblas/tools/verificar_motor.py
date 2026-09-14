@@ -30,6 +30,7 @@ Con `--json` imprime el detalle estructurado (lo usa el diagnostico).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -39,6 +40,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "odoo"
 PIN_FILE = ROOT / "odoo-revision.txt"
+
+# Distribución instalada (sin Git): el empaquetador firmado deja un mapa
+# ruta -> sha256 y su firma Ed25519. Es el modo que usa la tienda.
+DIST_MANIFEST = ROOT / "integridad.json"
+DIST_SIG = ROOT / "integridad.json.sig"
+PUBLIC_KEY = ROOT / "instalador" / "firma-publica.pem"
 
 # Ficheros imprescindibles para arrancar. Si faltan, el checkout esta roto
 # aunque el commit coincida.
@@ -87,7 +94,90 @@ def _is_runtime_path(path: str) -> bool:
     return False
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _check_from_hashes() -> dict:
+    """Integridad de una distribución instalada: firma Ed25519 del mapa de
+    hashes + recálculo de cada fichero. No necesita Git."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    try:
+        from paquete_firma import load_public, verify_bytes
+    except ImportError:
+        return {"ok": False, "code": 4, "estado": "sin-comprobar", "modo": "hashes",
+                "detalle": "falta tools/paquete_firma.py"}
+
+    try:
+        raw = DIST_MANIFEST.read_bytes()
+        signature = DIST_SIG.read_text(encoding="ascii").strip()
+    except OSError as exc:
+        return {"ok": False, "code": 4, "estado": "sin-comprobar", "modo": "hashes",
+                "detalle": "no se pudo leer integridad.json(.sig): %s" % exc}
+
+    firma_valida = PUBLIC_KEY.is_file() and verify_bytes(
+        load_public(PUBLIC_KEY), raw, signature)
+    if not firma_valida:
+        return {"ok": False, "code": 3, "estado": "modificado", "modo": "hashes",
+                "firma_valida": False, "ficheros_modificados": ["integridad.json"],
+                "ficheros_ejecucion_ausentes": [], "ficheros_ejecucion_borrados": [],
+                "detalle": "la firma de integridad.json no es válida"}
+
+    manifest = json.loads(raw.decode("utf-8"))
+    pinned = None
+    try:
+        pinned = PIN_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+    declared_rev = manifest.get("odoo_revision")
+    revision_ok = bool(declared_rev and pinned and declared_rev == pinned)
+
+    modificados: list[str] = []
+    ausentes: list[str] = []
+    for rel, expected in sorted(manifest.get("ficheros", {}).items()):
+        target = ROOT / rel
+        if not target.is_file():
+            ausentes.append(rel)
+        elif _sha256(target) != expected:
+            modificados.append(rel)
+
+    faltan_ejecucion = [p for p in ausentes if _is_runtime_path(_engine_relative(p))]
+    intacto = revision_ok and not modificados and not faltan_ejecucion
+    return {
+        "ok": intacto,
+        "code": 0 if intacto else (2 if not revision_ok and not modificados and not faltan_ejecucion else 3),
+        "estado": "intacto" if intacto else ("revision-distinta" if not revision_ok else "modificado"),
+        "modo": "hashes",
+        "firma_valida": True,
+        "revision_fijada": pinned,
+        "revision_actual": declared_rev,
+        "revision_coincide": revision_ok,
+        "ficheros_modificados": modificados,
+        "ficheros_ejecucion_ausentes": faltan_ejecucion,
+        "ficheros_ejecucion_borrados": [],
+        "ficheros_no_ejecucion_ausentes": len([p for p in ausentes if p not in faltan_ejecucion]),
+        "bajas_fantasma": 0,
+    }
+
+
+def _engine_relative(rel: str) -> str:
+    """`_is_runtime_path` razona en rutas relativas a odoo/ (odoo/… o addons/…).
+    El mapa de integridad las guarda relativas a la raíz (odoo/odoo/…, odoo/addons/…)."""
+    if rel.startswith("odoo/odoo/"):
+        return rel[len("odoo/"):]
+    if rel.startswith("odoo/addons/"):
+        return rel[len("odoo/"):]
+    return rel
+
+
 def check() -> dict:
+    if not (ENGINE / ".git").exists() and DIST_MANIFEST.is_file():
+        return _check_from_hashes()
+
     try:
         pinned = PIN_FILE.read_text(encoding="utf-8").strip()
     except OSError:
@@ -153,6 +243,7 @@ def check() -> dict:
         "ok": intacto,
         "code": code,
         "estado": "intacto" if intacto else ("revision-distinta" if not revision_ok else "modificado"),
+        "modo": "git",
         "revision_fijada": pinned,
         "revision_actual": current,
         "revision_coincide": revision_ok,

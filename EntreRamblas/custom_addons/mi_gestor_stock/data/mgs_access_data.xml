@@ -11,4 +11,15 @@
          por clave impresa (/mgs/recuperar), no por correo. -->
     <function model="ir.config_parameter" name="set_param"
               eval="('auth_signup.reset_password', 'False')"/>
+
+    <!-- URL de releases por defecto: deja de ser configuración manual
+         pendiente (hallazgo 5/ACTUALIZACIONES.md). noupdate="1" (solo válido
+         en el <data>, no en el <record>): es la semilla del primer -i; si la
+         tienda la cambia, un -u NO se la vuelve a pisar. -->
+    <data noupdate="1">
+        <record id="mgs_update_releases_url_default" model="ir.config_parameter">
+            <field name="key">mgs.update.releases_url</field>
+            <field name="value">https://raw.githubusercontent.com/AaronRuizzz/EntreRamblasReleases/main</field>
+        </record>
+    </data>
 </odoo>

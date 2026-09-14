@@ -46,6 +46,24 @@ class TestBackup(TransactionCase):
             self.assertEqual(backup.replica_state, "done")
             self.assertEqual(Path(backup.replica_path).read_bytes(), path.read_bytes())
 
+    def test_pre_update_backup_kind_is_accepted(self):
+        # Hallazgo 6: el actualizador llama _mgs_run_backup(kind="pre-actualizacion"),
+        # pero esa cadena no estaba en la Selection de "kind" -> ValueError al
+        # crear el registro (mismo repro que probe_models.py de la auditoría).
+        # La copia previa a actualizar quedaría bloqueada siempre.
+        record = self.env["mgs.backup"].create({
+            "name": "prueba-pre-actualizacion", "kind": "pre-actualizacion", "state": "done"})
+        self.assertEqual(record.kind, "pre-actualizacion")
+
+    def test_run_backup_records_the_pre_update_kind_on_failure_too(self):
+        # El camino de error de _mgs_run_backup también crea el registro con
+        # el kind recibido: debe admitir "pre-actualizacion" igual que "auto".
+        with patch.object(type(self.env["mgs.backup"]), "_mgs_write_zip",
+                          side_effect=OSError("Disco lleno")):
+            result = self.env["mgs.backup"]._mgs_run_backup(kind="pre-actualizacion")
+        self.assertEqual(result.state, "error")
+        self.assertEqual(result.kind, "pre-actualizacion")
+
     def test_failed_backup_is_visible_without_raising(self):
         with patch.object(type(self.env["mgs.backup"]), "_mgs_write_zip", side_effect=OSError("Disco lleno")):
             result = self.env["mgs.config"]._mgs_get().action_mgs_backup_now()

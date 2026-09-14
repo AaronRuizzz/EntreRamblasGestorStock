@@ -6,11 +6,16 @@ de la tienda sigue pendiente de completar la aceptación allí indicada.
 
 ## Instalador para la tienda (`EntreRamblas-Setup.exe`)
 
-Para el PC de la tienda, un único ejecutable hace todo: PostgreSQL dedicado,
-servicio de Windows, acceso directo, motor PDF y base nueva sin demo, sin que
-la dueña toque Git ni la consola. Cómo se compila y qué hace exactamente:
-`EntreRamblas/instalador/README.md`. Reinstalar o desinstalar **no** borra la
-base ni las copias.
+Para el PC de la tienda, un único ejecutable hace todo, **sin conexión a
+internet**: CPython 3.12 propio (bajo `python\`, con las dependencias en
+`wheels\`), PostgreSQL dedicado, dos servicios de Windows (`EntreRamblasOdoo`
+sirviendo la app, y `EntreRamblasActualizador`, bajo demanda, para aplicar
+actualizaciones — ver `../ACTUALIZACIONES.md`), acceso directo, motor PDF y
+base nueva sin demo, sin que la dueña toque Git, Python ni la consola. La
+integridad del código instalado se comprueba por firma y hashes
+(`integridad.json`), no por Git: la tienda no necesita tenerlo instalado.
+Cómo se compila y qué hace exactamente: `EntreRamblas/instalador/README.md`.
+Reinstalar o desinstalar **no** borra la base ni las copias.
 
 El resto de esta guía es el procedimiento **manual** (equipo de desarrollo o
 mantenimiento).
@@ -99,9 +104,10 @@ alta inicial y el módulo deben estar completados. El instalador no borra bases.
 ## Actualizar
 
 **En una tienda instalada con `EntreRamblas-Setup.exe`**: las actualizaciones
-llegan firmadas y se aplican solas al cerrar, tras aceptación de la dueña. Todo
-el flujo (publicación, recepción y aplicación segura en 7 pasos) está en
-`../ACTUALIZACIONES.md`.
+llegan firmadas y se aplican solas al cerrar, tras aceptación de la dueña, a
+través del servicio `EntreRamblasActualizador` (privilegios propios,
+independientes del servicio que sirve la app). Todo el flujo (publicación,
+recepción y aplicación segura) está en `../ACTUALIZACIONES.md`.
 
 **A mano** (equipo de desarrollo o mantenimiento), con el servidor parado y una
 copia verificada:
@@ -179,11 +185,12 @@ y base quedan fijadas al instalar. No se cambia un servicio existente por pasar
 otro `-Config` a `start`. El instalador no reemplaza servicios ya registrados.
 
 Arranca automáticamente con retraso y depende del servicio PostgreSQL. Usa la
-cuenta limitada LocalService: se le concede lectura/ejecución sobre el código,
-Python y Git, y modificación sobre la carpeta privada del runtime. No se guarda
-una contraseña de cuenta Windows. Las impresoras deben estar accesibles para
-esa cuenta; la instalación por usuario de una impresora aún necesita aceptación
-física. No se comparte el servidor HTTP por la red.
+cuenta limitada LocalService: se le concede lectura/ejecución sobre el código y
+el Python propio del paquete, y modificación sobre la carpeta privada del
+runtime (Git ya no es necesario: la integridad se comprueba por firma y
+hashes). No se guarda una contraseña de cuenta Windows. Las impresoras deben
+estar accesibles para esa cuenta; la instalación por usuario de una impresora
+aún necesita aceptación física. No se comparte el servidor HTTP por la red.
 
 Ante una salida inesperada, Windows tiene configurados dos reintentos (120 y 180
 segundos); después se detiene. Revisar `odoo.log`, `service-process.log` y el visor
