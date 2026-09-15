@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Entradas y salidas (componente OWL propio:
+         static/src/js/stock_ledger.js) -->
+    <record id="action_mgs_stock_ledger" model="ir.actions.client">
+        <field name="name">Entradas y salidas</field>
+        <field name="tag">mgs_stock_ledger</field>
+        <field name="target">current</field>
+    </record>
+</odoo>

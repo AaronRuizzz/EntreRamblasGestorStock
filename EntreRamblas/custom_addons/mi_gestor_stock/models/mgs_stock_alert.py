@@ -155,6 +155,15 @@ class MgsStockAlertNotice(models.Model):
     name = fields.Char("Mensaje", required=True)
     is_read = fields.Boolean("Leído", default=False)
 
+    # Estos tres campos los rellena `PosOrder.mgs_authorize_deficit` (venta
+    # con stock insuficiente autorizada desde el TPV) y, al sincronizarse el
+    # ticket, `PosOrder._process_order`. `pos_order_id` puede tardar en
+    # rellenarse (o quedar vacío si la venta nunca se confirma), por eso
+    # también se guarda el uuid: es el enlace estable desde el primer momento.
+    pos_order_id = fields.Many2one("pos.order", ondelete="set null", copy=False)
+    pos_order_uuid = fields.Char(copy=False, index=True)
+    session_id = fields.Many2one("pos.session", ondelete="set null", copy=False)
+
     def action_mark_read(self):
         self.write({"is_read": True})
         return True

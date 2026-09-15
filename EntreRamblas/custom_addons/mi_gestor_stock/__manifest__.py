@@ -1,6 +1,6 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
-    "version": "18.0.4.0.0",
+    "version": "18.0.5.0.0",
     "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
@@ -39,6 +39,7 @@
         "views/mgs_event_views.xml",
         "views/mgs_alert_views.xml",
         "views/mgs_dashboard_views.xml",
+        "views/mgs_stock_ledger_views.xml",
         "views/product_views.xml",
         "views/pos_report_views.xml",
         "views/mgs_pos_session_views.xml",
@@ -67,6 +68,10 @@
             "mi_gestor_stock/static/src/js/home.xml",
             "mi_gestor_stock/static/src/js/stock_dashboard.js",
             "mi_gestor_stock/static/src/js/stock_dashboard.xml",
+            "mi_gestor_stock/static/src/js/stock_ledger.js",
+            "mi_gestor_stock/static/src/js/stock_ledger.xml",
+            "mi_gestor_stock/static/src/js/mgs_category_widget.js",
+            "mi_gestor_stock/static/src/xml/mgs_category_widget.xml",
             "mi_gestor_stock/static/src/xml/mgs_errors.xml",
         ],
         "web.assets_frontend": [
@@ -81,9 +86,21 @@
             "mi_gestor_stock/static/src/js/pos_validation.js",
             "mi_gestor_stock/static/src/js/pos_bouquet.js",
             "mi_gestor_stock/static/src/js/pos_event_checkout.js",
+            # pos_stock_check.js define mgsResolveDeficits, que usan tanto
+            # pos_validation.js (pay/validateOrder) como el propio archivo
+            # (addProductToOrder/clickLine): el orden de carga entre módulos
+            # JS independientes no importa para los patch() de Owl (todos se
+            # aplican antes de que el TPV arranque), solo que estén todos.
+            "mi_gestor_stock/static/src/js/pos_stock_check.js",
+            "mi_gestor_stock/static/src/js/pos_delete_line.js",
+            "mi_gestor_stock/static/src/js/pos_refund.js",
             "mi_gestor_stock/static/src/xml/pos_bouquet.xml",
             "mi_gestor_stock/static/src/xml/pos_navbar.xml",
+            "mi_gestor_stock/static/src/xml/pos_refund.xml",
+            "mi_gestor_stock/static/src/xml/pos_partner.xml",
             "mi_gestor_stock/static/src/xml/pos_receipt.xml",
+            "mi_gestor_stock/static/src/xml/pos_stock_banner.xml",
+            "mi_gestor_stock/static/src/xml/pos_delete_line.xml",
         ],
     },
     "installable": True,

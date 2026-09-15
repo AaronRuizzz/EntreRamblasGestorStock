@@ -455,6 +455,42 @@ $mgs-radius: 8px;
         text-align: center;
     }
 
+    // --- Entradas y salidas (stock_ledger.xml) ---
+    .mgs-ledger-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 16px;
+    }
+
+    .mgs-ledger-tabs .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .mgs-ledger-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: $mgs-muted;
+
+            input {
+                min-height: 44px;
+            }
+        }
+    }
+
+    .mgs-ledger-table td, .mgs-ledger-table th {
+        padding: 8px 10px;
+    }
+
     // --- Avisos ---
     .mgs-alert-list {
         display: flex;

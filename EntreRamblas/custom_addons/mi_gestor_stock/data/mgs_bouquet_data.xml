@@ -8,10 +8,18 @@
 
          OJO CON EL IVA: se deja SIN impuesto puesto a propósito. El tipo que
          corresponde a un ramo lo decide la dueña con su gestoría (ver
-         FACTURACION.md); el programa no lo inventa. -->
+         FACTURACION.md); el programa no lo inventa.
+
+         active=False a propósito (correcciones de ventas, 18.0.5.0.0): una
+         instalación NUEVA no trae catálogo comercial precargado, así que
+         este producto de partida queda archivado hasta que la dueña lo
+         active o cree el suyo. Al ser noupdate="1", esto SOLO afecta a
+         instalaciones nuevas: una tienda ya instalada conserva el estado
+         (activo o archivado) que ya tuviera. -->
     <data noupdate="1">
         <record id="product_bouquet_custom" model="product.template">
             <field name="name">Ramo a medida</field>
+            <field name="active" eval="False"/>
             <field name="mgs_is_composition" eval="True"/>
             <!-- Sin existencias propias: las existencias son las de las flores. -->
             <field name="is_storable" eval="False"/>

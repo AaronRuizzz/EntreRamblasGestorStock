@@ -24,6 +24,10 @@ class StockMoveLine(models.Model):
     mgs_unit_cost = fields.Float("Coste histórico por unidad", digits="Product Price", readonly=True, copy=False, groups=COST_GROUPS)
     mgs_cost_recorded = fields.Boolean(readonly=True, copy=False)
     mgs_return_origin_id = fields.Many2one("stock.move.line", readonly=True, copy=False, index=True)
+    mgs_cost_estimated = fields.Boolean(
+        "Coste estimado", readonly=True, copy=False,
+        help="La cantidad viene de la partida técnica «Pendiente de revisar»: "
+             "el coste es el precio de coste del producto, no el de una compra real.")
 
     def write(self, vals):
         if {"mgs_unit_cost", "mgs_cost_recorded", "mgs_return_origin_id"}.intersection(vals):
@@ -121,7 +125,41 @@ class StockMove(models.Model):
             if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) <= 0:
                 break
         if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) > 0:
-            raise UserError(_("No hay existencias disponibles sin caducar de %s. Revisa el stock antes de cobrar.", product.display_name))
+            if not self._mgs_reserve_deficit_fallback(remaining):
+                raise UserError(_("No hay existencias disponibles sin caducar de %s. Revisa el stock antes de cobrar.", product.display_name))
+
+    def _mgs_reserve_deficit_fallback(self, remaining):
+        """Última red tras agotar las partidas válidas: solo sigue si ESTA
+        venta tiene autorización de déficit para este producto (creada por
+        `PosOrder.mgs_authorize_deficit` al aceptar «Añadir de todos modos»
+        en el TPV). Sin esa autorización se sigue bloqueando exactamente
+        igual que antes — lo que además protege mermas y eventos, que nunca
+        pasan por `mgs_pos_line_id` y por tanto nunca encuentran una
+        autorización con la que continuar.
+
+        Cuando sí hay autorización, la falta se carga contra un único lote
+        técnico «Pendiente de revisar» por producto (ver `mgs_stock_lot.py`),
+        dejando su partida en negativo: no hay disponibilidad que reservar,
+        así que la línea de movimiento se crea a mano, igual que hace
+        `_mgs_prepare_return` para una devolución."""
+        self.ensure_one()
+        order = self.mgs_pos_line_id.order_id
+        if not order:
+            return False
+        deficit = self.env["mgs.stock.deficit"].sudo().search([
+            ("order_uuid", "=", order.uuid), ("product_id", "=", self.product_id.id),
+        ], limit=1)
+        if not deficit or float_compare(
+                deficit.authorized_qty, 0, precision_rounding=self.product_id.uom_id.rounding) <= 0:
+            return False
+        lot = self.env["stock.lot"].sudo()._mgs_get_or_create_pending(self.product_id, self.company_id)
+        self.env["stock.move.line"].sudo().create({
+            "move_id": self.id, "picking_id": self.picking_id.id,
+            "product_id": self.product_id.id, "product_uom_id": self.product_id.uom_id.id,
+            "location_id": self.location_id.id, "location_dest_id": self.location_dest_id.id,
+            "lot_id": lot.id, "quantity": remaining, "mgs_cost_estimated": True,
+        })
+        return True
 
 
 class PosOrder(models.Model):
@@ -138,6 +176,21 @@ class PosOrder(models.Model):
 
     @api.model
     def mgs_check_stock(self, session_id, lines, order_uuid=None):
+        """Comprueba disponibilidad y devuelve las faltas, no lanza excepción
+        por falta de stock.
+
+        Antes esto lanzaba `UserError` en cuanto faltaba una unidad,
+        bloqueando la venta sin salida. Ahora agrega la demanda por producto
+        y, para cada uno con falta, compara esa falta contra lo ya autorizado
+        para ESTA venta (`mgs.stock.deficit`, ver `mgs_authorize_deficit` más
+        abajo): si lo autorizado ya cubre la falta, no aparece en
+        `deficits` (nada que confirmar); si no, aparece con la falta
+        completa para que el TPV pida confirmación. `ok` es `True` solo
+        cuando no queda ninguna falta sin autorizar.
+
+        Sigue lanzando `UserError` para errores reales: sesión cerrada,
+        caja ajena, lista o producto mal formado. Esos no son "falta de
+        stock", son datos inválidos."""
         assert_not_maintenance(self.env)
         session = checked_session(self.env, session_id)
         if order_uuid:
@@ -146,7 +199,7 @@ class PosOrder(models.Model):
                 not existing.lines.filtered(lambda line: line.product_id.is_storable and line.qty)
                 or (existing.picking_ids and all(p.state == "done" for p in existing.picking_ids))
             ):
-                return {"ok": True, "already_confirmed": True}
+                return {"ok": True, "already_confirmed": True, "deficits": []}
         if session.state != "opened":
             raise UserError(_("Abre la sesión de caja antes de cobrar."))
         if not isinstance(lines, list) or len(lines) > 500:
@@ -162,6 +215,7 @@ class PosOrder(models.Model):
                 demands[line["product_id"]] += quantity
         location = session.config_id.picking_type_id.default_location_src_id
         now = fields.Datetime.now()
+        deficits = []
         for product_id, quantity in demands.items():
             product = self.env["product.product"].browse(product_id).exists()
             product.check_access("read")
@@ -177,16 +231,66 @@ class PosOrder(models.Model):
             available = sum(max(0, q.quantity - q.reserved_quantity) for q in quants
                             if (not product.mgs_auto_lots or q.lot_id)
                             and (not q.lot_id.expiration_date or q.lot_id.expiration_date >= now))
-            if float_compare(available, quantity, precision_rounding=product.uom_id.rounding) < 0:
-                raise UserError(_("No hay existencias suficientes sin caducar de %s. Revisa la cantidad antes de cobrar.", product.display_name))
-        return {"ok": True, "already_confirmed": False}
+            rounding = product.uom_id.rounding
+            missing = quantity - available
+            if float_compare(missing, 0, precision_rounding=rounding) <= 0:
+                continue
+            authorized = 0.0
+            if order_uuid:
+                deficit = self.env["mgs.stock.deficit"].sudo().search([
+                    ("order_uuid", "=", order_uuid), ("product_id", "=", product.id),
+                ], limit=1)
+                authorized = deficit.authorized_qty if deficit else 0.0
+            if float_compare(missing - authorized, 0, precision_rounding=rounding) > 0:
+                deficits.append({
+                    "product_id": product.id, "product_name": product.display_name,
+                    "available": available, "requested": quantity,
+                    "missing": missing, "authorized": authorized,
+                })
+        return {"ok": not deficits, "already_confirmed": False, "deficits": deficits}
+
+    @api.model
+    def mgs_authorize_deficit(self, session_id, order_uuid, lines):
+        """Registra que la dependienta ha aceptado «Añadir de todos modos»
+        para las faltas actuales de `lines` en la venta `order_uuid`, y deja
+        un aviso de stock enlazado al ticket. Devuelve el resultado de volver
+        a comprobar: si algo cambió entre medias (otra caja se llevó el
+        último lote, p. ej.), `ok` seguirá en `False` y el TPV lo notará."""
+        require_operator(self.env)
+        if not order_uuid or not isinstance(order_uuid, str):
+            raise UserError(_("Falta el identificador de la venta."))
+        session = checked_session(self.env, session_id)
+        result = self.mgs_check_stock(session_id, lines, order_uuid)
+        Deficit = self.env["mgs.stock.deficit"].sudo()
+        for entry in result.get("deficits", []):
+            product = self.env["product.product"].browse(entry["product_id"])
+            Deficit._mgs_upsert(order_uuid, session, product, entry["missing"])
+            self.env["mgs.stock.alert.notice"].sudo().create({
+                "product_id": product.product_tmpl_id.id,
+                "name": _("%(prod)s: venta %(ref)s con stock insuficiente — revisar",
+                          prod=product.display_name, ref=order_uuid[:8]),
+                "pos_order_uuid": order_uuid, "session_id": session.id,
+            })
+        return self.mgs_check_stock(session_id, lines, order_uuid)
 
     @api.model
     def _process_order(self, order, existing_order):
         session = checked_session(self.env, order["session_id"])
         if session.state != "opened":
             raise UserError(_("La sesión de caja no está abierta. Revisa las ventas pendientes antes de cerrar."))
-        return super()._process_order(order, existing_order)
+        order_id = super()._process_order(order, existing_order)
+        # Reconciliación: al autorizar el déficit el ticket todavía no existe
+        # como pos.order (solo hay uuid). En cuanto se sincroniza de verdad,
+        # se enlaza aquí para poder abrir el ticket desde el aviso de stock.
+        uuid = order.get("uuid")
+        if uuid and order_id:
+            self.env["mgs.stock.deficit"].sudo().search([
+                ("order_uuid", "=", uuid), ("pos_order_id", "=", False),
+            ]).write({"pos_order_id": order_id})
+            self.env["mgs.stock.alert.notice"].sudo().search([
+                ("pos_order_uuid", "=", uuid), ("pos_order_id", "=", False),
+            ]).write({"pos_order_id": order_id})
+        return order_id
 
     def _should_create_picking_real_time(self):
         return True

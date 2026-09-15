@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+  <t t-name="mi_gestor_stock.StockLedger">
+    <div class="mgs-dashboard">
+      <div class="mgs-dash-head">
+        <h1 class="mgs-dash-heading">Entradas y salidas</h1>
+      </div>
+
+      <section class="mgs-dash-section mgs-ledger-filters">
+        <div class="mgs-ledger-tabs" role="tablist">
+          <button type="button" role="tab"
+                  t-attf-class="btn {{ state.direction === 'all' ? 'btn-primary' : 'btn-secondary' }}"
+                  t-att-aria-selected="state.direction === 'all'"
+                  t-on-click="() => this.setDirection('all')">Todo</button>
+          <button type="button" role="tab"
+                  t-attf-class="btn {{ state.direction === 'in' ? 'btn-primary' : 'btn-secondary' }}"
+                  t-att-aria-selected="state.direction === 'in'"
+                  t-on-click="() => this.setDirection('in')">Entradas</button>
+          <button type="button" role="tab"
+                  t-attf-class="btn {{ state.direction === 'out' ? 'btn-primary' : 'btn-secondary' }}"
+                  t-att-aria-selected="state.direction === 'out'"
+                  t-on-click="() => this.setDirection('out')">Salidas</button>
+        </div>
+        <div class="mgs-ledger-fields">
+          <label>
+            Producto
+            <input type="text" class="o_input" placeholder="Buscar producto…"
+                   t-att-value="state.productQuery"
+                   t-on-input="onProductInput"
+                   t-on-keydown="(ev) => ev.key === 'Enter' ? this.onProductSearch() : null"
+                   t-on-blur="onProductSearch"/>
+          </label>
+          <label>
+            Desde
+            <input type="date" class="o_input" t-att-value="state.dateFrom" t-on-change="onDateFromChange"/>
+          </label>
+          <label>
+            Hasta
+            <input type="date" class="o_input" t-att-value="state.dateTo" t-on-change="onDateToChange"/>
+          </label>
+        </div>
+      </section>
+
+      <div t-if="state.loading" class="mgs-dash-loading">Cargando…</div>
+
+      <t t-else="">
+        <div t-if="!state.data.rows.length" class="mgs-dash-empty">
+          No hay movimientos en este periodo con estos filtros.
+        </div>
+
+        <table t-else="" class="mgs-categ-table mgs-ledger-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th class="text-end">Unidades</th>
+              <th>Motivo</th>
+              <th>Documento de origen</th>
+              <th t-if="state.data.can_see_cost" class="text-end">Coste</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr t-foreach="state.data.rows" t-as="row" t-key="row.id">
+              <td t-esc="row.date"/>
+              <td t-esc="row.product_name"/>
+              <td t-esc="row.categ_name"/>
+              <td class="text-end">
+                <span t-attf-class="{{ row.direction === 'in' ? 'text-success' : 'text-danger' }}">
+                  <t t-esc="row.direction === 'in' ? '+' : '-'"/><t t-esc="formatQty(row.quantity)"/>
+                </span>
+                <small t-esc="row.uom_name"/>
+              </td>
+              <td t-esc="row.motivo_label"/>
+              <td t-esc="row.origin_document"/>
+              <td t-if="state.data.can_see_cost" class="text-end" t-esc="formatCost(row.cost)"/>
+            </tr>
+          </tbody>
+        </table>
+        <p t-if="state.data.truncated" class="text-muted">
+          Hay más movimientos de los que se muestran: acota las fechas o el producto para verlos todos.
+        </p>
+      </t>
+    </div>
+  </t>
+
+</templates>

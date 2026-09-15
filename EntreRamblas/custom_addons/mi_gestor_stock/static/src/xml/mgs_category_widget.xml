@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="mi_gestor_stock.MgsCategoryAutocreate">
+        <div class="o_mgs_category_widget d-flex align-items-center gap-2">
+            <input type="text" class="o_input"
+                   t-att-value="state.text"
+                   t-att-placeholder="props.placeholder || 'Escribe una categoría…'"
+                   t-att-readonly="props.readonly or undefined"
+                   t-on-input="onInput"
+                   t-on-blur="onBlur"
+                   t-on-keydown="onKeydown"/>
+            <span t-if="state.status === 'saving'" class="text-muted small" role="status">
+                <i class="fa fa-spinner fa-spin" aria-hidden="true"/> Guardando…
+            </span>
+            <span t-if="state.status === 'saved'" class="text-success small" role="status">
+                <i class="fa fa-check" aria-hidden="true"/> Categoría guardada
+            </span>
+            <span t-if="state.status === 'error'" class="text-danger small d-flex align-items-center gap-1" role="alert">
+                <i class="fa fa-exclamation-circle" aria-hidden="true"/> No se pudo guardar
+                <button type="button" class="btn btn-link btn-sm p-0" t-on-click="onRetry">Reintentar</button>
+            </span>
+        </div>
+    </t>
+</templates>

@@ -10,6 +10,7 @@ from . import mgs_stock_lot
 from . import mgs_pos_stock
 from . import mgs_scrap
 from . import mgs_stock_alert
+from . import mgs_stock_deficit
 from . import mgs_reception
 from . import mgs_monthly_report
 from . import mgs_security
@@ -26,3 +27,4 @@ from . import mgs_catalog_import
 from . import mgs_bouquet
 from . import mgs_event
 from . import mgs_consumption
+from . import mgs_stock_ledger

@@ -1,7 +1,7 @@
 /** @odoo-module **/
 import { patch } from "@web/core/utils/patch";
 import { _t } from "@web/core/l10n/translation";
-import { rpc, RPCError } from "@web/core/network/rpc";
+import { RPCError } from "@web/core/network/rpc";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { serializeDateTime } from "@web/core/l10n/dates";
 import { PosStore } from "@point_of_sale/app/store/pos_store";
@@ -11,31 +11,13 @@ import { SelectionPopup } from "@point_of_sale/app/utils/input_popups/selection_
 import { handleRPCError } from "@point_of_sale/app/errors/error_handlers";
 
 patch(PosStore.prototype, {
-    async mgsCheckStock(order = this.get_order()) {
-        // De un ramo a medida hay que comprobar sus flores, no el ramo: el
-        // producto de la composición no tiene existencias propias. Se manda el
-        // contenido tal cual y el servidor lo valida (models/mgs_bouquet.py).
-        const lines = order.lines.map(line => {
-            const payload = { product_id: line.product_id.id, qty: line.qty };
-            if (line.mgs_bouquet_spec) {
-                payload.bouquet_spec = line.mgs_bouquet_spec;
-            }
-            return payload;
-        });
-        return rpc("/web/dataset/call_kw/pos.order/mgs_check_stock", {
-            model: "pos.order", method: "mgs_check_stock",
-            args: [this.session.id, lines, order.uuid],
-            kwargs: {},
-        });
-    },
     async pay() {
-        try {
-            await this.mgsCheckStock();
-        } catch (error) {
-            this.dialog.add(AlertDialog, {
-                title: _t("Revisar antes de cobrar"),
-                body: error.data?.message || _t("No se puede comprobar el stock. Comprueba que el servidor local esté funcionando."),
-            });
+        // mgsCheckStock/mgsResolveDeficits: pos_stock_check.js. Antes de
+        // cobrar se vuelve a comprobar todo el pedido por si algo cambió
+        // desde el último chequeo interactivo (otra caja se llevó el último
+        // lote, p. ej.); si falta algo sin autorizar, se pregunta aquí mismo.
+        const result = await this.mgsResolveDeficits(this.get_order());
+        if (!result.ok) {
             return;
         }
         return super.pay(...arguments);
@@ -44,14 +26,8 @@ patch(PosStore.prototype, {
 
 patch(PaymentScreen.prototype, {
     async validateOrder(isForceValidate) {
-        let status;
-        try {
-            status = await this.pos.mgsCheckStock(this.currentOrder);
-        } catch (error) {
-            this.dialog.add(AlertDialog, {
-                title: _t("No se puede confirmar el cobro"),
-                body: error.data?.message || _t("Comprueba la conexión con el servidor local. Si ya has cobrado, no repitas el pago."),
-            });
+        const status = await this.pos.mgsResolveDeficits(this.currentOrder);
+        if (!status.ok) {
             return;
         }
         if (!status.already_confirmed && this.currentOrder.state !== "paid") {
@@ -69,10 +45,16 @@ patch(PaymentScreen.prototype, {
         }
         if (!status.already_confirmed && this.currentOrder.state !== "paid" &&
             this.paymentLines.some(line => line.amount !== 0 && !line.payment_method_id.is_cash_count)) {
+            // Una devolución (línea con cantidad negativa) también se hace
+            // en el datáfono, por separado: el texto lo recuerda en vez de
+            // hablar de "cobro", que aquí sería confuso.
+            const isRefund = this.currentOrder.lines.some(line => line.qty < 0);
             const accepted = await ask(this.dialog, {
-                title: _t("Confirmar pago con tarjeta"),
-                body: _t("Confirma que el datáfono ha aceptado el importe indicado. Registrar la tarjeta aquí no realiza el cobro en el terminal."),
-                confirmLabel: _t("Pago aceptado"), cancelLabel: _t("Volver"),
+                title: isRefund ? _t("Confirmar devolución con tarjeta") : _t("Confirmar pago con tarjeta"),
+                body: isRefund
+                    ? _t("Confirma que el datáfono ha aceptado la devolución. Recuerda hacer también la devolución en el datáfono: registrarla aquí no la hace en el terminal.")
+                    : _t("Confirma que el datáfono ha aceptado el importe indicado. Registrar la tarjeta aquí no realiza el cobro en el terminal."),
+                confirmLabel: isRefund ? _t("Devolución aceptada") : _t("Pago aceptado"), cancelLabel: _t("Volver"),
             });
             if (!accepted) return;
         }

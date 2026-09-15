@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="mi_gestor_stock.PosRefund" t-inherit="point_of_sale.TicketScreen"
+       t-inherit-mode="extension">
+
+        <!-- Pestañas simplificadas por encima de la barra de búsqueda nativa
+             (que se deja tal cual, por si hace falta el filtro fino). -->
+        <xpath expr="//div[hasclass('controls')]" position="before">
+            <div class="o_mgs_ticket_intro p-2 bg-300">
+                <p class="mb-2 small text-muted">
+                    Aquí puedes continuar una venta pendiente, buscar un ticket ya cobrado,
+                    reimprimirlo o devolver productos.
+                </p>
+                <div class="o_mgs_ticket_tabs" role="tablist">
+                    <button type="button" role="tab" class="btn"
+                            t-attf-class="btn {{ mgsSimplifiedTab === 'ongoing' ? 'btn-primary' : 'btn-secondary' }}"
+                            t-att-aria-selected="mgsSimplifiedTab === 'ongoing'"
+                            t-on-click="() => this.mgsSetSimplifiedTab('ongoing')">Ventas en curso</button>
+                    <button type="button" role="tab"
+                            t-attf-class="btn {{ mgsSimplifiedTab === 'history' ? 'btn-primary' : 'btn-secondary' }}"
+                            t-att-aria-selected="mgsSimplifiedTab === 'history'"
+                            t-on-click="() => this.mgsSetSimplifiedTab('history')">Historial de tickets</button>
+                </div>
+            </div>
+        </xpath>
+
+        <!-- Venta/Devolución junto al estado, en las dos vistas (ancho y móvil). -->
+        <xpath expr="//div[hasclass('col') and hasclass('narrow')]//t[@t-esc='getStatus(order)']" position="after">
+            <div class="o_mgs_order_kind">
+                <i t-attf-class="fa {{ mgsIsRefundOrder(order) ? 'fa-reply' : 'fa-shopping-cart' }}" aria-hidden="true"/>
+                <t t-esc="mgsOrderKindLabel(order)"/>
+            </div>
+        </xpath>
+        <xpath expr="//div[hasclass('orderStatus')]//t[@t-esc='getStatus(order)']" position="after">
+            <div class="o_mgs_order_kind">
+                <i t-attf-class="fa {{ mgsIsRefundOrder(order) ? 'fa-reply' : 'fa-shopping-cart' }}" aria-hidden="true"/>
+                <t t-esc="mgsOrderKindLabel(order)"/>
+            </div>
+        </xpath>
+
+        <!-- Instrucción + "Devolver todo" / "Elegir productos" en vez del
+             texto genérico nativo. -->
+        <xpath expr="//div[@t-if='isOrderSynced']" position="replace">
+            <div t-if="isOrderSynced" class="py-2 px-3 rounded-3 bg-100">
+                <div t-if="!getHasItemsToRefund()" class="text-center">
+                    <p class="mb-2">¿Qué quieres devolver de este ticket?</p>
+                    <div class="d-flex gap-2 justify-content-center flex-wrap">
+                        <button type="button" class="btn btn-primary"
+                                t-att-disabled="!mgsHasSelectableItems(_selectedSyncedOrder)"
+                                t-on-click="() => this.refundAll(_selectedSyncedOrder)">Devolver todo</button>
+                        <button type="button" class="btn btn-secondary" disabled="disabled"
+                                title="Toca los productos de la lista y pon la cantidad con el teclado numérico">
+                            Elegir productos
+                        </button>
+                    </div>
+                </div>
+                <div t-else="" class="text-center text-primary fw-bold">
+                    Productos elegidos. Pulsa «Confirmar devolución» cuando esté listo.
+                </div>
+            </div>
+        </xpath>
+
+        <!-- "Venta de mostrador" cuando no hay cliente (nunca se crea un
+             contacto ficticio: es solo texto de presentación). -->
+        <xpath expr="//t[@t-esc='order.partner_id?.name']" position="replace">
+            <t t-esc="mgsPartnerDisplay(order)"/>
+        </xpath>
+
+        <!-- "Refund" → "Confirmar devolución" (único ActionpadWidget de esta
+             plantilla: el de ProductScreen es otra plantilla aparte). -->
+        <xpath expr="//ActionpadWidget" position="replace">
+            <ActionpadWidget
+                partner="getSelectedOrder()?.get_partner()"
+                actionName="'Confirmar devolución'"
+                actionToTrigger.bind="onDoRefund"
+            />
+        </xpath>
+
+    </t>
+
+</templates>

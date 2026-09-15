@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Aviso persistente cuando la venta en curso lleva algún producto
+         añadido con falta de stock autorizada (pos_stock_check.js). -->
+    <t t-name="mi_gestor_stock.PosStockBanner" t-inherit="point_of_sale.ProductScreen"
+       t-inherit-mode="extension">
+        <xpath expr="//OrderSummary" position="before">
+            <div t-if="currentOrder and currentOrder.uiState.mgsStockException"
+                 class="o_mgs_stock_banner" role="status">
+                <i class="fa fa-exclamation-triangle" aria-hidden="true"/>
+                <span>Hay que revisar el stock de este producto</span>
+            </div>
+        </xpath>
+    </t>
+
+    <!-- Marca de línea con falta de stock autorizada, junto al icono de lote
+         (mismo slot que ya usa order_summary.xml para eso). -->
+    <t t-name="mi_gestor_stock.PosStockLineBadge" t-inherit="point_of_sale.OrderSummary"
+       t-inherit-mode="extension">
+        <xpath expr="//t[@t-set-slot='product-name']" position="inside">
+            <span t-if="line.uiState.mgsStockException" class="o_mgs_line_exception">
+                <i class="fa fa-exclamation-triangle" aria-hidden="true"/> revisar stock
+            </span>
+        </xpath>
+    </t>
+
+</templates>

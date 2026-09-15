@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- "Cliente" → "Añadir cliente — opcional" cuando no hay ninguno
+         elegido. Buscar/crear/cambiar/quitar cliente sigue siendo el
+         PartnerList nativo (ya cubre nombre obligatorio, teléfono
+         opcional): aquí solo se aclara la etiqueta del botón. -->
+    <t t-name="mi_gestor_stock.PosPartnerButton" t-inherit="point_of_sale.SelectPartnerButton"
+       t-inherit-mode="extension">
+        <xpath expr="//t[@t-else='']" position="replace">
+            <t t-else="">Añadir cliente — opcional</t>
+        </xpath>
+    </t>
+
+</templates>
