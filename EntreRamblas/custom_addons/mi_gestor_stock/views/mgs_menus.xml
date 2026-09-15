@@ -34,6 +34,8 @@
               action="action_mgs_reception" sequence="5" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_stock_panel" name="Panel" parent="menu_mgs_stock"
               action="action_mgs_stock_dashboard" sequence="10" groups="mi_gestor_stock.group_mgs_user"/>
+    <menuitem id="menu_mgs_stock_ledger" name="Entradas y salidas" parent="menu_mgs_stock"
+              action="action_mgs_stock_ledger" sequence="15" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_stock_products" name="Productos" parent="menu_mgs_stock"
               action="action_mgs_products" sequence="20" groups="mi_gestor_stock.group_mgs_user"/>
     <menuitem id="menu_mgs_stock_alerts" name="Alertas" parent="menu_mgs_stock"

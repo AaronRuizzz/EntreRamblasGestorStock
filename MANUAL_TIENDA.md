@@ -90,9 +90,14 @@ caducidad. A partir de ahí, la mercancía entra **siempre** por Recepción.
 1. Elige **Producto existente** y escanea. Cada lectura suma una unidad.
    Para un artículo nuevo, cambia a **Producto nuevo**, rellena los datos y
    escanea para asignarle el código.
-2. Escribe el **coste** de esta entrada y la **caducidad**, si la tiene.
-3. Indica el proveedor si quieres que quede anotado.
-4. Pulsa **Guardar en almacén**.
+2. Escribe la **categoría**: si ya existe (aunque la escribas con otras
+   mayúsculas o espacios de más) se reutiliza sola; si no, se crea al salir
+   del campo (con el ratón o con Tab). Verás **«Guardando…»** y luego
+   **«Categoría guardada»**. Si falla, el texto no se pierde y aparece
+   **«Reintentar»**. Guardar el producto espera a que esto termine.
+3. Escribe el **coste** de esta entrada y la **caducidad**, si la tiene.
+4. Indica el proveedor si quieres que quede anotado.
+5. Pulsa **Guardar en almacén**.
 
 Cada entrada crea **su propia partida**, con su coste y su caducidad congelados.
 Dos compras de la misma flor a distinto precio son dos partidas distintas: por
@@ -137,6 +142,12 @@ base de datos.
 **Stock → Previsión de compra** ayuda a decidir cuánto pedir para una fecha
 fuerte: ver [INFORMES.md](INFORMES.md).
 
+**Stock → Entradas y salidas** reúne en una sola lista todos los movimientos ya
+confirmados de un producto: recepciones, ventas (sueltas, de un ramo o de un
+evento), devoluciones y mermas, cada uno con su motivo y su documento de
+origen. Filtra por **Todo / Entradas / Salidas**, por producto y por fechas
+(empieza mostrando el mes en curso). El coste solo lo ve la propietaria.
+
 ## 5. Vender
 
 **Gestor de Stock → Vender** abre el TPV directamente, sin pantallas de por
@@ -151,8 +162,21 @@ En el TPV: escanea o toca el producto, cobra y valida.
   solos: no hay una segunda lista que mantener.
 - **El programa elige la partida sola**: primero la que caduca antes y, a
   igualdad, la más antigua.
-- **No deja vender caducado ni más unidades de las que hay.** Si salta el aviso,
-  revisa la mercancía en la estantería antes de insistir.
+- **No deja vender caducado**, pero si faltan unidades de un producto, el
+  programa muestra cuántas quedan y cuántas se piden y pregunta
+  **«Cancelar»** o **«Añadir de todos modos»**. Si aceptas, aparece un aviso
+  amarillo «Hay que revisar el stock de este producto» que se queda mientras
+  esa venta esté abierta, y queda anotado para revisarlo después (Stock →
+  Alertas). Si vuelves a aumentar la cantidad, el programa vuelve a
+  preguntar: aceptar una vez no vale para lo que se añada después.
+- Cada línea de la venta tiene un botón **Eliminar** para quitarla con un
+  solo toque, sin pasar antes por cantidad 0. Solo en cuentas todavía sin
+  cobrar: un ticket ya pagado se corrige con una devolución (apartado 6).
+- **Cliente**: el botón dice **«Añadir cliente — opcional»**. Si no se
+  elige ninguno, la venta queda como **«Venta de mostrador»** — no se crea
+  ninguna ficha de cliente falsa. Se puede buscar, crear (solo el nombre es
+  obligatorio; el teléfono y los datos de facturación son opcionales),
+  cambiar o quitar en cualquier momento antes de cobrar.
 - **Efectivo**: el cajón se abre solo al cobrar y al dar cambio.
 - **Tarjeta**: cobra en el datáfono, comprueba que ha ido bien y **después**
   registra el cobro como tarjeta en el TPV. El programa te lo pregunta al validar.
@@ -220,8 +244,20 @@ Procedimiento completo en [EVENTOS.md](EVENTOS.md).
 
 Detalle completo en [DEVOLUCIONES.md](DEVOLUCIONES.md).
 
-En el TPV: **Pedidos → Pagado**, busca el ticket, elige producto y cantidad,
-**Reembolso**, **Pago**, método de devolución y **Validar**.
+En el TPV, menú ☰ → **Ventas y devoluciones** (antes «Pedidos»): dos pestañas,
+**Ventas en curso** (cuentas todavía sin cobrar) e **Historial de tickets**
+(ya pagados, para buscar, reimprimir o devolver). Cada fila del historial
+dice si es una **venta** o una **devolución**.
+
+Para devolver: busca el ticket ya pagado y elige:
+
+- **Devolver todo**, si se devuelve el ticket entero, o
+- **Elegir productos**, tocando cada línea y poniendo la cantidad con el
+  teclado numérico (las cantidades ya devueltas no se pueden volver a elegir).
+
+Antes de continuar, el programa muestra **el importe que se va a devolver** y
+pide **Confirmar devolución**. Solo entonces se crea la devolución, enlazada
+al ticket original.
 
 Al validar, el programa pregunta por **cada línea** en qué estado vuelve:
 
@@ -233,8 +269,10 @@ bien y una está rota, haz dos devoluciones parciales del mismo ticket**: una de
 dos unidades como recuperable y otra de una unidad como deteriorada. El programa
 lleva la cuenta de lo que queda por devolver.
 
-Después de confirmar **no se puede cambiar** la marca de deterioro. Y recuerda:
-la devolución del dinero con tarjeta se tramita en el datáfono.
+Después de confirmar **no se puede cambiar** la marca de deterioro. Si el pago
+original fue con tarjeta, el programa lo recuerda al final: **la devolución del
+dinero se tramita también, por separado, en el datáfono** — registrarla en el
+TPV no la hace en el terminal.
 
 ## 7. Mermas
 

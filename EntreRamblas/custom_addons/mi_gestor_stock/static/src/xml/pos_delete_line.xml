@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Botón "Eliminar" en cada línea de la venta en curso. `line` es el
+         modelo real de la línea (t-set en point_of_sale.OrderSummary, no el
+         DTO que recibe <Orderline>), así que aquí sí se puede consultar
+         line.order_id.finalized. -->
+    <t t-name="mi_gestor_stock.PosDeleteLine" t-inherit="point_of_sale.OrderSummary"
+       t-inherit-mode="extension">
+        <xpath expr="//t[@t-set-slot='product-name']" position="inside">
+            <button t-if="!line.order_id.finalized"
+                    class="btn btn-link text-danger o_mgs_delete_line p-0 ms-2"
+                    title="Eliminar producto"
+                    t-on-click.stop="() => this.mgsDeleteLine(line)">
+                <i class="fa fa-trash" role="img" aria-label="Eliminar"/>
+            </button>
+        </xpath>
+    </t>
+
+</templates>

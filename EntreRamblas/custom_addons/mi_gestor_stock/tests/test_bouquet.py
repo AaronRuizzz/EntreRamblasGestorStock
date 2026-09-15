@@ -114,8 +114,14 @@ class TestBouquet(TestPointOfSaleCommon):
         self.receive(self.rose, 3, 2.0, 5)
         lines = [{"product_id": self.bouquet.id, "qty": 1,
                   "bouquet_spec": self.spec((self.rose, 7))}]
-        with self.assertRaises(UserError), self.env.cr.savepoint():
-            self.env["pos.order"].mgs_check_stock(self.session.id, lines)
+        # Desde la Fase 1 la falta de flores ya no lanza excepción: se
+        # expande el ramo en sus componentes (mgs_bouquet.mgs_check_stock) y
+        # el déficit del material aparece en "deficits", listo para que el
+        # TPV pida confirmación de "añadir de todos modos".
+        result = self.env["pos.order"].mgs_check_stock(self.session.id, lines)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["deficits"][0]["product_id"], self.rose.id)
+        self.assertEqual(result["deficits"][0]["missing"], 4)
         # Con material suficiente, pasa.
         ok = [{"product_id": self.bouquet.id, "qty": 1,
                "bouquet_spec": self.spec((self.rose, 3))}]
@@ -176,8 +182,12 @@ class TestBouquet(TestPointOfSaleCommon):
         self.receive(self.rose, 5, 2.0, -1)  # ya caducada
         lines = [{"product_id": self.bouquet.id, "qty": 1,
                   "bouquet_spec": self.spec((self.rose, 2))}]
-        with self.assertRaises(UserError), self.env.cr.savepoint():
-            self.env["pos.order"].mgs_check_stock(self.session.id, lines)
+        # Caducada no cuenta como disponible: falta de stock (deficit), no
+        # excepción — igual que test_stock_is_checked_against_the_flowers...
+        result = self.env["pos.order"].mgs_check_stock(self.session.id, lines)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["deficits"][0]["available"], 0)
+        self.assertEqual(result["deficits"][0]["missing"], 2)
     def test_a_ticket_with_a_bouquet_and_a_loose_product_moves_both(self):
         """Fija que la convivencia de los dos overrides de
         _create_move_from_pos_order_lines (mgs_bouquet.py y mgs_pos_stock.py)

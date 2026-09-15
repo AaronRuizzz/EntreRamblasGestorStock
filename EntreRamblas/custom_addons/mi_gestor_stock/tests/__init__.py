@@ -1,5 +1,6 @@
 from . import test_reception
 from . import test_pos_stock
+from . import test_stock_deficit
 from . import test_instalacion
 from . import test_security
 from . import test_access
@@ -17,5 +18,7 @@ from . import test_escpos
 from . import test_res_company
 from . import test_stock_alert
 from . import test_product_panel
+from . import test_product_category
+from . import test_stock_ledger
 from . import test_menus
 from . import test_pos_category

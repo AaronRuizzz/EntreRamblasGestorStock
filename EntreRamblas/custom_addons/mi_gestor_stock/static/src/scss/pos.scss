@@ -33,3 +33,63 @@
 
     &:hover { background-color: rgba(30, 58, 95, .08); }
 }
+
+// Botón "Eliminar" de cada línea de venta (pos_delete_line.xml): objetivo
+// táctil de al menos 44px, con el icono centrado dentro.
+.o_mgs_delete_line {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+
+    &:focus-visible {
+        outline: 2px solid #1e3a5f;
+        outline-offset: 2px;
+    }
+}
+
+// Aviso persistente "hay que revisar el stock" (pos_stock_banner.xml).
+.o_mgs_stock_banner {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    font-weight: 600;
+    color: #7a4b00;
+    background-color: #fff3cd;
+    border-bottom: 1px solid #ffe69c;
+
+    .fa {
+        font-size: 1.1rem;
+    }
+}
+
+// "Ventas y devoluciones" (pos_refund.xml): pestañas simplificadas y
+// distintivo de venta/devolución en cada fila del listado de tickets.
+.o_mgs_ticket_tabs .btn {
+    min-height: 44px;
+}
+
+.o_mgs_order_kind {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: .8rem;
+    color: #495057;
+}
+
+.o_mgs_line_exception {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    margin-left: .5rem;
+    padding: .1rem .4rem;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #7a4b00;
+    background-color: #fff3cd;
+    border: 1px solid #ffe69c;
+    border-radius: 999px;
+}

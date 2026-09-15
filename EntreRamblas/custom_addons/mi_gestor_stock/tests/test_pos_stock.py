@@ -292,11 +292,20 @@ class TestPosStock(TestPointOfSaleCommon):
         self.session.state = "opened"
         self.receive(3, 2, 5)
         api = self.env["pos.order"]
-        with self.assertRaises(UserError):
-            api.mgs_check_stock(self.session.id, [
-                {"product_id": self.flower.id, "qty": 2},
-                {"product_id": self.flower.id, "qty": 2},
-            ])
+        # Desde la Fase 1 (venta con falta de stock), la falta ya no lanza
+        # excepción: se agrega por producto y se devuelve como "deficit" para
+        # que el TPV pida confirmación, no para bloquear sin salida.
+        result = api.mgs_check_stock(self.session.id, [
+            {"product_id": self.flower.id, "qty": 2},
+            {"product_id": self.flower.id, "qty": 2},
+        ])
+        self.assertFalse(result["ok"])
+        self.assertEqual(len(result["deficits"]), 1)
+        deficit = result["deficits"][0]
+        self.assertEqual(deficit["product_id"], self.flower.id)
+        self.assertEqual(deficit["available"], 3)
+        self.assertEqual(deficit["requested"], 4)
+        self.assertEqual(deficit["missing"], 1)
         self.assertTrue(api.mgs_check_stock(self.session.id, [{"product_id": self.flower.id, "qty": 3}])["ok"])
         order = self.order(3)
         order._create_order_picking()

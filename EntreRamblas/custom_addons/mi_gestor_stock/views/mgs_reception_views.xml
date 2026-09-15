@@ -57,9 +57,9 @@
                         <group>
                             <group string="Información del producto">
                                 <field name="new_name" placeholder="Ej. Rosa roja de tallo largo"/>
-                                <field name="new_categ_id" options="{'no_open': True}"
+                                <field name="new_categ_id" widget="mgs_category_autocreate"
                                        required="mode == 'nuevo'"
-                                       placeholder="Escribe una y pulsa «Crear» si no está en la lista"/>
+                                       placeholder="Escribe una categoría…"/>
                                 <field name="new_price"/>
                                 <field name="new_cost"/>
                                 <field name="new_expiry_date"/>

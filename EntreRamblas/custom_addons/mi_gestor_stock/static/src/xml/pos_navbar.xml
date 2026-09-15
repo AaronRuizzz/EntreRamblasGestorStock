@@ -42,7 +42,8 @@
                         </DropdownItem>
                     </t>
                     <DropdownItem onSelected="() => this.pos.showScreen('TicketScreen')">
-                        Pedidos <span t-if="orderCount gt 0" class="badge text-bg-info rounded-pill py-1 ms-2 float-end" t-esc="orderCount"/>
+                        <div>Ventas y devoluciones <span t-if="orderCount gt 0" class="badge text-bg-info rounded-pill py-1 ms-2 float-end" t-esc="orderCount"/></div>
+                        <small class="d-block text-muted">Continuar una venta, buscar un ticket, reimprimir o devolver</small>
                     </DropdownItem>
                     <DropdownItem t-if="showCashMoveButton" onSelected="() => this.pos.cashMove()">
                         Entrada / salida de efectivo

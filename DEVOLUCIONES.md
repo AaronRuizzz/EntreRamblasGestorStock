@@ -1,8 +1,11 @@
 # Devoluciones en tienda
 
-Desde el menú del TPV abre **Pedidos**, selecciona **Pagado** y busca el ticket
-original. Selecciona el producto y la cantidad a devolver, pulsa **Reembolso**
-y entra en **Pago**. Registra el método por el que se devuelve el importe.
+Desde el menú del TPV (☰) abre **Ventas y devoluciones** (antes «Pedidos»),
+pestaña **Historial de tickets**, y busca el ticket original. Elige
+**Devolver todo** o **Elegir productos** (tocando cada línea y poniendo la
+cantidad con el numpad). El programa muestra el **importe que se va a
+devolver** y pide **Confirmar devolución** antes de seguir. Después entra en
+**Pago** y registra el método por el que se devuelve el importe.
 
 Al pulsar **Validar**, el programa pregunta por el estado de cada línea de stock:
 
