@@ -44,6 +44,37 @@ class ProductTemplate(models.Model):
         search='_search_mgs_low_stock',
         help="El producto tiene un aviso por cantidad y está en el límite o por debajo.")
 
+    # ------------------------------------------------------------------
+    # Categoría: una sola, la del almacén, que vale también para la caja
+    # (el porqué y el espejo, en models/product_category.py)
+    # ------------------------------------------------------------------
+    @api.model_create_multi
+    def create(self, vals_list):
+        templates = super().create(vals_list)
+        templates._mgs_apply_pos_category()
+        return templates
+
+    def write(self, vals):
+        res = super().write(vals)
+        if "categ_id" in vals:
+            self._mgs_apply_pos_category()
+        return res
+
+    def _mgs_apply_pos_category(self):
+        """`pos_categ_ids` (el botón del TPV) sigue a `categ_id` (la categoría
+        del almacén).
+
+        La ficha del producto no enseña la pestaña «Punto de venta»
+        (views/product_views.xml): la categoría se elige UNA vez, al recibir el
+        producto, y la caja se entera sola. Un producto cuya categoría no tiene
+        botón —las de fábrica, archivadas— se queda sin él: en el TPV sigue
+        saliendo en la parrilla general y en el buscador.
+        """
+        for tmpl in self:
+            mirror = tmpl.categ_id.sudo().mgs_pos_categ_id
+            if tmpl.pos_categ_ids != mirror:
+                tmpl.pos_categ_ids = [(6, 0, mirror.ids)]
+
     def _mgs_available_lot_quants(self):
         return self.env["stock.quant"].search([
             ("product_id.product_tmpl_id", "in", self.ids),
