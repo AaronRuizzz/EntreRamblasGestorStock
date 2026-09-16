@@ -93,7 +93,10 @@
                 <tr t-foreach="cat.products" t-as="p" t-key="p.id"
                     t-attf-class="{{ p.low ? 'is-low' : '' }}"
                     t-on-click="() => this.openProduct(p.id)">
-                  <td t-esc="p.name"/>
+                  <td>
+                    <div t-esc="p.name"/>
+                    <small t-if="p.barcode" class="d-block text-muted" t-esc="p.barcode"/>
+                  </td>
                   <td class="text-end">
                     <t t-esc="formatQty(p.qty)"/> <small t-esc="p.uom"/>
                   </td>

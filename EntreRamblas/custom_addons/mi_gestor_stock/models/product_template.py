@@ -279,6 +279,7 @@ class ProductTemplate(models.Model):
             categ["products"].append({
                 "id": tmpl.id,
                 "name": tmpl.name,
+                "barcode": tmpl.barcode,
                 "qty": tmpl.qty_available,
                 "uom": tmpl.uom_id.name,
                 "price": tmpl.list_price,
