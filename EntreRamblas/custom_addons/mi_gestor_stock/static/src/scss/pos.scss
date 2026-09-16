@@ -93,3 +93,21 @@
     border: 1px solid #ffe69c;
     border-radius: 999px;
 }
+
+// Pantalla de recibo tras cobrar (point_of_sale.ReceiptScreen, core): la
+// tienda no usa el envío de ticket por email/SMS. En vez de recortar esa
+// plantilla con un t-inherit por xpath (se probó y dejaba la pantalla en
+// blanco al abrirla tras pagar — la extensión rompía el render), se oculta
+// solo por CSS, dejando intacta la estructura que Odoo necesita: el bloque
+// email/teléfono (segundo <div class="d-flex flex-column gap-2">, hijo
+// directo de .receipt-options) y el de mensajes de envío (.notice). Los
+// botones de imprimir (primer hijo, "d-flex gap-1") y "New Order" no
+// llevan estas clases, no se ocultan. `!important` porque son las mismas
+// utilidades `.d-flex`/`.flex-column` de Bootstrap, que ya se definen con
+// `!important` y ganarían si no.
+.receipt-options {
+    > .d-flex.flex-column.gap-2,
+    > .notice.text-center {
+        display: none !important;
+    }
+}

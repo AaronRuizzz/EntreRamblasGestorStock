@@ -100,9 +100,13 @@
             "mi_gestor_stock/static/src/xml/pos_refund.xml",
             "mi_gestor_stock/static/src/xml/pos_partner.xml",
             "mi_gestor_stock/static/src/xml/pos_receipt.xml",
-            "mi_gestor_stock/static/src/xml/pos_receipt_screen.xml",
             "mi_gestor_stock/static/src/xml/pos_stock_banner.xml",
             "mi_gestor_stock/static/src/xml/pos_delete_line.xml",
+        ],
+        # Tours de navegador (odoo.tests HttpCase.start_tour) — solo se
+        # cargan en modo test (--test-enable), nunca en producción.
+        "web.assets_tests": [
+            "mi_gestor_stock/static/tests/tours/**/*",
         ],
     },
     "installable": True,
