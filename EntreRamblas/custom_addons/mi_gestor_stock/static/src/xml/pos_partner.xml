@@ -12,4 +12,27 @@
         </xpath>
     </t>
 
+    <!-- Botón "Eliminar cliente" en el desplegable de cada fila del
+         selector de clientes. La lógica de negocio (bloquear si tiene
+         ventas/encargos, archivar en su lugar) vive en el servidor
+         (models/res_partner.py:mgs_pos_delete); aquí solo se añade el
+         punto de entrada. El DropdownItem de "All Orders" está duplicado
+         en las dos ramas del template (móvil/escritorio) — cada xpath
+         debe resolver a un único nodo, así que van scopeados por rama. -->
+    <t t-name="mi_gestor_stock.PosPartnerLineDelete" t-inherit="point_of_sale.PartnerLine"
+       t-inherit-mode="extension">
+        <xpath expr="//t[@t-if='ui.isSmall']//DropdownItem[@onSelected='() =&gt; props.onClickOrders(props.partner)']"
+               position="after">
+            <DropdownItem onSelected="() => this.mgsDeletePartner(props.partner)">
+                Eliminar cliente
+            </DropdownItem>
+        </xpath>
+        <xpath expr="//t[@t-else='']//DropdownItem[@onSelected='() =&gt; props.onClickOrders(props.partner)']"
+               position="after">
+            <DropdownItem onSelected="() => this.mgsDeletePartner(props.partner)">
+                Eliminar cliente
+            </DropdownItem>
+        </xpath>
+    </t>
+
 </templates>

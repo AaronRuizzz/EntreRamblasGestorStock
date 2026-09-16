@@ -15,7 +15,7 @@
         <field name="name">mgs.event.payment.wizard.form</field>
         <field name="model">mgs.event.payment.wizard</field>
         <field name="arch" type="xml">
-            <form string="Registrar cobro">
+            <form string="Registrar cobro" class="o_mgs_event_form">
                 <group>
                     <field name="event_id" readonly="1"/>
                     <field name="amount_due" readonly="1"/>

@@ -32,7 +32,7 @@
                             <field name="supplier_ref" placeholder="Nº de albarán del proveedor"/>
                         </group>
                         <group>
-                            <field name="document_date"/>
+                            <field name="document_date" class="mgs-date-input"/>
                             <field name="picking_id" invisible="not picking_id"/>
                         </group>
                     </group>
@@ -60,9 +60,15 @@
                                 <field name="new_categ_id" widget="mgs_category_autocreate"
                                        required="mode == 'nuevo'"
                                        placeholder="Escribe una categoría…"/>
-                                <field name="new_price"/>
-                                <field name="new_cost"/>
-                                <field name="new_expiry_date"/>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="new_cost" class="mgs-price-field"
+                                       widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                                <field name="new_price" class="mgs-price-field"
+                                       widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                                <field name="new_tax_id" placeholder="Sin IVA"/>
+                                <field name="new_price_taxed" class="mgs-price-field"
+                                       widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                                <field name="new_expiry_date" class="mgs-date-input"/>
                             </group>
                             <group string="Código de barras">
                                 <field name="new_barcode" nolabel="1" class="mgs-scan-input"
@@ -97,7 +103,7 @@
                             <field name="quantity"/>
                             <field name="uom_id"/>
                             <field name="unit_cost"/>
-                            <field name="expiry_date"/>
+                            <field name="expiry_date" class="mgs-date-input"/>
                             <button name="action_mgs_print_label" type="object"
                                     icon="fa-print" title="Imprimir etiqueta"/>
                         </list>

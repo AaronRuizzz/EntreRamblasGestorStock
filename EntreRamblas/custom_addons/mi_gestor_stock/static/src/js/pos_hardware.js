@@ -22,6 +22,15 @@ patch(PosOrderline.prototype, {
     has_valid_product_lot() {
         return this.product_id.mgs_auto_lots || super.has_valid_product_lot(...arguments);
     },
+    // Con lote automático el cajero nunca elige el lote a mano (se asigna
+    // solo, ver mgs_pos_stock.py), así que no hay ambigüedad que impida
+    // agrupar: sin este override, can_be_merged_with() (pos_order_line.js)
+    // excluye cualquier producto con tracking "lot" y deja una línea nueva
+    // por cada pulsación/escaneo — que es prácticamente todo el catálogo,
+    // ya que Recepción y la importación de catálogo marcan mgs_auto_lots.
+    isLotTracked() {
+        return this.product_id.mgs_auto_lots ? false : super.isLotTracked(...arguments);
+    },
 });
 
 patch(HardwareProxy.prototype, {

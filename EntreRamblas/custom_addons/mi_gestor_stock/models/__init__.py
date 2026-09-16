@@ -4,6 +4,7 @@ from . import mgs_diagnostic
 from . import mgs_update
 from . import mgs_backup
 from . import res_company
+from . import res_partner
 from . import product_category
 from . import product_template
 from . import mgs_stock_lot

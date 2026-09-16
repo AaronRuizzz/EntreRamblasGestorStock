@@ -20,6 +20,7 @@ import { Dialog } from "@web/core/dialog/dialog";
 import { reactive } from "@odoo/owl";
 import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
+import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
 
 export class BouquetPopup extends Component {
     static template = "mi_gestor_stock.BouquetPopup";
@@ -138,5 +139,23 @@ patch(ProductScreen.prototype, {
             },
             {}
         );
+    },
+});
+
+// Dos ramos a medida DISTINTOS (composiciones de flores diferentes) del
+// mismo producto base "Ramo a medida" podrían compartir precio/nota/
+// descuento y, con ello, cumplir el merge nativo — que no conoce
+// mgs_bouquet_spec. Sin esta guarda se fusionarían en una sola línea,
+// perdiendo la composición de uno de los dos y deduciendo del stock los
+// materiales equivocados.
+patch(PosOrderline.prototype, {
+    can_be_merged_with(orderline) {
+        if (
+            (this.mgs_bouquet_spec || orderline.mgs_bouquet_spec) &&
+            this.mgs_bouquet_spec !== orderline.mgs_bouquet_spec
+        ) {
+            return false;
+        }
+        return super.can_be_merged_with(...arguments);
     },
 });

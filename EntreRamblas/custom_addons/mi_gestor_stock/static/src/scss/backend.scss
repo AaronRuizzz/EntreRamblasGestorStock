@@ -181,6 +181,39 @@ $mgs-radius: 8px;
     .mgs-event-note textarea {
         min-height: 9rem;
     }
+
+    // Contraste de los campos editables: el fondo aclarado de la hoja
+    // (regla 3, o_form_sheet_bg/o_form_sheet, arriba) combinado con el
+    // borde nativo de Odoo (solo 1px inferior) deja inputs/selects/textarea
+    // casi invisibles sobre $mgs-bg. Ámbito acotado a este formulario a
+    // propósito: NO se toca .o_input a secas (afectaría Recepción,
+    // Producto, y el resto del backoffice).
+    .o_field_widget:not(.o_readonly_modifier) {
+        .o_input {
+            background-color: $mgs-card;
+            border: 1px solid $mgs-border-dark;
+            border-radius: 6px;
+            padding: 4px 8px;
+            transition: border-color .12s ease, box-shadow .12s ease;
+
+            &:hover {
+                border-color: $mgs-blue;
+            }
+        }
+        &:focus-within .o_input,
+        .o_input:focus {
+            border-color: $mgs-blue;
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, .15);
+            outline: none;
+        }
+    }
+
+    // Campos de solo lectura (según el estado del evento): texto apagado
+    // pero legible, sin caja — se distinguen de un vistazo de los de
+    // arriba, que sí se pueden tocar.
+    .o_field_widget.o_readonly_modifier {
+        color: $mgs-muted;
+    }
 }
 
 // ---- 4. Botones (ámbito acotado, nunca `.btn` a secas) -----------
@@ -279,6 +312,51 @@ $mgs-radius: 8px;
 
     &:focus {
         border-color: $mgs-navy;
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, .15);
+    }
+}
+
+// Fechas del albarán/caducidad: mismo lenguaje que .mgs-scan-input (borde
+// grueso + anillo de foco) pero a tamaño de campo normal, no del campo de
+// escaneo (ese es para el lector, no para teclear a mano).
+.mgs-date-input input {
+    border: 2px solid $mgs-border-dark;
+    border-radius: $mgs-radius;
+    padding: 8px 10px;
+    font-weight: 600;
+
+    &:focus {
+        border-color: $mgs-blue;
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, .15);
+    }
+}
+
+// Dentro de la lista editable de líneas la fila es compacta: la misma caja
+// a tamaño de formulario descuadraría la altura de fila.
+.o_list_view .mgs-date-input input {
+    padding: 4px 6px;
+    border-width: 1px;
+}
+
+// Los 3 campos de precio (coste / sin IVA / con IVA) usan widget="monetary":
+// el `class` del <field> cae en el div raíz de web.Field (o_field_widget
+// o_field_monetary mgs-price-field), NO en el <input> interno — por eso el
+// borde se pone en ese contenedor y se usa :focus-within (el input hijo es
+// el que recibe el foco de verdad).
+.mgs-price-field {
+    border: 2px solid $mgs-border-dark;
+    border-radius: $mgs-radius;
+    padding: 4px 10px;
+
+    // Neutraliza el borde inferior nativo de .o_input para no duplicar
+    // bordes ahora que el contenedor ya dibuja uno completo.
+    .o_input {
+        border: none;
+        box-shadow: none;
+    }
+
+    &:focus-within {
+        border-color: $mgs-blue;
         box-shadow: 0 0 0 3px rgba(30, 58, 95, .15);
     }
 }

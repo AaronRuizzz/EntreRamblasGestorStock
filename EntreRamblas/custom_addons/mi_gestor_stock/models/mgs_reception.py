@@ -3,6 +3,7 @@ from datetime import datetime, time
 import pytz
 from odoo import Command, api, fields, models, _
 from odoo.exceptions import UserError
+from odoo.tools import float_compare
 
 from .mgs_permissions import assert_not_maintenance
 
@@ -51,8 +52,15 @@ class MgsReception(models.TransientModel):
     new_barcode = fields.Char("Código de barras")
     new_name = fields.Char("Nombre del producto")
     new_categ_id = fields.Many2one("product.category", string="Categoría")
-    new_price = fields.Float("Precio de venta", digits="Product Price")
+    currency_id = fields.Many2one(
+        "res.currency", default=lambda self: self.env.company.currency_id, readonly=True)
     new_cost = fields.Float("Precio de coste", digits="Product Price")
+    new_price = fields.Float("Precio de venta sin IVA", digits="Product Price")
+    new_tax_id = fields.Many2one(
+        "account.tax", string="IVA",
+        domain="[('type_tax_use', '=', 'sale'), ('company_id', '=', company_id)]",
+        default=lambda self: self.env.company.account_sale_tax_id)
+    new_price_taxed = fields.Float("Precio de venta", digits="Product Price")
     new_expiry_date = fields.Date("Caduca el")
 
     # ------------------------------------------------------------------
@@ -133,6 +141,38 @@ class MgsReception(models.TransientModel):
         return product
 
     # ------------------------------------------------------------------
+    # Modo "nuevo": precio con/sin IVA reactivo
+    # ------------------------------------------------------------------
+    def _mgs_new_tax_ratio(self):
+        """(incluido, excluido) para una base de 1.0 con new_tax_id, o (1.0, 1.0)
+        sin impuesto elegido — mismo patrón que mgs_event._mgs_pos_price_unit."""
+        if not self.new_tax_id:
+            return 1.0, 1.0
+        result = self.new_tax_id.compute_all(
+            1.0, currency=self.company_id.currency_id, quantity=1.0)
+        return (result.get("total_included") or 1.0), (result.get("total_excluded") or 1.0)
+
+    @api.onchange("new_price", "new_tax_id")
+    def _onchange_new_price(self):
+        precision = self.env["decimal.precision"].precision_get("Product Price")
+        included, excluded = self._mgs_new_tax_ratio()
+        if not excluded:
+            return
+        expected = self.new_price * (included / excluded)
+        if float_compare(expected, self.new_price_taxed, precision_digits=precision) != 0:
+            self.new_price_taxed = expected
+
+    @api.onchange("new_price_taxed")
+    def _onchange_new_price_taxed(self):
+        precision = self.env["decimal.precision"].precision_get("Product Price")
+        included, excluded = self._mgs_new_tax_ratio()
+        if not included:
+            return
+        expected = self.new_price_taxed * (excluded / included)
+        if float_compare(expected, self.new_price, precision_digits=precision) != 0:
+            self.new_price = expected
+
+    # ------------------------------------------------------------------
     # Modo "nuevo": alta del producto
     # ------------------------------------------------------------------
     def action_add_new_product(self):
@@ -149,7 +189,7 @@ class MgsReception(models.TransientModel):
         if self._mgs_find_product(self.new_barcode):
             raise UserError(_("Ya existe un producto con el código %s.", self.new_barcode))
 
-        template = self.env["product.template"].create({
+        vals = {
             "name": self.new_name,
             "barcode": self.new_barcode,
             "list_price": self.new_price,
@@ -161,7 +201,10 @@ class MgsReception(models.TransientModel):
             "tracking": "lot",
             "mgs_auto_lots": True,
             "use_expiration_date": True,
-        })
+        }
+        if self.new_tax_id:
+            vals["taxes_id"] = [Command.set(self.new_tax_id.ids)]
+        template = self.env["product.template"].create(vals)
         self.line_ids |= self.env["mgs.reception.line"].new({
             "product_id": template.product_variant_id.id,
             "quantity": 1.0,
@@ -175,6 +218,7 @@ class MgsReception(models.TransientModel):
         self.new_name = False
         self.new_categ_id = False
         self.new_price = 0.0
+        self.new_price_taxed = 0.0
         self.new_cost = 0.0
         self.new_expiry_date = False
         # Hallazgo 18: se limpiaba new_categ_id pero el formulario seguía en
