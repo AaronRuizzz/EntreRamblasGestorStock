@@ -57,15 +57,20 @@
                         <group>
                             <group string="Información del producto">
                                 <field name="new_name" placeholder="Ej. Rosa roja de tallo largo"/>
-                                <field name="new_categ_id" widget="mgs_category_autocreate"
+                                <!-- El selector estándar deja escoger una categoría ya
+                                     creada y también ofrece «Crear» cuando hace falta. -->
+                                <field name="new_categ_id"
                                        required="mode == 'nuevo'"
-                                       placeholder="Escribe una categoría…"/>
+                                       placeholder="Elige o crea una categoría…"/>
                                 <field name="currency_id" invisible="1"/>
                                 <field name="new_cost" class="mgs-price-field"
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                                 <field name="new_price" class="mgs-price-field"
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
-                                <field name="new_tax_id" placeholder="Sin IVA"/>
+                                <!-- El dominio del modelo limita la lista a IVA 21 % y
+                                     0 %. La dueña puede usar «Crear y editar…» si su
+                                     gestoría necesita habilitar un tipo adicional. -->
+                                <field name="new_tax_id" placeholder="Elige IVA…"/>
                                 <field name="new_price_taxed" class="mgs-price-field"
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                                 <field name="new_expiry_date" class="mgs-date-input"/>

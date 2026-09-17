@@ -65,7 +65,11 @@ class MgsReception(models.TransientModel):
     new_price = fields.Float("Precio de venta sin IVA", digits="Product Price")
     new_tax_id = fields.Many2one(
         "account.tax", string="IVA",
-        domain="[('type_tax_use', '=', 'sale'), ('company_id', '=', company_id)]",
+        # En la recepción solo se trabajan los dos tipos habituales de la
+        # tienda. La dueña conserva la opción nativa de crear otro impuesto
+        # desde el desplegable si su gestoría se lo indica.
+        domain="[('type_tax_use', '=', 'sale'), ('company_id', '=', company_id), "
+               "('amount_type', '=', 'percent'), ('amount', 'in', [0, 21])]",
         default=lambda self: self._mgs_default_sale_tax())
     new_price_taxed = fields.Float("Precio de venta", digits="Product Price")
     new_expiry_date = fields.Date("Caduca el")
@@ -164,17 +168,17 @@ class MgsReception(models.TransientModel):
 
     @api.model
     def _mgs_default_sale_tax(self):
-        """IVA reducido español para flores y plantas vivas (10 %).
+        """IVA general español (21 %) como opción inicial de la tienda.
 
-        La localización española distingue bienes (``G``) de servicios; para
-        una floristería se prefiere el primero y se conserva el impuesto
-        principal de la compañía como alternativa si el plan aún no lo creó.
+        La lista del alta solo muestra 21 % y 0 %. La localización española
+        distingue bienes (``G``) de servicios, así que se prefiere el de
+        bienes cuando exista más de uno con el mismo porcentaje.
         """
         taxes = self.env["account.tax"].search([
             ("type_tax_use", "=", "sale"),
             ("company_id", "=", self.env.company.id),
             ("amount_type", "=", "percent"),
-            ("amount", "=", 10),
+            ("amount", "=", 21),
         ])
         goods_tax = taxes.filtered(lambda tax: (tax.name or "").strip().endswith(" G"))
         return (goods_tax or taxes or self.env.company.account_sale_tax_id)[:1]

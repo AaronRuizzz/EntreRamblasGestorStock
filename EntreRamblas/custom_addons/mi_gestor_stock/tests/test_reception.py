@@ -110,7 +110,7 @@ class TestReception(TransactionCase):
             "new_barcode": "8499999999990", "new_price": 3.5, "new_cost": 1.2,
         })
         self.assertEqual(wizard.new_categ_id.name, "Flor cortada")
-        self.assertEqual(wizard.new_tax_id.amount, 10)
+        self.assertEqual(wizard.new_tax_id.amount, 21)
         wizard.action_add_new_product()
         product = self.env["product.template"].search([("name", "=", "Peonía rosa")])
         self.assertEqual(product.categ_id, wizard._mgs_default_category())

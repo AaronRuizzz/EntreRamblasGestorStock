@@ -24,8 +24,8 @@ class TestCatalogImport(TransactionCase):
 
     def test_valid_sheet_creates_the_catalogue(self):
         wiz = self.wizard(
-            '8412345678905;Rosa roja tallo largo;Flor cortada;Unidades;2,50;1,10;10',
-            ';Jarrón de cristal;Flor cortada;Unidades;12.00;6.25;21',
+            '8412345678905;Rosa roja tallo largo;Flor cortada;Unidades;2,50;1,10;21',
+            ';Jarrón de cristal;Flor cortada;Unidades;12.00;6.25;0',
             '# esta línea de ayuda se ignora;;;;;;',
         )
         wiz.action_check()
@@ -39,8 +39,8 @@ class TestCatalogImport(TransactionCase):
         self.assertEqual(rosa.list_price, 2.5)
         self.assertEqual(rosa.standard_price, 1.1)
         self.assertEqual(rosa.categ_id, self.category)
-        self.assertEqual(rosa.taxes_id.amount, 10)
-        self.assertEqual(jarron.taxes_id.amount, 21)
+        self.assertEqual(rosa.taxes_id.amount, 21)
+        self.assertEqual(jarron.taxes_id.amount, 0)
         # Sin código en la hoja, el programa genera uno interno imprimible.
         self.assertTrue(jarron.barcode and jarron.barcode.isdigit() and len(jarron.barcode) == 13)
         for product in (rosa, jarron):
@@ -53,7 +53,7 @@ class TestCatalogImport(TransactionCase):
 
     def test_nothing_is_created_while_a_row_is_wrong(self):
         wiz = self.wizard(
-            '8412345678905;Rosa buena;Flor cortada;Unidades;2,50;1,10;10',
+            '8412345678905;Rosa buena;Flor cortada;Unidades;2,50;1,10;21',
             ';Rosa sin iva;Flor cortada;Unidades;2,50;1,10;7',
         )
         wiz.action_check()
@@ -66,11 +66,11 @@ class TestCatalogImport(TransactionCase):
     def test_duplicates_inside_the_sheet_and_against_the_catalogue(self):
         self.env['product.template'].create({'name': 'Clavel blanco', 'barcode': '8400000000017'})
         wiz = self.wizard(
-            '8412345678905;Rosa uno;;Unidades;2,50;1,10;10',
-            '8412345678905;Rosa dos;;Unidades;2,50;1,10;10',
-            ';Rosa uno;;Unidades;2,50;1,10;10',
-            ';Clavel blanco;;Unidades;2,50;1,10;10',
-            '8400000000017;Clavel repetido por código;;Unidades;2,50;1,10;10',
+            '8412345678905;Rosa uno;;Unidades;2,50;1,10;21',
+            '8412345678905;Rosa dos;;Unidades;2,50;1,10;21',
+            ';Rosa uno;;Unidades;2,50;1,10;21',
+            ';Clavel blanco;;Unidades;2,50;1,10;21',
+            '8400000000017;Clavel repetido por código;;Unidades;2,50;1,10;21',
         )
         wiz.action_check()
         self.assertEqual(wiz.error_count, 4)
@@ -81,10 +81,10 @@ class TestCatalogImport(TransactionCase):
         self.assertIn('ya hay un producto con ese código', messages)
 
     def test_zeros_and_negatives(self):
-        rows = ('8412345678905;Rosa gratis;;Unidades;0;1,10;10',
-                ';Rosa sin coste;;Unidades;2,50;0;10',
-                ';Rosa negativa;;Unidades;-1;1,10;10',
-                ';Rosa sin número;;Unidades;dos euros;1,10;10')
+        rows = ('8412345678905;Rosa gratis;;Unidades;0;1,10;21',
+                ';Rosa sin coste;;Unidades;2,50;0;21',
+                ';Rosa negativa;;Unidades;-1;1,10;21',
+                ';Rosa sin número;;Unidades;dos euros;1,10;21')
         wiz = self.wizard(*rows)
         wiz.action_check()
         self.assertEqual(wiz.error_count, 4)
@@ -94,11 +94,11 @@ class TestCatalogImport(TransactionCase):
         self.assertEqual(confirmed.error_count, 2)
 
     def test_unknown_category_needs_an_explicit_yes(self):
-        wiz = self.wizard('8412345678905;Rosa;Categoria con erata;Unidades;2,50;1,10;10')
+        wiz = self.wizard('8412345678905;Rosa;Categoria con erata;Unidades;2,50;1,10;21')
         wiz.action_check()
         self.assertEqual(wiz.error_count, 1)
         self.assertIn('no existe', wiz.line_ids.message)
-        allowed = self.wizard('8412345678905;Rosa;Categoría nueva de verdad;Unidades;2,50;1,10;10',
+        allowed = self.wizard('8412345678905;Rosa;Categoría nueva de verdad;Unidades;2,50;1,10;21',
                               allow_new_categories=True)
         allowed.action_check()
         self.assertEqual(allowed.error_count, 0, allowed.summary)
@@ -119,7 +119,7 @@ class TestCatalogImport(TransactionCase):
         staff = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)),
             login='catalog_staff', groups='mi_gestor_stock.group_mgs_user',
             company_id=self.env.company.id)
-        wiz = self.wizard('8412345678905;Rosa;Flor cortada;Unidades;2,50;1,10;10')
+        wiz = self.wizard('8412345678905;Rosa;Flor cortada;Unidades;2,50;1,10;21')
         with self.assertRaises(AccessError), self.env.cr.savepoint():
             wiz.with_user(staff).action_check()
         wiz.action_check()
@@ -136,7 +136,7 @@ class TestCatalogImport(TransactionCase):
         header = template.splitlines()[0]
         # La plantilla que se descarga tiene que valer tal cual como cabecera.
         reused = self.env['mgs.catalog.import'].create({
-            'file': base64.b64encode(('%s\n8412345678905;Rosa;;Unidades;2,50;1,10;10'
+            'file': base64.b64encode(('%s\n8412345678905;Rosa;;Unidades;2,50;1,10;21'
                                       % header).encode('utf-8-sig'))})
         reused.action_check()
         self.assertEqual(reused.error_count, 0, reused.summary)

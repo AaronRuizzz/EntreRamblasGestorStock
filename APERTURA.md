@@ -32,7 +32,7 @@ existencias**: eso es el paso 2.
 | `unidad` | No | `Unidades` si se deja vacío. Se aceptan también `Docenas`, `Kg`, `Gramos`, `Litros`, `Metros`, `Cm`, `Tallos`. |
 | `precio_venta` | Sí | PVP con IVA incluido o no, según cómo esté configurada la tienda. Admite `2,50` y `2.50`. |
 | `coste` | Sí | Lo que cuesta la unidad al comprarla. Es la base del margen de los informes. |
-| `iva` | Sí | Solo `0`, `4`, `10` o `21`. |
+| `iva` | Sí | Solo `0` o `21`. |
 
 ### Por qué se comprueba todo antes
 

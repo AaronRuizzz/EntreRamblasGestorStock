@@ -24,11 +24,10 @@ from .mgs_permissions import require_manager
 # que da igual el acento o la mayúscula que ponga Excel al guardar.
 COLUMNS = ['codigo', 'nombre', 'categoria', 'unidad', 'precio_venta', 'coste', 'iva']
 REQUIRED = ['nombre', 'precio_venta', 'coste', 'iva']
-# IVA español al por menor. La dueña escribe el número; el asistente busca el
-# impuesto de venta de la compañía con ese porcentaje. No se elige por defecto:
-# el tipo aplicable a cada artículo lo decide ella, no el programa.
-ALLOWED_VAT = ['0', '4', '10', '21']
-EXAMPLE = ['8412345678905', 'Rosa roja tallo largo', 'Flor cortada', 'Unidades', '2,50', '1,10', '10']
+# La tienda trabaja con IVA 0 % y 21 %. La dueña escribe el número y el
+# asistente localiza el impuesto de venta de la compañía con ese porcentaje.
+ALLOWED_VAT = ['0', '21']
+EXAMPLE = ['8412345678905', 'Rosa roja tallo largo', 'Flor cortada', 'Unidades', '2,50', '1,10', '21']
 # Las unidades de Odoo se llaman en inglés mientras no se cargue su traducción,
 # y la dueña escribe la hoja en español. Estos son los nombres que de verdad va a
 # teclear una floristería; cualquier otro se señala como error, no se adivina.

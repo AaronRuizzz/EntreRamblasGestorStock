@@ -78,7 +78,9 @@
                     </div>
                     <field name="standard_price" string="Precio de coste (€)" widget="monetary"
                            options="{'currency_field': 'cost_currency_id', 'field_digits': True}"/>
-                    <field name="categ_id" string="Categoría" widget="mgs_category_autocreate"/>
+                    <!-- Lista de categorías existentes, con la acción nativa para
+                         crear una nueva cuando sea necesario. -->
+                    <field name="categ_id" string="Categoría" placeholder="Elige o crea una categoría…"/>
                     <!-- Ramo/composición: el TPV pregunta de qué está hecho y
                          descuenta cada material (models/mgs_bouquet.py). -->
                     <field name="mgs_is_composition" string="Ramo o composición a medida"/>
