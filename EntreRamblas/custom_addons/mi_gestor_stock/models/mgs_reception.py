@@ -24,8 +24,13 @@ class MgsReception(models.TransientModel):
     _name = "mgs.reception"
     _inherit = ["barcodes.barcode_events_mixin"]
     _description = "Recepción de mercancía"
+    # Sin un campo de título Odoo muestra el identificador técnico del
+    # transient (por ejemplo, «mgs.reception,8») en cuanto el formulario se
+    # guarda al crear una categoría o al procesar un escaneo.
+    _rec_name = "name"
     _transient_max_hours = 8.0
 
+    name = fields.Char(default=lambda self: _("Recepción de mercancía"), readonly=True)
     mode = fields.Selection([
         ("existente", "Producto existente"),
         ("nuevo", "Producto nuevo"),
@@ -51,7 +56,9 @@ class MgsReception(models.TransientModel):
     # --- modo "nuevo" ---
     new_barcode = fields.Char("Código de barras")
     new_name = fields.Char("Nombre del producto")
-    new_categ_id = fields.Many2one("product.category", string="Categoría")
+    new_categ_id = fields.Many2one(
+        "product.category", string="Categoría",
+        default=lambda self: self._mgs_default_category())
     currency_id = fields.Many2one(
         "res.currency", default=lambda self: self.env.company.currency_id, readonly=True)
     new_cost = fields.Float("Precio de coste", digits="Product Price")
@@ -59,7 +66,7 @@ class MgsReception(models.TransientModel):
     new_tax_id = fields.Many2one(
         "account.tax", string="IVA",
         domain="[('type_tax_use', '=', 'sale'), ('company_id', '=', company_id)]",
-        default=lambda self: self.env.company.account_sale_tax_id)
+        default=lambda self: self._mgs_default_sale_tax())
     new_price_taxed = fields.Float("Precio de venta", digits="Product Price")
     new_expiry_date = fields.Date("Caduca el")
 
@@ -143,6 +150,35 @@ class MgsReception(models.TransientModel):
     # ------------------------------------------------------------------
     # Modo "nuevo": precio con/sin IVA reactivo
     # ------------------------------------------------------------------
+    @api.model
+    def _mgs_default_category(self):
+        """Categoría de partida para una floristería española.
+
+        Se crea una única vez si aún no existe. El modelo de categorías crea
+        también su botón equivalente en el TPV, por lo que el artículo estará
+        clasificado correctamente al actualizar el catálogo de la caja.
+        """
+        Category = self.env["product.category"]
+        category = Category.search([("mgs_name_normalized", "=", "flor cortada")], limit=1)
+        return category or Category.create({"name": _("Flor cortada")})
+
+    @api.model
+    def _mgs_default_sale_tax(self):
+        """IVA reducido español para flores y plantas vivas (10 %).
+
+        La localización española distingue bienes (``G``) de servicios; para
+        una floristería se prefiere el primero y se conserva el impuesto
+        principal de la compañía como alternativa si el plan aún no lo creó.
+        """
+        taxes = self.env["account.tax"].search([
+            ("type_tax_use", "=", "sale"),
+            ("company_id", "=", self.env.company.id),
+            ("amount_type", "=", "percent"),
+            ("amount", "=", 10),
+        ])
+        goods_tax = taxes.filtered(lambda tax: (tax.name or "").strip().endswith(" G"))
+        return (goods_tax or taxes or self.env.company.account_sale_tax_id)[:1]
+
     def _mgs_new_tax_ratio(self):
         """(incluido, excluido) para una base de 1.0 con new_tax_id, o (1.0, 1.0)
         sin impuesto elegido — mismo patrón que mgs_event._mgs_pos_price_unit."""

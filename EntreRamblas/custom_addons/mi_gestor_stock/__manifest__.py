@@ -91,6 +91,7 @@
         "point_of_sale._assets_pos": [
             "mi_gestor_stock/static/src/scss/pos.scss",
             "mi_gestor_stock/static/src/js/pos_hardware.js",
+            "mi_gestor_stock/static/src/js/pos_catalog_refresh.js",
             "mi_gestor_stock/static/src/js/pos_validation.js",
             "mi_gestor_stock/static/src/js/pos_bouquet.js",
             "mi_gestor_stock/static/src/js/pos_event_checkout.js",

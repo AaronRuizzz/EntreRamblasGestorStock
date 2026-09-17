@@ -104,20 +104,21 @@ class TestReception(TransactionCase):
             self.outgoing(4)
         self.assertEqual(self.product.qty_available, 3)
 
-    def test_new_product_needs_a_category_chosen_by_the_user(self):
+    def test_new_product_uses_florist_defaults_when_no_category_is_chosen(self):
         wizard = self.env["mgs.reception"].create({
             "mode": "nuevo", "new_name": "Peonía rosa",
             "new_barcode": "8499999999990", "new_price": 3.5, "new_cost": 1.2,
         })
-        # Sin categoría no deja: nada de caer en una categoría de fábrica.
-        with self.assertRaises(UserError), self.env.cr.savepoint():
-            wizard.action_add_new_product()
-        # La categoría que teclea la dueña queda disponible al instante.
-        categ = self.env["product.category"].create({"name": "Planta de temporada"})
-        wizard.new_categ_id = categ
+        self.assertEqual(wizard.new_categ_id.name, "Flor cortada")
+        self.assertEqual(wizard.new_tax_id.amount, 10)
         wizard.action_add_new_product()
         product = self.env["product.template"].search([("name", "=", "Peonía rosa")])
-        self.assertEqual(product.categ_id, categ)
+        self.assertEqual(product.categ_id, wizard._mgs_default_category())
+        self.assertEqual(product.taxes_id, wizard._mgs_default_sale_tax())
+
+    def test_reception_has_a_human_title_after_the_wizard_is_saved(self):
+        wizard = self.env["mgs.reception"].create({})
+        self.assertEqual(wizard.display_name, "Recepción de mercancía")
 
     def test_form_can_be_saved_after_creating_a_new_product(self):
         # Hallazgo 18, prueba del RECORRIDO DEL FORMULARIO (no solo del
