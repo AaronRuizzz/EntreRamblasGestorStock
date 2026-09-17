@@ -46,7 +46,7 @@ class MgsReportTemplate(models.Model):
     _description = "Plantilla de informe personalizado"
     _order = "is_locked desc, name"
 
-    name = fields.Char(required=True)
+    name = fields.Char("Nombre del informe", required=True)
     company_id = fields.Many2one("res.company", required=True, default=lambda s: s.env.company)
     date_from = fields.Date("Desde", required=True, default=lambda s: s._default_from())
     date_to = fields.Date("Hasta", required=True, default=lambda s: s._default_to())

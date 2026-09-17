@@ -12,6 +12,12 @@
         <field name="model">mgs.correction</field>
         <field name="arch" type="xml">
             <list string="Correcciones" create="0" edit="0" delete="0" default_order="date desc">
+                <!-- Sin «Nuevo»: una corrección no se teclea en la lista, se
+                     registra por el asistente (menú «Registrar corrección»),
+                     que es quien valida la devolución vinculada y ajusta la
+                     caja si toca. Un botón de cabecera aquí no serviría: con
+                     la lista vacía Odoo muestra el panel de «todavía no hay
+                     nada» y la cabecera no se dibuja, justo cuando hace falta. -->
                 <field name="name"/>
                 <field name="date"/>
                 <field name="correction_type"/>
@@ -116,8 +122,7 @@
                     <field name="original_order_id" required="correction_type == 'sale'"/>
                     <field name="return_order_id" required="correction_type == 'sale'"/>
                     <field name="new_sale_order_id"/>
-                    <label for="return_order_id" string=" " class="text-muted"/>
-                    <div class="text-muted">
+                    <div class="text-muted" colspan="2">
                         La devolución se hace en «Vender» → «Ventas y devoluciones», desde el
                         ticket original, para que quede vinculada. Aquí solo se enlaza.
                     </div>
