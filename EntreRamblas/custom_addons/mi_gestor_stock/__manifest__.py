@@ -25,6 +25,7 @@
         "data/mgs_hardware_data.xml",
         "data/mgs_bouquet_data.xml",
         "data/mgs_event_data.xml",
+        "data/mgs_report_template_data.xml",
         # Los informes (ir.actions.report) van ANTES que cualquier vista: la
         # cabecera del formulario de evento referencia %(action_report_mgs_event)d
         # y una instalacion sobre BD vacia fallaba con "External ID not found"
