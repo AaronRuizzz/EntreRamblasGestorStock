@@ -72,6 +72,23 @@ class TestEscposLayout(TransactionCase):
         # Ninguna palabra se pierde por el camino, aunque cambien los saltos.
         self.assertEqual(" ".join(lines), text)
 
+    def test_wrapped_hard_splits_a_single_word_longer_than_the_paper_width(self):
+        # Una URL o referencia sin espacios más larga que el ancho del papel:
+        # antes se truncaba a `room` caracteres y el resto se perdía para
+        # siempre. Ahora se trocea en líneas sucesivas sin perder nada.
+        text = "clavelyazahar.es/ofertas-especiales-de-verano"
+        lines = self.doc().wrapped(text).to_bytes().decode("cp858").splitlines()
+        self.assertGreater(len(lines), 1)
+        self.assertTrue(all(len(line) <= 10 for line in lines))
+        self.assertEqual("".join(lines), text)
+
+    def test_wrapped_hard_split_can_still_combine_with_the_following_word(self):
+        # El sobrante de una palabra trocheada, si cabe, se sigue juntando
+        # con la palabra siguiente en la misma línea (igual que el resto del
+        # ajuste de texto), en vez de saltar de línea sin necesidad.
+        lines = self.doc().wrapped("abcdefghijkl x").to_bytes().decode("cp858").splitlines()
+        self.assertEqual(lines, ["abcdefghij", "kl x"])
+
 
 @tagged("post_install", "-at_install")
 class TestEscposCutAndDrawer(TransactionCase):

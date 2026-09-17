@@ -147,15 +147,26 @@ class EscposDocument:
         return self.ln(" " * indent + left + " " * max(1, pad) + right)
 
     def wrapped(self, value, indent=0):
-        """Parte un texto largo en varias lineas del ancho del papel."""
+        """Parte un texto largo en varias lineas del ancho del papel.
+
+        Una palabra suelta mas larga que el hueco disponible (una URL, una
+        referencia larga...) se trocea a la fuerza en vez de truncarse: antes
+        se perdia el resto de la palabra sin avisar.
+        """
         room = max(8, self.width - indent)
         line = ""
         for word in str(value).split():
+            while len(word) > room:
+                if line:
+                    self.ln(" " * indent + line)
+                    line = ""
+                self.ln(" " * indent + word[:room])
+                word = word[room:]
             candidate = ("%s %s" % (line, word)).strip()
             if len(candidate) > room:
                 if line:
                     self.ln(" " * indent + line)
-                line = word[:room]
+                line = word
             else:
                 line = candidate
         if line:

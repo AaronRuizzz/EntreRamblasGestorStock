@@ -437,10 +437,12 @@ class MgsConfig(models.Model):
         if bitmap:
             width_bytes, height, data = bitmap
             doc.align("center").raster_image(width_bytes, height, data).ln()
-        doc.align("center").bold(True).size(1, 2).ln(company.name).size().bold(False)
+        doc.align("center").bold(True).size(1, 2)
+        doc.wrapped(company.name)
+        doc.size().bold(False)
         street = ", ".join(part for part in [company.street, company.city] if part)
         if street:
-            doc.ln(street)
+            doc.wrapped(street)
         if company.vat:
             doc.ln(_("NIF: %s", company.vat))
         if company.phone:
@@ -474,7 +476,7 @@ class MgsConfig(models.Model):
         doc.wrapped(_("Si el código de arriba se lee con la pistola, el "
                       "circuito completo funciona."))
         if self.receipt_footer:
-            doc.align("center").ln(self.receipt_footer).align("left")
+            doc.align("center").wrapped(self.receipt_footer).align("left")
         doc.cut()
         self._mgs_send(doc.to_bytes(), _("Prueba de impresión"))
         return self._mgs_notify(_("Ticket de prueba enviado a la impresora."))
@@ -559,7 +561,7 @@ class MgsConfig(models.Model):
         date = fields.Datetime.context_timestamp(self, order.date_order)
         doc.columns(order.name, date.strftime("%d/%m/%Y %H:%M"))
         if order.partner_id:
-            doc.ln(_("Cliente: %s", order.partner_id.name))
+            doc.wrapped(_("Cliente: %s", order.partner_id.name))
         # Una devolución es una factura rectificativa: el artículo 7 del RD
         # 1619/2012 exige que remita a la factura rectificada. Sin esta línea el
         # ticket negativo no dice de qué venta sale (ver FACTURACION.md).
@@ -618,7 +620,7 @@ class MgsConfig(models.Model):
         doc.rule()
         doc.align("center")
         if self.receipt_footer:
-            doc.ln(self.receipt_footer)
+            doc.wrapped(self.receipt_footer)
         doc.ln()
         doc.barcode(order.name.replace("/", "-"), height=50, width=2)
         doc.align("left").cut()

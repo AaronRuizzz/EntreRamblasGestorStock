@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import base64
 import csv
 import io
+import re
 import zipfile
 from uuid import uuid4
 from unittest.mock import patch
@@ -358,3 +359,46 @@ class TestPosStock(TestPointOfSaleCommon):
         refund = self.order(-1, sale.lines)
         refund_ticket = config._mgs_pos_ticket(refund).to_bytes().decode("cp858", errors="replace")
         self.assertIn("Rectifica el ticket %s" % sale.name, refund_ticket)
+
+    def test_ticket_lines_never_overflow_the_configured_paper_width(self):
+        """Hallazgo de revisión: el nombre de la empresa, la dirección, el
+        nombre de la clienta y el pie del ticket se imprimían con `ln()` sin
+        pasar por `wrapped()` — con un dato largo de verdad (habitual en
+        nombres y apellidos, o en una dirección completa) se desbordaban del
+        ancho de la impresora térmica en vez de partirse en varias líneas."""
+        self.receive(2, 2, 3)
+        # Sin logo: es una imagen en bytes binarios (puede contener 0x0A
+        # sueltos) y se sale del alcance de esta prueba, que es sobre el
+        # ajuste del TEXTO a columnas, no sobre la imagen.
+        self.env.company.logo = False
+        self.env.company.write({
+            "street": "Avenida de la Constitución Española número 128, local 3, bajo derecha",
+            "city": "Barcelona",
+        })
+        config = self.env["mgs.config"]._mgs_get()
+        config.receipt_footer = (
+            "¡Gracias por confiar en nosotras y esperamos verte muy pronto de "
+            "nuevo por la floristería!")
+        partner = self.env["res.partner"].create({
+            "name": "María del Carmen Fernández Rodríguez de la Torre y Gómez"})
+        sale = self.order(1)
+        sale.partner_id = partner
+        ticket = config._mgs_pos_ticket(sale).to_bytes().decode("cp858", errors="replace")
+        width = config._mgs_doc().width
+        # Se corta justo tras el pie: lo que va después (código de barras,
+        # corte de papel) es un bloque de bytes binario de longitud variable,
+        # no texto en columnas, y no es lo que se está probando aquí.
+        footer_end = ticket.index("floristería") + len("floristería")
+        body = ticket[:footer_end]
+        # Los únicos comandos ESC/POS que aparecen antes del pie son estos,
+        # todos de longitud fija (init, página de códigos, alinear, negrita,
+        # tamaño): ni llevan '\n' propio ni ocupan columna impresa, así que
+        # se quitan antes de medir el ancho de cada línea de texto real.
+        visible_body = re.sub(r"\x1b@|\x1bt.|\x1ba.|\x1bE.|\x1d!.", "", body, flags=re.DOTALL)
+        for line in visible_body.splitlines():
+            self.assertLessEqual(
+                len(line), width,
+                "línea más larga que el papel (%s > %s): %r" % (len(line), width, line))
+        # Ningún dato desaparece por el camino: solo se reparte en más líneas.
+        self.assertIn(partner.name.split()[-1], ticket)
+        self.assertIn("floristería", ticket)
