@@ -75,10 +75,18 @@ class TestCompanyBranding(TransactionCase):
 class TestCompanyPricelistDefaults(TransactionCase):
     def test_apply_pos_pricelist_defaults_turns_pricelists_on_for_every_pos(self):
         configs = self.env["pos.config"].search([])
-        configs.write({"use_pricelist": False, "restrict_price_control": False})
+        category = self.env["pos.category"].create({"name": "Solo demostración"})
+        configs.write({
+            "use_pricelist": False,
+            "restrict_price_control": False,
+            "limit_categories": True,
+            "iface_available_categ_ids": [(6, 0, category.ids)],
+        })
         self.env.company._mgs_apply_pos_pricelist_defaults()
         self.assertTrue(all(configs.mapped("use_pricelist")))
         self.assertTrue(all(configs.mapped("restrict_price_control")))
+        self.assertFalse(any(configs.mapped("limit_categories")))
+        self.assertFalse(configs.iface_available_categ_ids)
 
     def test_apply_pos_pricelist_defaults_does_nothing_without_a_pos_config(self):
         # No debe reventar en una instalación sin ninguna caja configurada todavía.

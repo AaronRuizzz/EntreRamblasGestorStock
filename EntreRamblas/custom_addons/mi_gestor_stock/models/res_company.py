@@ -1,7 +1,7 @@
 import base64
 import logging
 
-from odoo import models
+from odoo import Command, models
 from odoo.tools import file_path
 
 _logger = logging.getLogger(__name__)
@@ -141,7 +141,18 @@ class ResCompany(models.Model):
     def _mgs_apply_pos_pricelist_defaults(self):
         configs = self.env["pos.config"].search([])
         if configs:
-            configs.write({"use_pricelist": True, "restrict_price_control": True})
+            # La caja de demostración de Odoo queda limitada a sus categorías
+            # «Food» y «Drinks». En una floristería eso oculta cualquier
+            # artículo creado después, aunque esté disponible para TPV y tenga
+            # su botón de categoría correctamente sincronizado. Se quita el
+            # límite también con caja abierta: no cambia pedidos, precios ni
+            # medios de pago; solo permite cargar el catálogo completo.
+            configs.with_context(bypass_categories_forbidden_change=True).write({
+                "use_pricelist": True,
+                "restrict_price_control": True,
+                "limit_categories": False,
+                "iface_available_categ_ids": [Command.clear()],
+            })
 
     # ------------------------------------------------------------------
     # Caja de la tienda: el boton «Vender» entra directo a /pos/ui, asi que

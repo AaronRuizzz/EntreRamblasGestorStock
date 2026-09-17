@@ -22,16 +22,12 @@ patch(Navbar.prototype, {
                 ["available_in_pos", "=", true],
                 ["sale_ok", "=", true],
             ];
-            const { limit_categories, iface_available_categ_ids } = this.pos.config;
-            if (limit_categories && iface_available_categ_ids.length > 0) {
-                const categoryIds = iface_available_categ_ids.flatMap((category) =>
-                    category.getAllChildren().map((child) => child.id)
-                );
-                domain.push(["pos_categ_ids", "in", categoryIds]);
-            }
-
             // `searchRead` actualiza los artículos ya cargados y, mediante
             // sus relaciones, carga también los botones de categoría nuevos.
+            // No se reutiliza el filtro de categorías de `this.pos.config`:
+            // una caja que ya estaba abierta puede conservar el antiguo
+            // «Food/Drinks» aunque el servidor lo haya retirado. El catálogo
+            // de esta floristería siempre debe mostrar todas sus categorías.
             const products = await this.pos.data.searchRead("product.product", domain);
             await this.pos.processProductAttributesByProducts(products);
             await this.pos._loadMissingPricelistItems(products);
