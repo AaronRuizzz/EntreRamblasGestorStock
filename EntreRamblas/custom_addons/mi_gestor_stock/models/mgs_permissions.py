@@ -1,3 +1,7 @@
+from datetime import datetime, time, timedelta
+
+import pytz
+
 from odoo import _
 from odoo.exceptions import AccessError, UserError
 
@@ -40,6 +44,24 @@ def require_operator(env):
     assert_not_maintenance(env)
     if not (is_manager(env) or env.user.has_group("mi_gestor_stock.group_mgs_user")):
         raise AccessError(env._("No tienes permiso para utilizar los dispositivos de la tienda."))
+
+
+def madrid_day_range(env, date_from, date_to):
+    """Convierte un rango de días de Madrid (ambos inclusive) en el rango
+    [start, end) de datetimes UTC sin zona horaria que usan las consultas de
+    informes: `start` es la medianoche de Madrid de `date_from`, `end` la
+    medianoche de Madrid del día SIGUIENTE a `date_to` (exclusivo).
+
+    Extraído de mgs.monthly.report._mgs_period sin cambiar el cálculo: los
+    informes personalizados (mgs_report_engine.py) lo reutilizan tal cual
+    para no arriesgarse a que los dos calculen "hoy en Madrid" de forma
+    distinta cerca de la medianoche."""
+    if not date_from or not date_to or date_from > date_to:
+        raise UserError(env._("Selecciona un periodo válido: la fecha inicial no puede superar la final."))
+    zone = pytz.timezone("Europe/Madrid")
+    return tuple(
+        zone.localize(datetime.combine(day, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+        for day in (date_from, date_to + timedelta(days=1)))
 
 
 def checked_session(env, session_id):

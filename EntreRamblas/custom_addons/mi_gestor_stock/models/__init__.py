@@ -29,3 +29,6 @@ from . import mgs_bouquet
 from . import mgs_event
 from . import mgs_consumption
 from . import mgs_stock_ledger
+from . import mgs_report_template
+from . import mgs_report_xlsx
+from . import mgs_correction

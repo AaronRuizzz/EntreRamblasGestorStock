@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Numeración del historial de correcciones. -->
+        <record id="seq_mgs_correction" model="ir.sequence">
+            <field name="name">Correcciones</field>
+            <field name="code">mgs.correction</field>
+            <field name="prefix">CORR/%(year)s/</field>
+            <field name="implementation">standard</field>
+            <field name="padding">4</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

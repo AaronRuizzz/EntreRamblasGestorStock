@@ -21,6 +21,8 @@
                     <button string="Cancelar" class="btn-secondary" special="cancel"/>
                     <button name="action_export_csv" type="object" string="Exportar ventas CSV"/>
                     <button name="action_export_all_csv" type="object" string="Exportar estadísticas (ZIP de CSV)"/>
+                    <button name="action_open_report_builder" type="object"
+                            string="Informes personalizados…"/>
                 </footer>
             </form>
         </field>

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from dateutil.relativedelta import relativedelta
-from datetime import datetime, time, timedelta
 import base64
 import csv
 import io
@@ -8,8 +7,7 @@ import pytz
 import zipfile
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
-from .mgs_permissions import require_manager
+from .mgs_permissions import require_manager, madrid_day_range
 
 # Estados de un pedido de TPV que cuentan como venta real.
 SOLD_STATES = ("paid", "done", "invoiced")
@@ -106,11 +104,7 @@ class MgsMonthlyReport(models.TransientModel):
 
     def _mgs_period(self):
         self.ensure_one()
-        if not self.date_from or not self.date_to or self.date_from > self.date_to:
-            raise UserError(_("Selecciona un periodo válido: la fecha inicial no puede superar la final."))
-        zone = pytz.timezone("Europe/Madrid")
-        return tuple(zone.localize(datetime.combine(day, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-                     for day in (self.date_from, self.date_to + timedelta(days=1)))
+        return madrid_day_range(self.env, self.date_from, self.date_to)
 
     def action_export_csv(self):
         self.ensure_one()
@@ -140,6 +134,18 @@ class MgsMonthlyReport(models.TransientModel):
     def action_print(self):
         self.ensure_one()
         return self.env.ref("mi_gestor_stock.action_report_mgs_monthly").report_action(self)
+
+    def action_open_report_builder(self):
+        """Puente al constructor de informes personalizados (Informes →
+        Informes personalizados), con el periodo ya elegido aquí. Este
+        asistente y sus exportaciones siguen funcionando igual."""
+        self.ensure_one()
+        require_manager(self.env)
+        action = self.env.ref("mi_gestor_stock.action_mgs_report_templates").read()[0]
+        action["context"] = dict(self.env.context,
+                                 default_date_from=self.date_from,
+                                 default_date_to=self.date_to)
+        return action
 
     # ------------------------------------------------------------------
     # Datos del informe (lo llama la plantilla QWeb)
