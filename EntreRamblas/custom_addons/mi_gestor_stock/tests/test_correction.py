@@ -174,6 +174,64 @@ class TestCorrection(TestPointOfSaleCommon):
         self.assertEqual(correction.corrected_method_id, self.bank_payment_method)
         self.assertIn("cerrada", correction.result_note)
 
+    def test_correcting_a_payment_method_never_moves_stock(self):
+        """La regla de oro: el dinero y la mercancía van por caminos
+        separados. Reclasificar un cobro no puede tocar existencias."""
+        self.session.set_opening_control(0, "")
+        storable = self.env["product.product"].create({
+            "name": "Rosa con existencias", "is_storable": True, "tracking": "lot",
+            "mgs_auto_lots": True, "taxes_id": [Command.clear()],
+        })
+        self.env["mgs.reception"].create({"line_ids": [Command.create({
+            "product_id": storable.id, "quantity": 10, "unit_cost": 2,
+        })]}).action_confirm()
+        order = self.env["pos.order"].create({
+            "uuid": str(uuid4()), "session_id": self.session.id, "amount_tax": 0,
+            "amount_total": 30, "amount_paid": 30, "amount_return": 0,
+            "lines": [Command.create({
+                "product_id": storable.id, "qty": 3, "price_unit": 10,
+                "price_subtotal": 30, "price_subtotal_incl": 30,
+            })],
+        })
+        order._create_order_picking()
+        order.state = "paid"
+        payment = self.payment(order, self.cash_payment_method, 30)
+        stock_before = storable.qty_available
+        moves_before = self.env["stock.move"].search_count([("product_id", "=", storable.id)])
+        self.wizard(
+            correction_type="payment_method", reason="Era tarjeta, no efectivo.",
+            original_payment_id=payment.id,
+            corrected_method_id=self.bank_payment_method.id, amount=30).action_apply()
+        storable.invalidate_recordset()
+        self.assertEqual(storable.qty_available, stock_before)
+        self.assertEqual(
+            self.env["stock.move"].search_count([("product_id", "=", storable.id)]),
+            moves_before)
+
+    def test_only_the_wrong_half_of_a_mixed_payment_is_reclassified(self):
+        """Un ticket pagado a medias en efectivo y a medias con tarjeta: se
+        corrige solo la parte mal anotada, la otra se queda como está."""
+        self.session.set_opening_control(0, "")
+        order = self.order(1)
+        cash_part = self.payment(order, self.cash_payment_method, 6)
+        card_part = self.payment(order, self.bank_payment_method, 4)
+        expected_before = self.session.cash_register_balance_end
+        action = self.wizard(
+            correction_type="payment_method",
+            reason="Los 6 € del efectivo fueron en realidad con tarjeta.",
+            original_payment_id=cash_part.id,
+            corrected_method_id=self.bank_payment_method.id, amount=6).action_apply()
+        correction = self.env["mgs.correction"].browse(action["res_id"])
+        self.session.invalidate_recordset()
+        # Los dos cobros originales siguen como estaban.
+        self.assertEqual(cash_part.payment_method_id, self.cash_payment_method)
+        self.assertEqual(cash_part.amount, 6)
+        self.assertEqual(card_part.payment_method_id, self.bank_payment_method)
+        self.assertEqual(card_part.amount, 4)
+        # Y solo bajan del efectivo esperado los 6 € reclasificados.
+        self.assertEqual(correction.amount, 6)
+        self.assertEqual(self.session.cash_register_balance_end, expected_before - 6)
+
     def test_reclassifying_more_than_was_charged_is_rejected(self):
         self.session.set_opening_control(0, "")
         order = self.order(1)
