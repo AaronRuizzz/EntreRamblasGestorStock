@@ -7,10 +7,8 @@ import pytz
 import zipfile
 
 from odoo import api, fields, models, _
-from .mgs_permissions import require_manager, madrid_day_range
-
-# Estados de un pedido de TPV que cuentan como venta real.
-SOLD_STATES = ("paid", "done", "invoiced")
+from .mgs_permissions import require_manager, madrid_day_range, SOLD_STATES
+from . import mgs_report_engine
 
 
 class MgsMonthlyReport(models.TransientModel):
@@ -155,12 +153,9 @@ class MgsMonthlyReport(models.TransientModel):
         self.ensure_one()
         start, end = self._mgs_period()
         category_domain = [("product_id.categ_id", "child_of", self.category_id.id)] if self.category_id else []
-        lines = self.env["pos.order.line"].search(category_domain + [
-            ("company_id", "=", self.env.company.id),
-            ("order_id.date_order", ">=", start),
-            ("order_id.date_order", "<", end),
-            ("order_id.state", "in", SOLD_STATES),
-        ])
+        lines = self.env["pos.order.line"].search(mgs_report_engine.report_line_domain(
+            self.env.company, start, end,
+            [self.category_id.id] if self.category_id else []))
 
         # --- Ventas agregadas por producto ---
         sold = {}
@@ -215,21 +210,9 @@ class MgsMonthlyReport(models.TransientModel):
 
         # Un cobro mixto no se puede atribuir exactamente a categorías.
         # Se muestra solo con el informe de todas las categorías y por fecha de pago.
-        payment_rows = []
-        if not self.category_id:
-            payments = self.env["pos.payment"].search([
-                ("pos_order_id.company_id", "=", self.env.company.id),
-                ("pos_order_id.state", "in", SOLD_STATES),
-                ("payment_date", ">=", start), ("payment_date", "<", end),
-            ])
-            grouped = {}
-            for payment in payments:
-                method = payment.payment_method_id
-                deferred = method.type == "pay_later"
-                row = grouped.setdefault(method.id, {"name": method.name + (_(" (cuenta cliente, no cobrado)") if deferred else ""),
-                    "received": 0.0, "returned": 0.0, "deferred": deferred})
-                row["received" if payment.amount >= 0 else "returned"] += abs(payment.amount)
-            payment_rows = sorted(grouped.values(), key=lambda row: row["name"])
+        payment_rows, _available = mgs_report_engine.payment_rows(
+            self.env, self.env.company, start, end,
+            category_ids=[self.category_id.id] if self.category_id else [])
 
         # --- Entradas de mercancía (gasto de reposición) del periodo ---
         moves = self.env["stock.move"].search(category_domain + [
@@ -296,7 +279,7 @@ class MgsMonthlyReport(models.TransientModel):
             "scrap_cost": scrap_cost,
             "margin_after_scrap": total_revenue - total_cost_sold - scrap_cost,
             "payment_rows": payment_rows,
-            "payments_available": not self.category_id,
+            "payments_available": True,
             "payments_net": sum(row["received"] - row["returned"] for row in payment_rows if not row["deferred"]),
             "payments_deferred_net": sum(row["received"] - row["returned"] for row in payment_rows if row["deferred"]),
             "sold_rows": sold_rows,

@@ -57,6 +57,8 @@
               action="action_mgs_monthly_report" sequence="30" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_custom" name="Informes personalizados" parent="menu_mgs_reports"
               action="action_mgs_report_templates" sequence="35" groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_reports_exclusion_log" name="Historial de líneas clasificadas" parent="menu_mgs_reports"
+              action="action_mgs_report_exclusion_log" sequence="36" groups="mi_gestor_stock.group_mgs_manager"/>
     <!-- Historial de correcciones: es una auditoría, no un informe más, así que
          va al lado de los informes y no dentro del constructor. -->
     <menuitem id="menu_mgs_corrections" name="Correcciones" parent="menu_mgs_reports"

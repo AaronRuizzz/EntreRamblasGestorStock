@@ -50,6 +50,7 @@
         # Antes de mgs_menus.xml: los menús nuevos referencian sus acciones
         # (action_mgs_report_templates, action_mgs_corrections) por ID.
         "views/mgs_report_template_views.xml",
+        "views/mgs_report_exclusion_views.xml",
         "views/mgs_correction_views.xml",
         "views/mgs_menus.xml",
         "views/mgs_security_views.xml",
