@@ -176,6 +176,10 @@ class MgsConfig(models.Model):
              "euro, prueba otro juego. «Sin acentos» siempre funciona.")
     receipt_footer = fields.Char(
         "Pie del ticket", default="¡Gracias por su compra!")
+    google_review_url = fields.Char(
+        "Enlace a Google Reseñas",
+        help="Si se rellena, el ticket en PDF imprime un código QR "
+             "invitando a dejar una reseña. Vacío: no sale ese QR.")
     label_copies = fields.Integer("Etiquetas por producto", default=1)
 
     pos_autoprint = fields.Boolean(

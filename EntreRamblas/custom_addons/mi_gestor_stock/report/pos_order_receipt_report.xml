@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Ticket de una venta en PDF: toda venta ya guarda sus líneas,
+         impuestos y pagos de forma permanente, así que este informe se
+         puede generar en cualquier momento posterior — no hace falta
+         guardar una copia aparte del ticket, solo un camino para volver a
+         materializarlo (verlo, guardarlo, reimprimirlo en cualquier
+         impresora, no solo la térmica).
+
+         Papel propio, estrecho (80 mm, igual que la térmica real): con el
+         formato A4 por defecto salía como una carta de empresa normal, no
+         como un ticket. La altura (400mm) es generosa a propósito para que
+         una venta larga no se corte a media página. -->
+    <record id="paperformat_mgs_pos_order_receipt" model="report.paperformat">
+        <field name="name">Ticket de venta (80 mm)</field>
+        <field name="format">custom</field>
+        <field name="page_width">80</field>
+        <field name="page_height">400</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">4</field>
+        <field name="margin_bottom">4</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_spacing">0</field>
+        <field name="dpi">150</field>
+    </record>
+
+    <record id="action_report_mgs_pos_order_receipt" model="ir.actions.report">
+        <field name="name">Ticket de venta</field>
+        <field name="model">pos.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">mi_gestor_stock.report_pos_order_receipt</field>
+        <field name="report_file">mi_gestor_stock.report_pos_order_receipt</field>
+        <field name="print_report_name">'Ticket %s' % object.name</field>
+        <field name="paperformat_id" ref="paperformat_mgs_pos_order_receipt"/>
+        <field name="binding_model_id" ref="point_of_sale.model_pos_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- IMPORTANTE: todo el CSS va en atributos style="" en cada elemento,
+         nunca en un <style> del cuerpo. Comprobado a mano: un <style>
+         incrustado en el HTML del informe hace que wkhtmltopdf falle al
+         detectar la codificación del documento (cada tilde, el euro o el
+         punto medio salen con cada byte UTF-8 reinterpretado como si fuera
+         cp1252 y recodificado), aunque el HTML lleve
+         <meta charset="utf-8"/> correcto. Sin ningún <style>, la
+         codificación sale perfecta. -->
+    <template id="report_pos_order_receipt">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="mgs_config" t-value="env['mgs.config'].sudo()._mgs_get()"/>
+                <t t-set="review_qr" t-value="doc._mgs_receipt_review_qr()"/>
+                <t t-set="website_qr" t-value="doc._mgs_receipt_website_qr()"/>
+                <!-- class="article" + data-oe-*: sin esto, ir_actions_report
+                     ._prepare_html() no encuentra ningún nodo ".article" y
+                     cae en su rama de repliegue (une a mano el HTML de los
+                     hijos de <main>) — ahí es donde se pierde la
+                     codificación de tildes/€/· antes de llegar a
+                     wkhtmltopdf, aunque el HTML de partida sea UTF-8
+                     correcto. Todas las plantillas nativas (external_layout
+                     en sus variantes boxed/bold/standard/...) llevan esta
+                     misma clase y atributos; comprobado a mano que
+                     añadirlos aquí basta para que la codificación salga
+                     bien. -->
+                <div class="article" t-att-data-oe-model="doc and doc._name"
+                     t-att-data-oe-id="doc and doc.id"
+                     t-att-data-oe-lang="doc and doc.env.context.get('lang')"
+                     style="width:72mm;max-width:72mm;margin:0 auto;padding:2mm 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.45;color:#1a1a1a;border:none !important;box-shadow:none;background:#fff;">
+
+                    <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"
+                         style="display:block;max-width:38mm;max-height:38mm;margin:0 auto 6px;"/>
+                    <div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:2px;"
+                         t-esc="doc.company_id.name"/>
+                    <div style="text-align:center;font-size:10px;color:#666;"
+                         t-if="doc.company_id.street or doc.company_id.city">
+                        <span t-esc="', '.join(p for p in [doc.company_id.street, doc.company_id.city] if p)"/>
+                    </div>
+                    <div style="text-align:center;font-size:10px;color:#666;" t-if="doc.company_id.vat">
+                        NIF <span t-esc="doc.company_id.vat"/>
+                    </div>
+                    <div style="text-align:center;font-size:10px;color:#666;margin-bottom:6px;"
+                         t-if="doc.company_id.phone">
+                        Tel. <span t-esc="doc.company_id.phone"/>
+                    </div>
+                    <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
+
+                    <table border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;font-size:11px;">
+                        <tr>
+                            <td style="border:none !important;padding:0;" t-esc="doc.name"/>
+                            <td style="border:none !important;padding:0;text-align:right;white-space:nowrap;"
+                                t-esc="doc._mgs_receipt_date_str()"/>
+                        </tr>
+                    </table>
+                    <div t-if="doc.partner_id" style="margin-top:3px;">
+                        Cliente: <span t-esc="doc.partner_id.name"/>
+                    </div>
+                    <!-- Art. 7 RD 1619/2012: una rectificativa debe remitir
+                         al ticket que rectifica. -->
+                    <div t-if="doc.refunded_order_id" style="margin-top:3px;">
+                        Rectifica el ticket <span t-esc="doc.refunded_order_id.name"/>
+                    </div>
+                    <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
+
+                    <table border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;font-size:11px;">
+                        <t t-foreach="doc.lines" t-as="line" t-key="line.id">
+                            <tr>
+                                <td colspan="2" style="border:none !important;padding:3px 0 0;font-weight:bold;"
+                                    t-esc="line.full_product_name or line.product_id.display_name"/>
+                            </tr>
+                            <tr>
+                                <td style="border:none !important;padding:0 0 2px;">
+                                    <span t-esc="'%g' % line.qty"/> x
+                                    <span t-field="line.price_unit"/>
+                                    <span t-if="line.discount">
+                                        (-<t t-esc="'%g' % line.discount"/>%)
+                                    </span>
+                                </td>
+                                <td style="border:none !important;padding:0 0 2px;text-align:right;white-space:nowrap;">
+                                    <span t-field="line.price_subtotal_incl"/>
+                                </td>
+                            </tr>
+                            <!-- Un "Ramo a medida" es una sola línea de
+                                 venta: sin esto no se ve qué flores
+                                 concretas lleva, solo el nombre genérico y
+                                 el precio del conjunto. -->
+                            <tr t-foreach="line.mgs_bouquet_ids.sorted('id')" t-as="component"
+                                t-key="component.id">
+                                <td colspan="2" style="border:none !important;padding:0 0 2px 10px;font-size:10px;color:#666;">
+                                    - <span t-esc="'%g' % (component.quantity * line.qty)"/>
+                                    <span t-esc="component.product_id.display_name"/>
+                                </td>
+                            </tr>
+                        </t>
+                    </table>
+                    <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
+
+                    <table border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;font-size:16px;font-weight:bold;">
+                        <tr>
+                            <td style="border:none !important;padding:0;">TOTAL</td>
+                            <td style="border:none !important;padding:0;text-align:right;"><span t-field="doc.amount_total"/></td>
+                        </tr>
+                    </table>
+
+                    <t t-if="doc._mgs_receipt_tax_breakdown()">
+                        <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
+                        <div style="font-size:10px;color:#666;">IVA incluido</div>
+                        <table border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;font-size:10px;color:#666;">
+                            <tr t-foreach="doc._mgs_receipt_tax_breakdown()" t-as="tax_row">
+                                <td style="border:none !important;padding:0;"
+                                    t-esc="'%s  base %s' % (
+                                        tax_row['label'], mgs_config._mgs_amount(tax_row['base'], doc.currency_id))"/>
+                                <td style="border:none !important;padding:0;text-align:right;white-space:nowrap;"
+                                    t-esc="mgs_config._mgs_amount(tax_row['quota'], doc.currency_id)"/>
+                            </tr>
+                        </table>
+                    </t>
+
+                    <t t-if="doc.payment_ids">
+                        <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
+                        <table border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;font-size:11px;">
+                            <tr t-foreach="doc._mgs_receipt_payments()" t-as="payment_row">
+                                <td style="border:none !important;padding:0;" t-esc="payment_row['label']"/>
+                                <td style="border:none !important;padding:0;text-align:right;white-space:nowrap;"
+                                    t-esc="mgs_config._mgs_amount(payment_row['amount'], doc.currency_id)"/>
+                            </tr>
+                        </table>
+                    </t>
+
+                    <div style="border-top:1px dashed #bbb;margin:8px 0 4px;"/>
+                    <div style="text-align:center;color:#bbb;font-size:11px;letter-spacing:1px;">
+                        · · · · · · · ·
+                    </div>
+                    <div t-if="mgs_config.receipt_footer"
+                         style="text-align:center;font-weight:bold;margin:6px 0;"
+                         t-esc="mgs_config.receipt_footer"/>
+
+                    <table t-if="review_qr or website_qr" border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;margin-top:6px;">
+                        <tr>
+                            <td t-if="review_qr" style="border:none !important;text-align:center;width:50%;padding:0 3px;">
+                                <img t-attf-src="data:image/png;base64,#{review_qr}"
+                                     style="width:24mm;height:24mm;"/>
+                                <div style="font-size:9px;color:#666;margin-top:3px;">
+                                    Valóranos en Google
+                                </div>
+                            </td>
+                            <td t-if="website_qr" style="border:none !important;text-align:center;width:50%;padding:0 3px;">
+                                <img t-attf-src="data:image/png;base64,#{website_qr}"
+                                     style="width:24mm;height:24mm;"/>
+                                <div style="font-size:9px;color:#666;margin-top:3px;"
+                                     t-esc="doc.company_id.partner_id.website"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="border-top:1px dashed #bbb;margin:8px 0 0;"/>
+                    <div style="text-align:center;color:#bbb;font-size:11px;letter-spacing:1px;margin-top:4px;">
+                        · · · · · · · ·
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

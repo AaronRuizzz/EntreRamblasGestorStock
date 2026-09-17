@@ -98,6 +98,8 @@
                                     <field name="paper_width"/>
                                     <field name="printer_codepage"/>
                                     <field name="receipt_footer"/>
+                                    <field name="google_review_url"
+                                           placeholder="https://g.page/r/.../review"/>
                                     <field name="label_copies"/>
                                     <field name="pos_autoprint"/>
                                 </group>

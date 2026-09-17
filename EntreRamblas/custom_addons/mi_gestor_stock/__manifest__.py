@@ -34,6 +34,7 @@
         "report/mgs_monthly_report.xml",
         "report/mgs_event_report.xml",
         "report/mgs_report_builder.xml",
+        "report/pos_order_receipt_report.xml",
         "views/mgs_config_views.xml",
         "views/mgs_hardware_job_views.xml",
         "views/mgs_reception_views.xml",
