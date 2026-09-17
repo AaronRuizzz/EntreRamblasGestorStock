@@ -61,3 +61,21 @@ class TestPosReceiptSign(TransactionCase):
             self.assertTrue(spans, "el XPath del override no encontró %s: revisa la expresión" % needle)
             self.assertIn("taxTotals.order_sign *", spans[0].get("t-esc"),
                           "%s no lleva order_sign tras aplicar el override" % needle)
+
+    def test_before_footer_anchor_exists_for_the_marketing_qr_xpath(self):
+        """El QR de reseña/web (hallazgo posterior al de arriba) se cuelga con
+        position="after" del marcador `before-footer` que la propia plantilla
+        nativa deja preparado para esto — ver su comentario "prevents missing
+        receipt elements in modules like...". Si un futuro cambio de Odoo le
+        quita esa clase, nuestro <xpath> deja de encontrar nada y el override
+        no aplica nada (Odoo no avisa): esta prueba lo detecta pronto."""
+        native = etree.parse(str(_NATIVE)).getroot()
+        override = etree.parse(str(_OVERRIDE)).getroot()
+        self.assertTrue(native.xpath("//div[@class='before-footer']"),
+                         "la plantilla nativa ya no tiene el marcador before-footer")
+
+        [xpath_node] = [x for x in override.iter("xpath")
+                        if x.get("expr") == "//div[@class='before-footer']"]
+        self.assertEqual(xpath_node.get("position"), "after")
+        self.assertTrue(xpath_node.xpath(".//img[@t-att-src]"),
+                         "el bloque insertado debería llevar el <img> del QR")

@@ -24,5 +24,28 @@
             <span t-esc="props.formatCurrency(taxTotals.order_sign * tax_group.tax_amount_currency)"
                   class="ms-auto"/>
         </xpath>
+
+        <!-- QR de reseña de Google y/o web de la tienda: los mismos datos
+             que ya llevan el ticket térmico y el PDF de reimpresión
+             (mgs_config.py, mgs_pos_receipt.py). Sin esto, el recibo que ve
+             la clienta nada más cobrar —y lo que sale si ese recibo se
+             imprime por el navegador, con la impresión térmica automática
+             desactivada— se quedaba sin ellos aunque estuvieran
+             configurados. `before-footer` es el punto de extensión que la
+             propia plantilla nativa deja preparado para esto (ver su
+             comentario: "prevents missing receipt elements in modules
+             like..."). -->
+        <xpath expr="//div[@class='before-footer']" position="after">
+            <div t-if="props.data.mgs_review_qr or props.data.mgs_website_qr" class="text-center mb-2">
+                <div t-if="props.data.mgs_review_qr" class="mb-2">
+                    <div class="pos-receipt-order-data mb-1">Valóranos en Google</div>
+                    <img t-att-src="'data:image/png;base64,' + props.data.mgs_review_qr" class="pos-receipt-logo"/>
+                </div>
+                <div t-if="props.data.mgs_website_qr">
+                    <div class="pos-receipt-order-data mb-1" t-esc="props.data.mgs_website_url"/>
+                    <img t-att-src="'data:image/png;base64,' + props.data.mgs_website_qr" class="pos-receipt-logo"/>
+                </div>
+            </div>
+        </xpath>
     </t>
 </templates>

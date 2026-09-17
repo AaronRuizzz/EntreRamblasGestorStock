@@ -51,6 +51,8 @@
                 <t t-set="mgs_config" t-value="env['mgs.config'].sudo()._mgs_get()"/>
                 <t t-set="review_qr" t-value="doc._mgs_receipt_review_qr()"/>
                 <t t-set="website_qr" t-value="doc._mgs_receipt_website_qr()"/>
+                <t t-set="invoice_qr" t-value="doc._mgs_receipt_invoice_qr()"/>
+                <t t-set="invoice_url_text" t-value="doc._mgs_receipt_invoice_url_text()"/>
                 <!-- class="article" + data-oe-*: sin esto, ir_actions_report
                      ._prepare_html() no encuentra ningún nodo ".article" y
                      cae en su rama de repliegue (une a mano el HTML de los
@@ -191,6 +193,30 @@
                             </td>
                         </tr>
                     </table>
+
+                    <!-- «¿Necesita factura?»: el QR nativo del TPV
+                         (point_of_sale, campo pos_qr_code) que ya sale en el
+                         recibo de pantalla cuando ese recibo se imprime por
+                         el navegador (autoimpresión térmica desactivada, o
+                         botón «Imprimir factura»). Reimprimir la venta como
+                         PDF desde el backend se quedaba sin él aunque el
+                         papel sí lo llevara — ver mgs_pos_receipt.py. -->
+                    <t t-if="invoice_qr or invoice_url_text">
+                        <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
+                        <div style="text-align:center;font-size:9px;color:#666;">
+                            ¿Necesita factura de esta compra?
+                        </div>
+                        <div t-if="invoice_qr" style="text-align:center;margin-top:3px;">
+                            <img t-attf-src="data:image/png;base64,#{invoice_qr}"
+                                 style="width:24mm;height:24mm;"/>
+                        </div>
+                        <div t-if="invoice_url_text"
+                             style="text-align:center;font-size:9px;color:#666;word-break:break-all;margin-top:3px;"
+                             t-esc="invoice_url_text"/>
+                        <div style="text-align:center;font-size:10px;margin-top:3px;">
+                            Código: <span t-esc="doc.ticket_code"/>
+                        </div>
+                    </t>
 
                     <div style="border-top:1px dashed #bbb;margin:8px 0 0;"/>
                     <div style="text-align:center;color:#bbb;font-size:11px;letter-spacing:1px;margin-top:4px;">

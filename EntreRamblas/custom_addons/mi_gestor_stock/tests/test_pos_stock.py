@@ -402,3 +402,97 @@ class TestPosStock(TestPointOfSaleCommon):
         # Ningún dato desaparece por el camino: solo se reparte en más líneas.
         self.assertIn(partner.name.split()[-1], ticket)
         self.assertIn("floristería", ticket)
+
+    def test_ticket_has_no_qr_when_nothing_is_configured(self):
+        """Sin «Enlace a Google Reseñas», sin web de la tienda y sin la
+        facturación por cuenta propia del TPV activada, el ticket térmico no
+        debe llevar ningún comando QR (GS ( k) — solo el código de barras del
+        número de venta."""
+        self.receive(1, 2, 3)
+        sale = self.order(1)
+        config = self.env["mgs.config"]._mgs_get()
+        ticket = config._mgs_pos_ticket(sale).to_bytes()
+        self.assertNotIn(b"\x1d(k", ticket)
+
+    def test_ticket_and_pdf_print_the_same_review_and_website_qr(self):
+        """Hallazgo: el ticket en PDF (report/pos_order_receipt_report.xml,
+        vía mgs_pos_receipt.py) sabía dibujar el QR de la reseña de Google y
+        el de la web, pero `_mgs_pos_ticket` (el que de verdad sale por la
+        impresora térmica) nunca llamaba a `doc.qr()` — la primitiva estaba
+        implementada en mgs_escpos.py y sin usar. Debe llevarlos igual que el
+        PDF: mismos datos, mismo origen de configuración."""
+        self.receive(1, 2, 3)
+        config = self.env["mgs.config"]._mgs_get()
+        config.google_review_url = "https://g.page/r/prueba/review"
+        sale = self.order(1)
+        # Sobre la compañía de LA VENTA, no sobre self.env.company: en esta
+        # suite (TestPointOfSaleCommon) no son necesariamente el mismo
+        # registro, y _mgs_receipt_website_url() lee company_id.partner_id
+        # de la propia venta. Con el esquema puesto ("https://..."): sin
+        # esquema, res.partner._clean_website() (odoo/addons/base) antepone
+        # "http://" ella sola al escribir, antes de que este módulo llegue a
+        # decidir nada.
+        sale.company_id.partner_id.website = "https://clavelyazahar.es"
+        self.assertEqual(sale._mgs_receipt_website_url(), "https://clavelyazahar.es")
+        ticket = config._mgs_pos_ticket(sale).to_bytes()
+        # doc.qr() manda 5 subcomandos GS ( k por cada QR: dos QR (reseña y
+        # web) deben dejar 10 en total.
+        self.assertEqual(ticket.count(b"\x1d(k"), 2 * 5)
+        self.assertIn(b"https://g.page/r/prueba/review", ticket)
+        self.assertIn(b"https://clavelyazahar.es", ticket)
+
+        # Mismos datos que expone el modelo al informe PDF.
+        self.assertEqual(sale._mgs_receipt_review_url(), config.google_review_url)
+        self.assertTrue(sale._mgs_receipt_review_qr())
+        self.assertTrue(sale._mgs_receipt_website_qr())
+
+    def test_ticket_and_pdf_offer_the_invoice_request_qr_when_enabled(self):
+        """Hallazgo relacionado: el recibo nativo del TPV enseña un QR para
+        pedir la factura online (`pos_qr_code` en point_of_sale) cuando el
+        ticket se imprime por el navegador, pero ni el PDF de este módulo ni
+        el ticket ESC/POS lo llevaban — una venta reimpresa como PDF, o
+        sacada por la térmica, se quedaba sin él aunque el ajuste de la
+        compañía estuviera activado."""
+        self.receive(1, 2, 3)
+        self.env.company.point_of_sale_use_ticket_qr_code = True
+        sale = self.order(1)
+        sale.write({"state": "paid", "ticket_code": "ab12c"})
+        config = self.env["mgs.config"]._mgs_get()
+
+        self.assertTrue(sale._mgs_receipt_invoice_qr_ready())
+        self.assertTrue(sale._mgs_receipt_invoice_qr())
+        self.assertIn("/pos/ticket/", sale._mgs_receipt_invoice_portal_url())
+
+        doc = config._mgs_pos_ticket(sale)
+        self.assertIn(b"\x1d(k", doc.to_bytes())
+        self.assertIn("Código: ab12c", doc.to_bytes().decode("cp858", errors="replace"))
+
+        # Una venta sin cobrar (borrador) o sin código único no lo enseña:
+        # son las mismas condiciones que usa el recibo de pantalla nativo.
+        draft = self.order(1)
+        self.assertFalse(draft._mgs_receipt_invoice_qr_ready())
+        sale.ticket_code = False
+        self.assertFalse(sale._mgs_receipt_invoice_qr_ready())
+
+    def test_pos_hardware_info_carries_the_same_qr_for_the_screen_receipt(self):
+        """Hallazgo: el recibo EN PANTALLA del TPV (point_of_sale.OrderReceipt,
+        parcheado por mi_gestor_stock/static/src/xml/pos_receipt.xml) no
+        sabía nada del QR de reseña de Google ni del de la web — solo el
+        ticket térmico y el PDF de reimpresión los llevaban. `pos_hardware.js`
+        pide estos datos una vez al abrir sesión (mgs_pos_hardware_info) y
+        los añade a cada recibo impreso (orderExportForPrinting); esto
+        prueba el lado de servidor de ese contrato."""
+        config = self.env["mgs.config"]._mgs_get()
+        config.google_review_url = "https://g.page/r/prueba/review"
+        self.env.company.partner_id.website = "https://clavelyazahar.es"
+        info = config.mgs_pos_hardware_info()
+        self.assertTrue(info["review_qr"])
+        self.assertTrue(info["website_qr"])
+        self.assertEqual(info["website_url"], "https://clavelyazahar.es")
+
+        config.google_review_url = False
+        self.env.company.partner_id.website = False
+        info = config.mgs_pos_hardware_info()
+        self.assertFalse(info["review_qr"])
+        self.assertFalse(info["website_qr"])
+        self.assertFalse(info["website_url"])

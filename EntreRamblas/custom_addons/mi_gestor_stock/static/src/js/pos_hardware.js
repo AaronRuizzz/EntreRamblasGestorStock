@@ -61,6 +61,21 @@ patch(PosStore.prototype, {
         }
         return result;
     },
+    orderExportForPrinting(order) {
+        const data = super.orderExportForPrinting(...arguments);
+        // Mismo QR de reseña de Google / web de la tienda que ya llevan el
+        // ticket térmico y el PDF de reimpresión (mgs_config.py,
+        // mgs_pos_receipt.py): antes solo salían ahí — el recibo en
+        // pantalla, y lo que se imprime por el navegador cuando la
+        // impresión térmica automática está desactivada, se quedaban sin
+        // ellos aunque estuvieran configurados.
+        return {
+            ...data,
+            mgs_review_qr: this.mgsHardware?.review_qr || false,
+            mgs_website_qr: this.mgsHardware?.website_qr || false,
+            mgs_website_url: this.mgsHardware?.website_url || false,
+        };
+    },
     async mgsHardwareStatus(job) {
         if (job.state === "disabled") return job;
         const status = await mgsCall("mgs_pos_job_status", [job.id]);

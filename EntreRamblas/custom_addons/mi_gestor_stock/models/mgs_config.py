@@ -18,6 +18,8 @@ import base64
 import io
 import logging
 
+import qrcode
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import formatLang
@@ -542,14 +544,43 @@ class MgsConfig(models.Model):
     # ==================================================================
     @api.model
     def mgs_pos_hardware_info(self):
-        """Qué hardware hay activo. El TPV lo consulta una vez, al abrir."""
+        """Qué hardware hay activo, más los datos del QR de reseña de
+        Google / web de la tienda para el recibo EN PANTALLA del TPV
+        (mismos datos que ya llevan el ticket térmico y el PDF de
+        reimpresión: ver mgs_pos_receipt.py y _mgs_receipt_marketing_block
+        más abajo). Antes esos dos QR solo salían al reimprimir desde el
+        backend o por la térmica: el recibo que ve la clienta nada más
+        cobrar — y lo que sale si ese recibo se imprime por el navegador,
+        con la impresión térmica automática desactivada — se quedaba sin
+        ellos. El TPV lo consulta una vez, al abrir."""
         require_operator(self.env)
         config = self._mgs_get()
+        website = (self.env.company.partner_id.website or "").strip()
+        if website and not website.startswith(("http://", "https://")):
+            website = "https://" + website
         return {
             "escpos_receipt": bool(config.pos_autoprint and config.printer_mode != "disabled"),
             "drawer": bool(config.drawer_enabled and config.drawer_on_sale
                            and config.printer_mode != "disabled"),
+            "review_qr": self._mgs_qr_png(config.google_review_url),
+            "website_qr": self._mgs_qr_png(website),
+            "website_url": website or False,
         }
+
+    @api.model
+    def _mgs_qr_png(self, data):
+        """PNG en base64 de un QR con `data`, o False si `data` está vacío.
+
+        Centralizado aquí porque lo usa el recibo en pantalla del TPV (este
+        método), el informe en PDF (mgs_pos_receipt.py, que delega en este
+        mismo método) y, en su variante ESC/POS nativa (doc.qr(), sin PNG
+        de por medio), el ticket térmico (_mgs_receipt_marketing_block)."""
+        data = (data or "").strip()
+        if not data:
+            return False
+        buffer = io.BytesIO()
+        qrcode.make(data, box_size=4, border=1).save(buffer, format="PNG")
+        return base64.b64encode(buffer.getvalue()).decode()
 
     def _mgs_pos_ticket(self, order):
         """Construye el ticket ESC/POS de una venta del TPV."""
@@ -622,6 +653,48 @@ class MgsConfig(models.Model):
         if self.receipt_footer:
             doc.wrapped(self.receipt_footer)
         doc.ln()
+        self._mgs_receipt_marketing_block(doc, order)
+        self._mgs_receipt_invoice_block(doc, order)
         doc.barcode(order.name.replace("/", "-"), height=50, width=2)
         doc.align("left").cut()
         return doc
+
+    def _mgs_receipt_marketing_block(self, doc, order):
+        """QR de reseña de Google y/o de la web de la tienda, iguales a los
+        del ticket en PDF (mgs_pos_receipt.py). Antes solo salían en el PDF:
+        `qr()` (mgs_escpos.py) ya estaba implementado para esto — el propio
+        comentario de `_mgs_receipt_qr` decía que la térmica «sí usa» el
+        comando QR nativo — pero nunca se llegó a invocar aquí."""
+        review_url = order._mgs_receipt_review_url()
+        website_url = order._mgs_receipt_website_url()
+        if not (review_url or website_url):
+            return
+        doc.align("center")
+        if review_url:
+            doc.wrapped(_("Valóranos en Google"))
+            doc.qr(review_url)
+        if website_url:
+            doc.wrapped(website_url)
+            doc.qr(website_url)
+        doc.align("left")
+
+    def _mgs_receipt_invoice_block(self, doc, order):
+        """«¿Necesita factura?»: mismo QR que el recibo de pantalla del TPV
+        (point_of_sale, campo `pos_qr_code`) para pedir la factura de esta
+        venta online, con su código único debajo. Antes solo salía cuando el
+        ticket se imprimía por el navegador (autoimpresión térmica
+        desactivada, o botón «Imprimir factura»): en el ticket ESC/POS no
+        salía nunca, aunque `qr()` (mgs_escpos.py) ya estaba implementado y
+        sin usar."""
+        if not order._mgs_receipt_invoice_qr_ready():
+            return
+        mode = order.company_id.point_of_sale_ticket_portal_url_display_mode
+        url = order._mgs_receipt_invoice_portal_url()
+        doc.align("center")
+        doc.wrapped(_("¿Necesita factura de esta compra?"))
+        if mode in ("qr_code", "qr_code_and_url"):
+            doc.qr(url)
+        if mode in ("url", "qr_code_and_url"):
+            doc.wrapped(url)
+        doc.wrapped(_("Código: %s", order.ticket_code))
+        doc.align("left")

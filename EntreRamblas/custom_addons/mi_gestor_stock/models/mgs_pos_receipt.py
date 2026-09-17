@@ -7,11 +7,6 @@ QWeb/PDF), así que el desglose de IVA y el relabel del cambio se repiten
 aquí: son ~10 líneas cada uno, no compensa acoplar un modelo (pos.order) con
 el otro (mgs.config) por evitar duplicarlas.
 """
-import base64
-import io
-
-import qrcode
-
 from odoo import _, fields, models
 
 
@@ -29,20 +24,25 @@ class PosOrder(models.Model):
 
         Un PDF no tiene el comando QR nativo que sí usa la impresora térmica
         (mgs_escpos.py:qr()): aquí hace falta generar la imagen de verdad.
-        """
+        Delegado en mgs.config para no repetir la dependencia de `qrcode` en
+        los tres sitios que necesitan esta misma imagen (este informe, el
+        recibo en pantalla del TPV y, de rebote, mgs_pos_hardware_info)."""
         self.ensure_one()
-        data = (data or "").strip()
-        if not data:
-            return False
-        buffer = io.BytesIO()
-        qrcode.make(data, box_size=4, border=1).save(buffer, format="PNG")
-        return base64.b64encode(buffer.getvalue()).decode()
+        return self.env["mgs.config"]._mgs_qr_png(data)
 
-    def _mgs_receipt_review_qr(self):
-        """QR a la reseña de Google (mgs.config.google_review_url)."""
+    def _mgs_receipt_review_url(self):
+        """URL de la reseña de Google (mgs.config.google_review_url), o
+        False si no está rellena. Separado de _mgs_receipt_review_qr() para
+        que el ticket ESC/POS (mgs_config.py:_mgs_pos_ticket) pueda pasarle
+        el dato en crudo a doc.qr() en vez de una imagen PNG."""
         self.ensure_one()
         config = self.env["mgs.config"].sudo()._mgs_get()
-        return self._mgs_receipt_qr(config.google_review_url)
+        return (config.google_review_url or "").strip() or False
+
+    def _mgs_receipt_review_qr(self):
+        """QR a la reseña de Google, como imagen PNG (para el PDF)."""
+        self.ensure_one()
+        return self._mgs_receipt_qr(self._mgs_receipt_review_url())
 
     def _mgs_receipt_website_url(self):
         """URL completa de la web de la tienda, o False si no está
@@ -63,6 +63,56 @@ class PosOrder(models.Model):
         """QR a la web de la tienda."""
         self.ensure_one()
         return self._mgs_receipt_qr(self._mgs_receipt_website_url())
+
+    def _mgs_receipt_invoice_portal_url(self):
+        """URL del formulario donde la clienta puede pedir la factura de
+        esta venta por su cuenta: el mismo destino que ya usa el recibo de
+        pantalla del TPV (point_of_sale/static/src/app/models/pos_order.js,
+        campo `pos_qr_code`), no algo propio de este módulo."""
+        self.ensure_one()
+        base_url = self.env["ir.config_parameter"].sudo().get_param("web.base.url") or ""
+        return base_url.rstrip("/") + "/pos/ticket/"
+
+    def _mgs_receipt_invoice_qr_ready(self):
+        """Mismas condiciones que en pantalla: el ajuste de la compañía
+        activado, la venta ya cobrada (no un ticket en curso) y con su
+        código único puesto — lo genera el TPV al crear la venta
+        (`ticket_code: random5Chars()` en pos_store.js); una venta fabricada
+        a mano, como en un test, puede no tenerlo."""
+        self.ensure_one()
+        return bool(
+            self.company_id.point_of_sale_use_ticket_qr_code
+            and self.state != "draft"
+            and self.ticket_code
+        )
+
+    def _mgs_receipt_invoice_qr(self):
+        """QR para pedir la factura de esta venta online, en el ticket PDF.
+
+        Es el mismo QR que el recibo de pantalla del TPV (`pos_qr_code`)
+        enseña cuando ese recibo se imprime por el navegador — bien porque
+        se pulsa «Imprimir factura», bien porque Configuración →
+        Dispositivos → «Imprimir el ticket del TPV automáticamente» está
+        desactivado. Reimprimir la venta como PDF desde el backend se
+        quedaba sin él aunque el papel sí lo llevara."""
+        self.ensure_one()
+        if not self._mgs_receipt_invoice_qr_ready():
+            return False
+        if self.company_id.point_of_sale_ticket_portal_url_display_mode not in (
+                "qr_code", "qr_code_and_url"):
+            return False
+        return self._mgs_receipt_qr(self._mgs_receipt_invoice_portal_url())
+
+    def _mgs_receipt_invoice_url_text(self):
+        """Enlace en texto, solo cuando el ajuste de la compañía pide
+        enseñarlo (además del QR, o en vez de él)."""
+        self.ensure_one()
+        if not self._mgs_receipt_invoice_qr_ready():
+            return False
+        if self.company_id.point_of_sale_ticket_portal_url_display_mode not in (
+                "url", "qr_code_and_url"):
+            return False
+        return self._mgs_receipt_invoice_portal_url()
 
     def _mgs_receipt_tax_breakdown(self):
         """Agrupado por TIPO impositivo (no por línea ni por el nombre interno
