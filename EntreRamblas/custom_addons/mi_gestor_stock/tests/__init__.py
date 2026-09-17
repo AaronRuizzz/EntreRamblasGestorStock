@@ -26,3 +26,4 @@ from . import test_report_template
 from . import test_report_engine
 from . import test_report_export
 from . import test_correction
+from . import test_report_exclusion

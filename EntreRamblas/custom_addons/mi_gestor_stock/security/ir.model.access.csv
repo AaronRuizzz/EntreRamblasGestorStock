@@ -37,5 +37,8 @@ access_mgs_diagnostic,mgs diagnostic,model_mgs_diagnostic,mi_gestor_stock.group_
 access_mgs_update,mgs update,model_mgs_update,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_report_template_manager,mgs report template manager,model_mgs_report_template,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_report_preview_line_manager,mgs report preview line manager,model_mgs_report_preview_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_report_sale_review_manager,mgs report sale review manager,model_mgs_report_sale_review,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_report_exclusion_log_manager,mgs report exclusion log manager,model_mgs_report_exclusion_log,mi_gestor_stock.group_mgs_manager,1,0,0,0
+access_mgs_report_exclusion_wizard_manager,mgs report exclusion wizard manager,model_mgs_report_exclusion_wizard,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_correction_manager,mgs correction manager,model_mgs_correction,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_correction_wizard_manager,mgs correction wizard manager,model_mgs_correction_wizard,mi_gestor_stock.group_mgs_manager,1,1,1,1

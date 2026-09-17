@@ -51,7 +51,7 @@
                 <sheet>
                     <div class="alert alert-success" role="status" invisible="not is_gestoria_master">
                         <strong>Informe para gestoría.</strong>
-                        Incluye todas las ventas, devoluciones y cobros del periodo.
+                        Incluye las operaciones no clasificadas del periodo.
                         No se le pueden añadir filtros ni quitar secciones: solo se cambia el periodo.
                     </div>
                     <div class="alert alert-warning" role="status" invisible="is_gestoria_master">
@@ -102,11 +102,31 @@
                                 <field name="payment_method_ids" widget="many2many_tags" readonly="is_locked"/>
                             </group>
                             <p class="text-muted">
-                                El filtro de método de pago afecta solo a la sección de cobros, donde
-                                cada cobro tiene su método exacto. Con un filtro de categoría o de
-                                producto los cobros se omiten: un cobro mixto (parte en efectivo,
-                                parte con tarjeta) no se puede repartir por categorías sin inventar.
+                                Los cobros se prorratean por el importe incluido de cada ticket. Esto
+                                conserva correctamente los pagos mixtos cuando se filtra por producto,
+                                categoría o se excluyen líneas en la preparación del informe.
                             </p>
+                        </page>
+                        <page string="Preparar ventas" name="prepare_sales">
+                            <p class="text-muted">
+                                Pulsa «Actualizar vista previa» para cargar las líneas del periodo.
+                                «En B» se guarda globalmente para esa línea y se aplicará en todos los
+                                informes. Las devoluciones vinculadas heredan su estado automáticamente.
+                            </p>
+                            <field name="review_line_ids" readonly="1">
+                                <list string="Líneas vendidas" create="0" edit="0" delete="0">
+                                    <field name="date_order"/>
+                                    <field name="order_id"/>
+                                    <field name="product_id"/>
+                                    <field name="quantity"/>
+                                    <field name="amount"/>
+                                    <field name="excluded" widget="boolean_toggle"/>
+                                    <button name="action_mark_excluded" type="object" string="Marcar en B"
+                                            class="btn-primary" invisible="excluded"/>
+                                    <button name="action_mark_included" type="object" string="Volver a incluir"
+                                            invisible="not excluded"/>
+                                </list>
+                            </field>
                         </page>
                         <page string="Vista previa" name="preview">
                             <group>
@@ -152,7 +172,7 @@
             <p>
                 Elige el periodo, las secciones y los filtros, mira la vista previa y
                 expórtalo a Excel o PDF. Para la gestoría, usa la plantilla
-                «Gestoría completa», que siempre lleva todas las operaciones del periodo.
+                «Gestoría completa», sin filtros manuales.
             </p>
         </field>
     </record>

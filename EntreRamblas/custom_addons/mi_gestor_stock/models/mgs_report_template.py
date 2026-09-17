@@ -93,6 +93,8 @@ class MgsReportTemplate(models.Model):
                                    readonly=True, copy=False)
     preview_line_ids = fields.One2many("mgs.report.preview.line", "template_id",
                                        "Filas de la vista previa", readonly=True, copy=False)
+    review_line_ids = fields.One2many("mgs.report.sale.review", "template_id",
+                                      "Preparación de ventas", readonly=True, copy=False)
     preview_sales_count = fields.Integer("Ventas (líneas)", readonly=True, copy=False)
     preview_sales_total = fields.Float("Ventas (importe)", readonly=True, copy=False)
     preview_refunds_count = fields.Integer("Devoluciones (líneas)", readonly=True, copy=False)
@@ -196,6 +198,21 @@ class MgsReportTemplate(models.Model):
         })
         self.preview_line_ids.unlink()
         self.env["mgs.report.preview.line"].create(self._mgs_preview_lines(data))
+        self.review_line_ids.unlink()
+        review_domain = [
+            ("company_id", "=", self.company_id.id), ("qty", ">", 0),
+            ("order_id.date_order", ">=", data["start"]),
+            ("order_id.date_order", "<", data["end"]),
+            ("order_id.state", "in", mgs_report_engine.SOLD_STATES),
+        ]
+        if self.category_ids:
+            review_domain.append(("product_id.categ_id", "child_of", self.category_ids.ids))
+        if self.product_ids:
+            review_domain.append(("product_id", "in", self.product_ids.ids))
+        self.env["mgs.report.sale.review"].create([
+            {"template_id": self.id, "line_id": line.id}
+            for line in self.env["pos.order.line"].search(review_domain)
+        ])
         return True
 
     def _mgs_preview_lines(self, data):

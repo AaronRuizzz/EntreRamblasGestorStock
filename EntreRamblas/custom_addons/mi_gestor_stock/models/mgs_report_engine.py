@@ -20,10 +20,65 @@ from datetime import timedelta
 import pytz
 from odoo import _, fields
 
-from .mgs_monthly_report import SOLD_STATES
-from .mgs_permissions import madrid_day_range
+from .mgs_permissions import madrid_day_range, SOLD_STATES
 
 MADRID = pytz.timezone("Europe/Madrid")
+
+
+def report_line_domain(company, start, end, category_ids=None, product_ids=None):
+    """Dominio común: las líneas excluidas desaparecen de todos los informes."""
+    return _category_domain(category_ids or []) + _product_domain(product_ids or []) + [
+        ("company_id", "=", company.id),
+        ("order_id.date_order", ">=", start), ("order_id.date_order", "<", end),
+        ("order_id.state", "in", SOLD_STATES), ("mgs_report_excluded", "=", False),
+    ]
+
+
+def payment_rows(env, company, start, end, payment_method_ids=None, category_ids=None,
+                 product_ids=None):
+    """Cobros prorrateados por el bruto incluido de cada ticket.
+
+    Se calcula por ticket antes de agrupar por método: un ticket mixto mantiene
+    la proporción en efectivo/tarjeta en lugar de inventar una asignación.
+    """
+    orders = env["pos.order"].search([
+        ("company_id", "=", company.id), ("state", "in", SOLD_STATES),
+        ("date_order", ">=", start), ("date_order", "<", end),
+    ])
+    included_by_order = {}
+    for line in env["pos.order.line"].search(
+            report_line_domain(company, start, end, category_ids, product_ids)):
+        included_by_order.setdefault(line.order_id.id, env["pos.order.line"])
+        included_by_order[line.order_id.id] |= line
+    grouped = {}
+    for order in orders:
+        lines = included_by_order.get(order.id, env["pos.order.line"])
+        all_lines = order.lines.filtered(lambda line: line.qty != 0)
+        total = sum(abs(line.price_subtotal_incl) for line in all_lines)
+        included = sum(abs(line.price_subtotal_incl) for line in lines)
+        if total:
+            ratio = included / total
+        elif all_lines:
+            ratio = len(lines) / len(all_lines)
+        else:
+            ratio = 0.0
+        for payment in order.payment_ids:
+            if payment.payment_date < start or payment.payment_date >= end:
+                continue
+            if payment_method_ids and payment.payment_method_id.id not in payment_method_ids:
+                continue
+            amount = company.currency_id.round(payment.amount * ratio)
+            if not amount:
+                continue
+            method = payment.payment_method_id
+            deferred = method.type == "pay_later"
+            row = grouped.setdefault(method.id, {
+                "name": method.name + (_(" (cuenta cliente, no cobrado)") if deferred else ""),
+                "received": 0.0, "returned": 0.0, "deferred": deferred, "count": 0,
+            })
+            row["received" if amount >= 0 else "returned"] += abs(amount)
+            row["count"] += 1
+    return sorted(grouped.values(), key=lambda row: row["name"]), True
 
 
 def _category_domain(category_ids, field="product_id.categ_id"):
@@ -38,11 +93,7 @@ def _product_domain(product_ids, field="product_id"):
 # Resumen
 # ----------------------------------------------------------------------
 def resumen(env, company, start, end, category_ids, product_ids):
-    domain = _category_domain(category_ids) + _product_domain(product_ids) + [
-        ("company_id", "=", company.id),
-        ("order_id.date_order", ">=", start), ("order_id.date_order", "<", end),
-        ("order_id.state", "in", SOLD_STATES),
-    ]
+    domain = report_line_domain(company, start, end, category_ids, product_ids)
     lines = env["pos.order.line"].search(domain)
     positive = lines.filtered(lambda line: line.qty > 0)
     negative = lines.filtered(lambda line: line.qty < 0)
@@ -131,11 +182,7 @@ def _order_rows(rows, order_by, key=lambda row: row.get("label") or ""):
 def ventas(env, company, start, end, category_ids, product_ids, group_by, order_by):
     """Solo líneas vendidas (qty > 0): las devoluciones tienen su propia
     sección, sin netear entre sí, para que cada una se pueda auditar."""
-    domain = _category_domain(category_ids) + _product_domain(product_ids) + [
-        ("company_id", "=", company.id),
-        ("order_id.date_order", ">=", start), ("order_id.date_order", "<", end),
-        ("order_id.state", "in", SOLD_STATES), ("qty", ">", 0),
-    ]
+    domain = report_line_domain(company, start, end, category_ids, product_ids) + [("qty", ">", 0)]
     lines = env["pos.order.line"].search(domain)
     return _order_rows(_aggregate(lines, group_by), order_by)
 
@@ -144,11 +191,7 @@ def devoluciones(env, company, start, end, category_ids, product_ids, order_by):
     """Una fila por línea de devolución (qty < 0), con el pedido original y el
     de la devolución enlazados: es la trazabilidad que pide el informe, y se
     perdería si se agregara por producto como en `ventas`."""
-    domain = _category_domain(category_ids) + _product_domain(product_ids) + [
-        ("company_id", "=", company.id),
-        ("order_id.date_order", ">=", start), ("order_id.date_order", "<", end),
-        ("order_id.state", "in", SOLD_STATES), ("qty", "<", 0),
-    ]
+    domain = report_line_domain(company, start, end, category_ids, product_ids) + [("qty", "<", 0)]
     lines = env["pos.order.line"].search(domain)
     rows = [{
         "date": pytz.UTC.localize(line.order_id.date_order).astimezone(MADRID).date(),
@@ -166,30 +209,7 @@ def devoluciones(env, company, start, end, category_ids, product_ids, order_by):
 # Cobros
 # ----------------------------------------------------------------------
 def cobros(env, company, start, end, payment_method_ids, category_ids, product_ids):
-    # Un cobro mixto no se puede atribuir exactamente a una categoría o
-    # producto: igual que en el informe mensual, se omite entero con esos
-    # filtros activos en vez de repartirlo a ojo.
-    available = not (category_ids or product_ids)
-    if not available:
-        return [], False
-    domain = [
-        ("pos_order_id.company_id", "=", company.id),
-        ("pos_order_id.state", "in", SOLD_STATES),
-        ("payment_date", ">=", start), ("payment_date", "<", end),
-    ]
-    if payment_method_ids:
-        domain.append(("payment_method_id", "in", payment_method_ids))
-    grouped = {}
-    for payment in env["pos.payment"].search(domain):
-        method = payment.payment_method_id
-        deferred = method.type == "pay_later"
-        row = grouped.setdefault(method.id, {
-            "name": method.name + (_(" (cuenta cliente, no cobrado)") if deferred else ""),
-            "received": 0.0, "returned": 0.0, "deferred": deferred, "count": 0,
-        })
-        row["received" if payment.amount >= 0 else "returned"] += abs(payment.amount)
-        row["count"] += 1
-    return sorted(grouped.values(), key=lambda row: row["name"]), True
+    return payment_rows(env, company, start, end, payment_method_ids, category_ids, product_ids)
 
 
 # ----------------------------------------------------------------------
@@ -329,6 +349,7 @@ def build(template):
         "currency": company.currency_id, "generated_at": fields.Datetime.now(),
         "author": env.user.display_name, "is_gestoria": template.is_gestoria_master,
         "group_by": template.group_by, "order_by": template.order_by,
+        "start": start, "end": end,
     }
     if template.section_resumen:
         data["resumen"] = resumen(env, company, start, end, category_ids, product_ids)

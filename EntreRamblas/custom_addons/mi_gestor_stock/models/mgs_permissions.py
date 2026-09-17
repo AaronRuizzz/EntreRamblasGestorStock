@@ -13,6 +13,7 @@ MANAGER_GROUPS = (
 COST_GROUPS = ",".join(MANAGER_GROUPS)
 
 MAINTENANCE_PARAM = "mgs.maintenance"
+SOLD_STATES = ("paid", "done", "invoiced")
 
 
 def is_manager(env):
