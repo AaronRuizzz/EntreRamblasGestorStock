@@ -305,10 +305,7 @@ def eventos(env, company, date_from, date_to, start, end, category_ids, product_
 # Correcciones
 # ----------------------------------------------------------------------
 def correcciones(env, company, start, end):
-    # TODO Fase 5 (models/mgs_correction.py): sustituir por la consulta real
-    # contra mgs.correction. Hasta entonces la sección se muestra vacía en
-    # vez de romper el resto del informe.
-    return []
+    return env["mgs.correction"]._mgs_report_rows(company, start, end)
 
 
 # ----------------------------------------------------------------------

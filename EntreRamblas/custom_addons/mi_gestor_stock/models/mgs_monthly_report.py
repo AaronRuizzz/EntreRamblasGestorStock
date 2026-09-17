@@ -135,6 +135,18 @@ class MgsMonthlyReport(models.TransientModel):
         self.ensure_one()
         return self.env.ref("mi_gestor_stock.action_report_mgs_monthly").report_action(self)
 
+    def action_open_report_builder(self):
+        """Puente al constructor de informes personalizados (Informes →
+        Informes personalizados), con el periodo ya elegido aquí. Este
+        asistente y sus exportaciones siguen funcionando igual."""
+        self.ensure_one()
+        require_manager(self.env)
+        action = self.env.ref("mi_gestor_stock.action_mgs_report_templates").read()[0]
+        action["context"] = dict(self.env.context,
+                                 default_date_from=self.date_from,
+                                 default_date_to=self.date_to)
+        return action
+
     # ------------------------------------------------------------------
     # Datos del informe (lo llama la plantilla QWeb)
     # ------------------------------------------------------------------

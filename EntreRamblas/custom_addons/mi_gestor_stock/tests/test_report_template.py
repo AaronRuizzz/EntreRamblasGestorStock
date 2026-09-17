@@ -76,6 +76,35 @@ class TestReportTemplate(TransactionCase):
         with self.assertRaises(UserError):
             self.gestoria.sudo()._mgs_check_gestoria_integrity()
 
+    def test_preview_starts_stale_and_refreshes_on_demand(self):
+        template = self.custom_template()
+        self.assertTrue(template.preview_stale)
+        self.assertFalse(template.preview_generated_at)
+        template.with_user(self.owner).action_refresh_preview()
+        self.assertFalse(template.preview_stale)
+        self.assertTrue(template.preview_generated_at)
+        # Sin ventas en el periodo, la vista previa existe y está a cero: es
+        # información («no hubo nada»), no un error.
+        self.assertEqual(template.preview_sales_count, 0)
+
+    def test_changing_a_filter_marks_the_preview_stale_again(self):
+        template = self.custom_template()
+        template.with_user(self.owner).action_refresh_preview()
+        self.assertFalse(template.preview_stale)
+        template.with_user(self.owner).write({"section_stock": False})
+        self.assertTrue(template.preview_stale)
+
+    def test_refreshing_the_locked_template_preview_does_not_trip_its_lock(self):
+        # La vista previa la escribe el servidor, no la usuaria: el candado de
+        # «Gestoría completa» no puede impedir que se actualice.
+        self.gestoria.with_user(self.owner).action_refresh_preview()
+        self.assertFalse(self.gestoria.preview_stale)
+
+    def test_clerk_cannot_refresh_a_preview(self):
+        template = self.custom_template()
+        with self.assertRaises(AccessError):
+            template.with_user(self.clerk).action_refresh_preview()
+
     def test_only_the_locked_record_is_the_gestoria_master(self):
         self.assertTrue(self.gestoria.is_gestoria_master)
         # Una plantilla nueva sin filtros no se puede hacer pasar por ella:

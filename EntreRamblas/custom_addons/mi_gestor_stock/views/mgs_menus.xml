@@ -55,6 +55,12 @@
               action="action_mgs_consumption" sequence="25" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_monthly" name="Informe mensual (PDF)" parent="menu_mgs_reports"
               action="action_mgs_monthly_report" sequence="30" groups="mi_gestor_stock.group_mgs_manager"/>
+    <menuitem id="menu_mgs_reports_custom" name="Informes personalizados" parent="menu_mgs_reports"
+              action="action_mgs_report_templates" sequence="35" groups="mi_gestor_stock.group_mgs_manager"/>
+    <!-- Historial de correcciones: es una auditoría, no un informe más, así que
+         va al lado de los informes y no dentro del constructor. -->
+    <menuitem id="menu_mgs_corrections" name="Correcciones" parent="menu_mgs_reports"
+              action="action_mgs_corrections" sequence="37" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_sessions" name="Cierres de caja" parent="menu_mgs_reports"
               action="action_mgs_pos_sessions" sequence="40" groups="mi_gestor_stock.group_mgs_manager"/>
 

@@ -1,6 +1,6 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
-    "version": "18.0.5.0.0",
+    "version": "18.0.6.0.0",
     "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
@@ -26,12 +26,14 @@
         "data/mgs_bouquet_data.xml",
         "data/mgs_event_data.xml",
         "data/mgs_report_template_data.xml",
+        "data/mgs_correction_data.xml",
         # Los informes (ir.actions.report) van ANTES que cualquier vista: la
         # cabecera del formulario de evento referencia %(action_report_mgs_event)d
         # y una instalacion sobre BD vacia fallaba con "External ID not found"
         # porque la vista se cargaba antes que su accion de informe.
         "report/mgs_monthly_report.xml",
         "report/mgs_event_report.xml",
+        "report/mgs_report_builder.xml",
         "views/mgs_config_views.xml",
         "views/mgs_hardware_job_views.xml",
         "views/mgs_reception_views.xml",
@@ -45,6 +47,10 @@
         "views/pos_report_views.xml",
         "views/mgs_pos_session_views.xml",
         "views/mgs_consumption_views.xml",
+        # Antes de mgs_menus.xml: los menús nuevos referencian sus acciones
+        # (action_mgs_report_templates, action_mgs_corrections) por ID.
+        "views/mgs_report_template_views.xml",
+        "views/mgs_correction_views.xml",
         "views/mgs_menus.xml",
         "views/mgs_security_views.xml",
         "views/login_templates.xml",
