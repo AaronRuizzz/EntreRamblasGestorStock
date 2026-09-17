@@ -47,6 +47,27 @@ class TestPosCategoryMirror(TransactionCase):
         tmpl = self.product("Ficus", categ)
         self.assertEqual(tmpl.pos_categ_ids, categ.mgs_pos_categ_id)
 
+    def test_a_new_product_and_its_new_button_are_loadable_during_an_open_sale(self):
+        """Contrato del botón «Actualizar productos» del TPV.
+
+        El cliente pide los mismos campos completos que Odoo usa para cargar
+        productos en caja. Así una categoría creada después de abrir el TPV y
+        su primer artículo llegan juntos, sin tener que reiniciar la sesión.
+        """
+        categ = self.categ("Prueba actualización TPV")
+        tmpl = self.product("Producto creado durante la venta", categ)
+        config = self.env["pos.config"].search([], limit=1)
+        fields = self.env["product.product"]._load_pos_data_fields(config.id)
+        rows = self.env["product.product"].with_context(
+            display_default_code=False).search_read([
+                ("id", "=", tmpl.product_variant_id.id),
+                ("sale_ok", "=", True),
+                ("available_in_pos", "=", True),
+            ], fields, load=False)
+
+        self.assertEqual([row["id"] for row in rows], [tmpl.product_variant_id.id])
+        self.assertIn(categ.mgs_pos_categ_id.id, rows[0]["pos_categ_ids"])
+
     def test_moving_a_product_to_another_category_moves_its_button(self):
         origin, destination = self.categ("Flor cortada"), self.categ("Planta")
         tmpl = self.product("Gerbera", origin)
