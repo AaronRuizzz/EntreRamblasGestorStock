@@ -1,6 +1,6 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
-    "version": "18.0.6.0.0",
+    "version": "18.0.6.0.1",
     "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
