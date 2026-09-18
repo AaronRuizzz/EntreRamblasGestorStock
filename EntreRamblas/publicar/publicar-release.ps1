@@ -84,9 +84,13 @@ Write-Host '   Sesión de gh: AaronRuizzz' -ForegroundColor DarkGray
 
 # --- 3. Empaquetar (pruebas + zip + manifest + firmas + version.iss) ------
 Write-Host '3. Empaquetando (pruebas, zip, manifiesto, firmas)...' -ForegroundColor Cyan
-$empaquetarArgs = @('-Salida', $Salida, '-Firmar', $Firmar)
-if ($PythonBase) { $empaquetarArgs += @('-PythonBase', $PythonBase) }
-if ($SaltarPruebas) { $empaquetarArgs += '-SaltarPruebas' }
+# Splatting por HASHTABLE, no por array: un array de tokens sueltos
+# ('-SaltarPruebas' como elemento de texto) no liga bien el switch en esta
+# versión de PowerShell — el binder trata el primer elemento como valor
+# posicional en vez de como nombre de parámetro. Con hashtable no falla.
+$empaquetarArgs = @{ Salida = $Salida; Firmar = $Firmar }
+if ($PythonBase) { $empaquetarArgs['PythonBase'] = $PythonBase }
+if ($SaltarPruebas) { $empaquetarArgs['SaltarPruebas'] = $true }
 & (Join-Path $repo 'publicar\empaquetar.ps1') @empaquetarArgs
 if ($LASTEXITCODE -ne 0) { throw 'empaquetar.ps1 falló; revisa el mensaje de arriba.' }
 
