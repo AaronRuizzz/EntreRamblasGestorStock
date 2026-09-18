@@ -82,6 +82,45 @@ if ($authStatus -notmatch 'account\s+AaronRuizzz\b') {
 }
 Write-Host '   Sesión de gh: AaronRuizzz' -ForegroundColor DarkGray
 
+# --- Preparar el clon local del repo de releases -----------------------
+# Aquí, antes de empaquetar (paso largo) y no al final: `gh release create`
+# necesita etiquetar un commit que ya exista, y un repositorio recién creado
+# con `gh repo create` está completamente vacío (sin ninguna rama todavía).
+# Si es la primera publicación de siempre, se hace un único commit inicial
+# (un README) para que exista 'main' — no lleva nada del canal de
+# actualizaciones: manifest.json se sigue publicando el último, en el paso
+# final, tal y como pide el resto del script.
+if (-not $ReleasesRepoDir) { $ReleasesRepoDir = Join-Path $Salida 'EntreRamblasReleases' }
+if (Test-Path (Join-Path $ReleasesRepoDir '.git')) {
+    git -C $ReleasesRepoDir fetch origin
+} else {
+    if (Test-Path $ReleasesRepoDir) { Remove-Item $ReleasesRepoDir -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path (Split-Path $ReleasesRepoDir) | Out-Null
+    git clone "https://github.com/$repoReleases.git" $ReleasesRepoDir
+}
+$tieneMain = git -C $ReleasesRepoDir ls-remote --heads origin main
+if (-not $tieneMain) {
+    Write-Host '   Repositorio de releases vacío: primer commit (README) para crear main...' -ForegroundColor DarkGray
+    git -C $ReleasesRepoDir checkout -B main
+    $readmePath = Join-Path $ReleasesRepoDir 'README.md'
+    if (-not (Test-Path $readmePath)) {
+        @"
+# EntreRamblasReleases
+
+Canal público de actualizaciones firmadas de **Gestor Stock Clavel Y Azahar**.
+
+- ``manifest.json`` / ``manifest.json.sig``: el manifiesto firmado (Ed25519) que lee el actualizador de cada tienda.
+- El paquete (``.zip``) y el instalador (``.exe``) de cada versión van como *assets* de su release, no en este árbol.
+
+Publicado con ``publicar/publicar-release.ps1`` desde el repositorio de desarrollo.
+"@ | Out-File -FilePath $readmePath -Encoding utf8
+    }
+    git -C $ReleasesRepoDir add README.md
+    git -C $ReleasesRepoDir -c user.name='AaronRuizzz' -c user.email='aaron.r.m@um.es' `
+        commit -m 'Primer commit: crea el canal de releases'
+    git -C $ReleasesRepoDir push origin main
+}
+
 # --- 3. Empaquetar (pruebas + zip + manifest + firmas + version.iss) ------
 Write-Host '3. Empaquetando (pruebas, zip, manifiesto, firmas)...' -ForegroundColor Cyan
 # Splatting por HASHTABLE, no por array: un array de tokens sueltos
@@ -142,21 +181,11 @@ foreach ($url in @($manifest.download_url, "$repoReleasesUrl/releases/download/$
 
 # --- 7. Publicar manifest.json el ÚLTIMO -----------------------------------
 Write-Host '7. Publicando manifest.json (el último paso)...' -ForegroundColor Cyan
-if (-not $ReleasesRepoDir) { $ReleasesRepoDir = Join-Path $dist 'EntreRamblasReleases' }
-if (Test-Path (Join-Path $ReleasesRepoDir '.git')) {
-    git -C $ReleasesRepoDir fetch origin main
-    git -C $ReleasesRepoDir checkout main
-    git -C $ReleasesRepoDir reset --hard origin/main
-} else {
-    if (Test-Path $ReleasesRepoDir) { Remove-Item $ReleasesRepoDir -Recurse -Force }
-    git clone "https://github.com/$repoReleases.git" $ReleasesRepoDir
-    # No se confía en `init.defaultBranch` del equipo (aquí vale 'master'):
-    # el primer commit de este repo tiene que llamarse 'main' sí o sí, o el
-    # resto del script (y el actualizador, que lee de la rama 'main') no lo
-    # encuentra. `checkout -B` la crea si no existe (repo recién clonado y
-    # todavía sin ningún commit) o la deja tal cual si ya existía.
-    git -C $ReleasesRepoDir checkout -B main
-}
+# $ReleasesRepoDir ya es un clon válido con 'main' existente (preparado antes
+# de empaquetar, ver más arriba) — solo hay que ponerlo al día.
+git -C $ReleasesRepoDir fetch origin main
+git -C $ReleasesRepoDir checkout main
+git -C $ReleasesRepoDir reset --hard origin/main
 Copy-Item $manifestPath (Join-Path $ReleasesRepoDir 'manifest.json') -Force
 Copy-Item "$manifestPath.sig" (Join-Path $ReleasesRepoDir 'manifest.json.sig') -Force
 git -C $ReleasesRepoDir add manifest.json manifest.json.sig
