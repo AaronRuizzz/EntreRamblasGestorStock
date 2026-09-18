@@ -56,8 +56,15 @@ foreach ($item in $incluir) {
     $src = Join-Path $repo $item
     if (-not (Test-Path $src)) { Write-Warning "No está: $item"; continue }
     if (Test-Path $src -PathType Container) {
+        # 'tests': ni el motor Odoo ni mi_gestor_stock los necesitan para
+        # arrancar en producción (Odoo solo importa el paquete `tests` de un
+        # módulo en modo test, nunca en un arranque normal) — sin excluirlos
+        # aquí, algunos ficheros de prueba de módulos nativos (rutas de
+        # ejemplo con nombres largos, p. ej. account_edi_ubl_cii) superan el
+        # límite clásico de 260 caracteres de Windows y el instalador falla
+        # al comprimirlos con "no se puede encontrar la ruta especificada".
         robocopy $src (Join-Path $payload $item) /E /NFL /NDL /NJH /NJS /NP `
-            /XD '__pycache__' '.git' '.pytest_cache' '.odoo_data' 'sessions' 'filestore' `
+            /XD '__pycache__' '.git' '.pytest_cache' '.odoo_data' 'sessions' 'filestore' 'tests' `
             /XF '*.pyc' '*.log' '*.err' 'odoo.local' 'odoo.local.pending' '*.secret' | Out-Null
         if ($LASTEXITCODE -ge 8) { throw "robocopy falló copiando $item" }
     } else {

@@ -72,7 +72,7 @@ Filename: "powershell.exe"; \
 ; Solo se retira el servicio de la aplicacion. NO se toca PostgreSQL, ni la
 ; base, ni las copias: reinstalar debe reencontrarlas.
 Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""& { try { Stop-Service EntreRamblasOdoo -ErrorAction SilentlyContinue; & '{app}\venv\Scripts\python.exe' '{app}\tools\windows_service.py' remove --name EntreRamblasOdoo --config '{commonappdata}\{#AppShort}\odoo.local' --database entre_ramblas } catch {} }"""; \
+  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""& {{ try {{ Stop-Service EntreRamblasOdoo -ErrorAction SilentlyContinue; & '{app}\venv\Scripts\python.exe' '{app}\tools\windows_service.py' remove --name EntreRamblasOdoo --config '{commonappdata}\{#AppShort}\odoo.local' --database entre_ramblas }} catch {{}} }}"""; \
   Flags: runhidden; RunOnceId: "RemoveOdooService"
 
 [UninstallDelete]
