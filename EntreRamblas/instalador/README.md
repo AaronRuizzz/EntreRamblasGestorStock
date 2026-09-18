@@ -1,4 +1,4 @@
-# Instalador `EntreRamblas-Setup.exe`
+# Instalador de Gestor Stock Clavel Y Azahar (`Gestor-Stock-Clavel-Y-Azahar-Setup.exe`)
 
 Genera un único ejecutable para Windows 11 x64 con Inno Setup. La dueña **no
 necesita** Git, ni clonar repositorios, ni escribir comandos.
@@ -22,7 +22,10 @@ necesita** Git, ni clonar repositorios, ni escribir comandos.
 
 ## Cómo compilarlo (en el PC de desarrollo)
 
-1. Instala [Inno Setup 6](https://jrsoftware.org/isdl.php).
+1. Instala Inno Setup 6: `winget install JRSoftware.InnoSetup`. Con la
+   sesión sin elevar, `ISCC.exe` queda en
+   `%LocalAppData%\Programs\Inno Setup 6\ISCC.exe`; elevado (o con el
+   instalador oficial), en `C:\Program Files (x86)\Inno Setup 6\ISCC.exe`.
 2. Prepara el árbol de distribución (código + venv + motor Odoo +
    wkhtmltopdf) con:
 
@@ -33,10 +36,16 @@ necesita** Git, ni clonar repositorios, ni escribir comandos.
 3. Compila:
 
    ```powershell
-   & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" instalador\EntreRamblas-Setup.iss
+   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador\EntreRamblas-Setup.iss
    ```
 
-   Sale `dist\EntreRamblas-Setup.exe`.
+   Sale `dist\Gestor-Stock-Clavel-Y-Azahar-Setup.exe`. El archivo `.iss` en sí
+   conserva su nombre técnico (`EntreRamblas-Setup.iss`): solo cambia el
+   nombre visible del producto y el del `.exe` generado, definidos dentro del
+   propio script.
+
+   `publicar-release.ps1` (recomendado en vez de este paso a paso) busca
+   `ISCC.exe` solo en ambas rutas automáticamente.
 
 ## Lo que queda fuera del alcance de una sesión de agente
 

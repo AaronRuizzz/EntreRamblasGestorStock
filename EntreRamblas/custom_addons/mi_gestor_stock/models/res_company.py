@@ -215,6 +215,22 @@ class ResCompany(models.Model):
             "noupdate": True,
         }])
 
+    def _register_hook(self):
+        # Aquí y no solo en data/branding.xml: en la instalación inicial, el
+        # plan contable español (_mgs_ensure_spanish_chart) sustituye a los
+        # diarios/métodos de pago genéricos, pero Odoo no los borra hasta el
+        # final de TODA la carga de módulos (limpieza de ir.model.data
+        # huérfanos). Si esta caja se crea durante branding.xml, usa uno de
+        # esos diarios genéricos y esa limpieza posterior se la lleva por
+        # delante en cascada (diario -> métodos de pago -> caja), dejando la
+        # base sin ninguna caja pese a que la instalación termina sin error.
+        # `_register_hook` corre justo después de esa limpieza (y en cada
+        # arranque posterior), así que aquí el plan contable ya está estable
+        # y el diario que se elija sí sobrevive.
+        super()._register_hook()
+        self.env.company._mgs_ensure_shop_pos_config()
+        self.env.company._mgs_apply_pos_pricelist_defaults()
+
     # ------------------------------------------------------------------
     # Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.
     # El <record> de data/mgs_event_data.xml vive en un bloque noupdate="1"
@@ -267,6 +283,17 @@ class ResCompany(models.Model):
             return
         try:
             self.env["account.chart.template"].try_loading("es_pymes", company, install_demo=False)
+            # Al instalar `account`/`l10n_es` (antes de que este módulo fije
+            # España como país), el propio núcleo de Odoo ya "adivinó" un
+            # plan por defecto (genérico, sin país todavía) y lo dejó
+            # pendiente en `registry._auto_install_template`
+            # (account/models/ir_module.py). Ese pendiente se aplica luego,
+            # sin condición, desde `ir.module.module._register_hook()` — que
+            # corre DESPUÉS de este try_loading — y pisaría el plan español
+            # recién cargado con el genérico. Se cancela aquí porque nuestra
+            # elección explícita es la que debe quedar.
+            if hasattr(self.env.registry, "_auto_install_template"):
+                del self.env.registry._auto_install_template
             _logger.info("mi_gestor_stock: plan contable espanol (es_pymes) cargado para %s", company.name)
         except Exception:  # noqa: BLE001 - un fallo aqui no debe impedir instalar
             _logger.exception("mi_gestor_stock: fallo al cargar el plan contable espanol")

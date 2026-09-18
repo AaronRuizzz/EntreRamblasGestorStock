@@ -210,7 +210,7 @@ class MgsMonthlyReport(models.TransientModel):
 
         # Un cobro mixto no se puede atribuir exactamente a categorías.
         # Se muestra solo con el informe de todas las categorías y por fecha de pago.
-        payment_rows, _available = mgs_report_engine.payment_rows(
+        payment_rows, payments_available = mgs_report_engine.payment_rows(
             self.env, self.env.company, start, end,
             category_ids=[self.category_id.id] if self.category_id else [])
 
@@ -279,7 +279,7 @@ class MgsMonthlyReport(models.TransientModel):
             "scrap_cost": scrap_cost,
             "margin_after_scrap": total_revenue - total_cost_sold - scrap_cost,
             "payment_rows": payment_rows,
-            "payments_available": True,
+            "payments_available": payments_available,
             "payments_net": sum(row["received"] - row["returned"] for row in payment_rows if not row["deferred"]),
             "payments_deferred_net": sum(row["received"] - row["returned"] for row in payment_rows if row["deferred"]),
             "sold_rows": sold_rows,

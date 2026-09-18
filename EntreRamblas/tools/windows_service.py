@@ -16,8 +16,10 @@ from service_process import OdooProcess
 
 
 class StoreService(win32serviceutil.ServiceFramework):
+    # Nombre interno del servicio (clave de compatibilidad, nunca cambiar);
+    # el nombre mostrado en services.msc sí es el del producto visible.
     _svc_name_ = 'EntreRamblasOdoo'
-    _svc_display_name_ = 'Entre Ramblas - Gestor de stock'
+    _svc_display_name_ = 'Gestor Stock Clavel Y Azahar'
 
     def __init__(self, args):
         super().__init__(args)

@@ -40,16 +40,30 @@ def payment_rows(env, company, start, end, payment_method_ids=None, category_ids
 
     Se calcula por ticket antes de agrupar por método: un ticket mixto mantiene
     la proporción en efectivo/tarjeta en lugar de inventar una asignación.
+
+    Los pedidos se seleccionan por la fecha del COBRO (`payment.payment_date`),
+    no por `date_order`: un pedido puede cobrarse otro día (fiado, cuenta
+    cliente) y aquí interesa cuándo entró el dinero, no cuándo se vendió.
     """
-    orders = env["pos.order"].search([
-        ("company_id", "=", company.id), ("state", "in", SOLD_STATES),
-        ("date_order", ">=", start), ("date_order", "<", end),
+    payments_in_range = env["pos.payment"].search([
+        ("pos_order_id.company_id", "=", company.id),
+        ("pos_order_id.state", "in", SOLD_STATES),
+        ("payment_date", ">=", start), ("payment_date", "<", end),
     ])
+    orders = payments_in_range.pos_order_id
     included_by_order = {}
-    for line in env["pos.order.line"].search(
-            report_line_domain(company, start, end, category_ids, product_ids)):
-        included_by_order.setdefault(line.order_id.id, env["pos.order.line"])
-        included_by_order[line.order_id.id] |= line
+    if orders:
+        # Solo categoría/producto, sin fecha: el pedido ya se eligió arriba
+        # por su fecha de COBRO, y su propia venta puede ser de otro día
+        # (fiado). Reutilizar `report_line_domain` (que sí filtra por
+        # `date_order`) dejaría las líneas fuera y el prorrateo saldría 0
+        # aunque no haya ningún filtro de categoría/producto puesto.
+        domain = _category_domain(category_ids or []) + _product_domain(product_ids or []) + [
+            ("order_id", "in", orders.ids), ("mgs_report_excluded", "=", False),
+        ]
+        for line in env["pos.order.line"].search(domain):
+            included_by_order.setdefault(line.order_id.id, env["pos.order.line"])
+            included_by_order[line.order_id.id] |= line
     grouped = {}
     for order in orders:
         lines = included_by_order.get(order.id, env["pos.order.line"])
@@ -78,7 +92,12 @@ def payment_rows(env, company, start, end, payment_method_ids=None, category_ids
             })
             row["received" if amount >= 0 else "returned"] += abs(amount)
             row["count"] += 1
-    return sorted(grouped.values(), key=lambda row: row["name"]), True
+    # Un cobro mixto no se puede atribuir exactamente a una categoría/producto
+    # (el prorrateo de arriba reparte el IMPORTE, no identifica qué método
+    # pagó qué línea): con ese filtro puesto, la fila no es fiable y quien
+    # llama debe ocultarla en vez de mostrar un cobro parcial engañoso.
+    available = not (category_ids or product_ids)
+    return sorted(grouped.values(), key=lambda row: row["name"]), available
 
 
 def _category_domain(category_ids, field="product_id.categ_id"):

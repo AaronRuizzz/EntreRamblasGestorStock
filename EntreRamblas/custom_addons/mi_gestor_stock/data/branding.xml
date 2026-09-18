@@ -20,16 +20,13 @@
     <!-- Idioma: toda la interfaz en espanol (es_ES) -->
     <function model="res.company" name="_mgs_setup_spanish" eval="[[]]"/>
 
-    <!-- Caja de la tienda: siempre una, sin plano de mesas. El boton «Vender»
-         entra directo a /pos/ui y necesita que exista. Va ANTES de aplicar
-         los ajustes comunes del TPV: en una instalacion nueva no hay ninguna
-         caja hasta este punto, asi que si los ajustes fueran antes no se
-         aplicarian hasta el siguiente `-u`. -->
-    <function model="res.company" name="_mgs_ensure_shop_pos_config" eval="[[]]"/>
-
-    <!-- Deja la caja lista para usar tarifas nativas de Odoo y controla quien
-         puede cambiar el precio en el TPV. Despues de crearla. -->
-    <function model="res.company" name="_mgs_apply_pos_pricelist_defaults" eval="[[]]"/>
+    <!-- Caja de la tienda y sus tarifas: ver res_company._register_hook.
+         NO va aqui (a diferencia del resto de esta lista): en una
+         instalacion nueva, el plan contable espanol de arriba sustituye a
+         los diarios/metodos de pago genericos, pero Odoo no los borra hasta
+         el final de TODA la carga de modulos. Crear la caja aqui la dejaria
+         enganchada a un diario que esa limpieza posterior borra en cascada,
+         llevandose la caja por delante sin avisar. -->
 
     <!-- Numeracion de eventos y encargos: EVENTO/%(year)s/, no BODA/%(year)s/.
          El registro vive en data/mgs_event_data.xml con noupdate="1", asi
@@ -51,7 +48,9 @@
               eval="('auth_signup.invitation_scope', 'b2b')"/>
 
     <!-- Nombre del acceso directo que crea "Instalar aplicacion" (PWA).
-         Sin esto, web/controllers/webmanifest.py usa 'Odoo' de fallback. -->
+         Sin esto, web/controllers/webmanifest.py usa 'Odoo' de fallback. Es
+         el nombre del PRODUCTO (como el instalador), no la razón social del
+         ticket: ver COMPANY_NAME arriba, que no se toca aquí. -->
     <function model="ir.config_parameter" name="set_param"
-              eval="('web.web_app_name', 'Entre Ramblas')"/>
+              eval="('web.web_app_name', 'Gestor Stock Clavel Y Azahar')"/>
 </odoo>

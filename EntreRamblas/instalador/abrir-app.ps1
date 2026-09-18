@@ -52,7 +52,7 @@ if ($edge) {
     [System.Windows.Forms.MessageBox]::Show(
         'No se ha encontrado Microsoft Edge instalado. Se abrirá con el navegador ' +
         'predeterminado; contacta con soporte si esto no es lo esperado.',
-        'Entre Ramblas') | Out-Null
+        'Gestor Stock Clavel Y Azahar') | Out-Null
     Start-Process $url
 }
 
@@ -67,15 +67,15 @@ if (-not $ok) {
         [System.Windows.Forms.MessageBox]::Show(
             'El servicio de la aplicación no está instalado o no se encuentra. ' +
             'Reinicia el equipo; si el problema continúa, contacta con soporte.',
-            'Entre Ramblas') | Out-Null
+            'Gestor Stock Clavel Y Azahar') | Out-Null
     } elseif ($svc.Status -ne 'Running') {
         [System.Windows.Forms.MessageBox]::Show(
             'El servicio de la aplicación no ha arrancado. Reinicia el equipo; ' +
             'si el problema continúa, contacta con soporte.',
-            'Entre Ramblas') | Out-Null
+            'Gestor Stock Clavel Y Azahar') | Out-Null
     } else {
         [System.Windows.Forms.MessageBox]::Show(
             'El programa está arrancando. Si no aparece en un minuto, reinicia el equipo.',
-            'Entre Ramblas') | Out-Null
+            'Gestor Stock Clavel Y Azahar') | Out-Null
     }
 }

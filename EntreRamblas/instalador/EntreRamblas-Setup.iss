@@ -1,4 +1,4 @@
-; Instalador de Entre Ramblas - Gestor de stock (Windows 11 x64).
+; Instalador de Gestor Stock Clavel Y Azahar (Windows 11 x64).
 ;
 ; Compilar con Inno Setup 6:
 ;   1) .\publicar\empaquetar.ps1 -Salida ..\dist   (prepara dist\payload\)
@@ -7,7 +7,13 @@
 ; La lógica pesada (PostgreSQL dedicado, servicio, base, acceso directo) la
 ; hace instalador\pasos-instalacion.ps1, que este .iss ejecuta elevado.
 
-#define AppName "Entre Ramblas - Gestor de stock"
+; AppName/Publisher son solo texto visible (instalador, acceso directo,
+; "Programas y características", metadatos del .exe). AppId, AppShort
+; (carpetas), el nombre interno de los servicios y la base de datos NO
+; cambian con esto: son las claves de compatibilidad con instalaciones ya
+; existentes.
+#define AppName "Gestor Stock Clavel Y Azahar"
+#define Publisher "Entre Ramblas · Clavel & Azahar"
 #define AppShort "EntreRamblas"
 ; empaquetar.ps1 genera dist\version.iss con el AppVersion real (leído del
 ; __manifest__.py) para que no haya que recordar sincronizarlo a mano; sin
@@ -15,9 +21,8 @@
 #ifexist "..\..\dist\version.iss"
   #include "..\..\dist\version.iss"
 #else
-  #define AppVersion "18.0.4.0.0"
+  #define AppVersion "18.0.6.0.2"
 #endif
-#define Publisher "Entre Ramblas"
 ; Carpeta con el arbol ya preparado (code + venv + odoo + tools\wkhtmltox).
 #ifndef PayloadDir
   #define PayloadDir "..\..\dist\payload"
@@ -35,11 +40,14 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 OutputDir=..\..\dist
-OutputBaseFilename=EntreRamblas-Setup
+OutputBaseFilename=Gestor-Stock-Clavel-Y-Azahar-Setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName={#AppName}
+VersionInfoCompany={#Publisher}
+VersionInfoProductName={#AppName}
+VersionInfoVersion={#AppVersion}
 ; No borrar datos ni copias al desinstalar: viven en {commonappdata}\{#AppShort}
 UninstallFilesDir={app}\uninstall
 

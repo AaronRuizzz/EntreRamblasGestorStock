@@ -203,7 +203,7 @@ if ($currentSddl -and $currentSddl -notmatch 'S-1-5-19') {
 
 # ----------------------------------------------------------- Acceso directo
 Write-Paso 'Acceso directo'
-$lnk = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) 'Entre Ramblas.lnk'
+$lnk = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) 'Gestor Stock Clavel Y Azahar.lnk'
 $shell = New-Object -ComObject WScript.Shell
 $sc = $shell.CreateShortcut($lnk)
 $sc.TargetPath = 'powershell.exe'

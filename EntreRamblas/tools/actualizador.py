@@ -221,8 +221,15 @@ def cmd_preparar(args):
         print("sin-espacio")
         return 7
 
+    # El paquete (con el motor Odoo y Python vendorizados) supera el límite
+    # de 100 MiB de GitHub para archivos normales: vive como *release asset*
+    # (hasta 2 GiB), no en el árbol del repo de releases junto al manifiesto.
+    # `download_url` lo declara explícito; sin él (manifiesto antiguo, o
+    # canal de pruebas local) se cae al archivo junto al manifiesto de
+    # siempre.
     base = args.releases_url.rstrip("/")
-    data = _fetch(base + "/" + archivo, timeout=120)
+    url = manifest.get("download_url") or (base + "/" + archivo)
+    data = _fetch(url, timeout=120)
     destino.write_bytes(data)
     got = sha256_file(destino)
     if got != manifest["sha256"]:

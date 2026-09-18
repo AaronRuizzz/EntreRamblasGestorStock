@@ -4,6 +4,7 @@ revisión 2026-09-10. Se cargan los módulos de tools/ con el mismo patrón que
 test_actualizacion.py (_load), sin tocar mi_base_stock ni el servicio real:
 todo corre contra archivos temporales y con subprocess.run parcheado."""
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -387,3 +388,50 @@ class TestFreeSpaceGuard(TransactionCase):
             with patch.object(upd, "free_bytes", return_value=1024):
                 rc = upd.cmd_preparar(args)
         self.assertEqual(rc, 7)
+
+
+@tagged("post_install", "-at_install")
+class TestPreparaDownloadUrl(TransactionCase):
+    """El paquete (motor Odoo + Python vendorizados) supera el límite de 100
+    MiB de GitHub para archivos normales: vive como release asset, con su
+    propia URL, no junto a manifest.json en el repo de releases."""
+
+    def _preparar(self, manifest, payload, releases_url="https://raw.example/canal"):
+        upd = _load("actualizador")
+        with tempfile.TemporaryDirectory() as raw:
+            st = upd.State(str(Path(raw) / "runtime"))
+            st.save(fase="disponible", manifest=manifest)
+            args = argparse.Namespace(runtime=str(Path(raw) / "runtime"), releases_url=releases_url)
+            fetch_calls = []
+
+            def fake_fetch(url, timeout=20):
+                fetch_calls.append(url)
+                return payload
+
+            with patch.object(upd, "free_bytes", return_value=None), \
+                 patch.object(upd, "_fetch", side_effect=fake_fetch), \
+                 patch.object(upd, "_fetch_signed_manifest_raw",
+                              return_value=(manifest, b"{}", "firma")):
+                rc = upd.cmd_preparar(args)
+        return rc, fetch_calls
+
+    def _manifest(self, **extra):
+        payload = b"contenido de prueba del paquete"
+        manifest = {"version": "18.0.99.0.0", "archivo": "paquete.zip",
+                    "sha256": hashlib.sha256(payload).hexdigest(), "tamano": len(payload)}
+        manifest.update(extra)
+        return manifest, payload
+
+    def test_uses_download_url_when_the_manifest_declares_it(self):
+        manifest, payload = self._manifest(
+            download_url="https://github.com/AaronRuizzz/EntreRamblasReleases/"
+                         "releases/download/v18.0.99.0.0/paquete.zip")
+        rc, fetch_calls = self._preparar(manifest, payload)
+        self.assertEqual(rc, 0)
+        self.assertEqual(fetch_calls[0], manifest["download_url"])
+
+    def test_falls_back_to_releases_url_plus_archivo_without_download_url(self):
+        manifest, payload = self._manifest()
+        rc, fetch_calls = self._preparar(manifest, payload, releases_url="https://raw.example/canal")
+        self.assertEqual(rc, 0)
+        self.assertEqual(fetch_calls[0], "https://raw.example/canal/paquete.zip")

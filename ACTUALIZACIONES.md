@@ -36,19 +36,24 @@ publicadas expresamente:
    `custom_addons/mi_gestor_stock/__manifest__.py` y añade la migración si hace
    falta (`custom_addons/mi_gestor_stock/migrations/<versión>/`).
 3. **Requiere PowerShell 7** (`pwsh`, no `powershell.exe` 5.1):
-   `.\publicar\empaquetar.ps1 -Salida ..\dist -Firmar <ruta a firma-privada.pem>`
+   `.\publicar\publicar-release.ps1 -Firmar <ruta a firma-privada.pem>`
    — corre las pruebas, prepara el CPython vendorizado y las ruedas offline
-   (`python\`, `wheels\`), arma el paquete `EntreRamblas-<versión>.zip` con la
-   **unidad de versión completa** (motor Odoo, addons, tools, instalador,
-   lanzadores), genera `manifest.json` y `integridad.json` (mapa de hashes del
-   paquete) y firma ambos (`.sig`). Comprueba con `check_manifest_encoding.py`
-   que el manifiesto se lee sin BOM antes de firmar.
-4. Compila el instalador si toca (`instalador\README.md`).
-5. Sube `manifest.json`, `manifest.json.sig` y el `.zip` al repositorio de
-   releases **`AaronRuizzz/EntreRamblasReleases`** (público, sin secretos ni
-   datos de tienda). El actualizador lee `manifest.json` de la raíz de ese repo
-   (URL «raw»).
-6. La URL de releases viene **precargada** por defecto
+   (`python\`, `wheels\`), arma el paquete
+   `Gestor-Stock-Clavel-Y-Azahar-<versión>.zip` con la **unidad de versión
+   completa** (motor Odoo, addons, tools, instalador, lanzadores), genera
+   `manifest.json` (con `download_url` ya calculado) e `integridad.json`
+   (mapa de hashes del paquete) y firma ambos (`.sig`); compila el
+   instalador; crea la release en GitHub con el `.zip` y el `.exe` como
+   *assets* (no van al árbol git: superan el límite de 100 MiB de GitHub
+   para archivos normales); y publica `manifest.json`/`manifest.json.sig`
+   el **último**, en el repositorio de releases
+   **`AaronRuizzz/EntreRamblasReleases`** (público, sin secretos ni datos de
+   tienda) — así ningún cliente ve nunca un manifiesto que apunte a una
+   release que todavía no existe. Requiere `gh` (GitHub CLI) autenticado
+   como `AaronRuizzz`. El actualizador lee `manifest.json` de la raíz de ese
+   repo (URL «raw») y descarga el paquete de la URL de `download_url`.
+   Detalle completo en `publicar/PUBLICAR.md`.
+4. La URL de releases viene **precargada** por defecto
    (`mgs.update.releases_url`, `data/mgs_access_data.xml`); solo hace falta
    cambiarla si se usa un repositorio distinto.
 

@@ -104,7 +104,7 @@ if ($Firmar) {
 }
 
 # --- .zip (ZipFile, no Compress-Archive: árbol grande, sin límite de 2 GB) ---
-$zipName = "EntreRamblas-$version.zip"
+$zipName = "Gestor-Stock-Clavel-Y-Azahar-$version.zip"
 $zipPath = Join-Path $dist $zipName
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -114,11 +114,21 @@ $sha = (Get-FileHash -Algorithm SHA256 $zipPath).Hash.ToLower()
 $zipBytes = (Get-Item $zipPath).Length
 $treeBytes = (Get-ChildItem $payload -Recurse -File | Measure-Object -Sum Length).Sum
 
+# --- URL de descarga (predecible: convención tag=v<version>, mismo nombre
+# de archivo) ---------------------------------------------------------------
+# El .zip NO se comitea al repo de releases (supera el límite de 100 MiB de
+# GitHub para archivos normales): se sube como *release asset* (hasta 2 GiB).
+# La URL es calculable de antemano; publicar-release.ps1 solo tiene que subir
+# el asset con este mismo nombre exacto bajo este mismo tag.
+$repoReleases = 'AaronRuizzz/EntreRamblasReleases'
+$downloadUrl = "https://github.com/$repoReleases/releases/download/v$version/$zipName"
+
 # --- manifiesto (fecha y UTF-8 sin BOM portables) --------------------------
 $manifest = [ordered]@{
     version          = $version
     fecha            = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
     archivo          = $zipName
+    download_url     = $downloadUrl
     sha256           = $sha
     tamano           = $zipBytes
     tamano_instalado = $treeBytes
@@ -127,7 +137,7 @@ $manifest = [ordered]@{
                          'wheels', 'requirements-windows.lock', 'odoo-revision.txt',
                          'integridad.json', 'integridad.json.sig')
     requisitos       = [ordered]@{ odoo_revision = $rev; python = '3.12'; so = 'windows' }
-    notas            = @("Versión $version de Entre Ramblas - Gestor de stock.")
+    notas            = @("Versión $version de Gestor Stock Clavel Y Azahar.")
 }
 $manifestPath = Join-Path $dist 'manifest.json'
 $json = $manifest | ConvertTo-Json -Depth 6
@@ -154,8 +164,10 @@ $issVersion = Join-Path $dist 'version.iss'
 Write-Host ''
 Write-Host 'Listo:' -ForegroundColor Green
 Write-Host "  Paquete   : $zipPath ($sha)"
+Write-Host "  Descarga  : $downloadUrl"
 Write-Host "  Manifiesto: $manifestPath"
 if ($Firmar) { Write-Host "  Firmas    : $manifestPath.sig  +  payload\integridad.json.sig" }
 Write-Host ''
-Write-Host 'Siguiente: compila el instalador (instalador\README.md) y publica'
-Write-Host 'manifest.json(.sig) y el .zip en el repositorio de releases (PUBLICAR.md).'
+Write-Host 'Siguiente: .\publicar\publicar-release.ps1 compila el instalador, crea la'
+Write-Host 'release en GitHub con este .zip como asset, y publica manifest.json el'
+Write-Host 'último (ver PUBLICAR.md). Este script ya ha dejado todo listo para eso.'
