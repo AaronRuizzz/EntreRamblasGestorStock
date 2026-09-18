@@ -85,9 +85,17 @@ robocopy $PythonBase $payloadPython /E /NFL /NDL /NJH /NJS /NP `
     /XD '__pycache__' 'Lib\site-packages' /XF '*.pyc' | Out-Null
 if ($LASTEXITCODE -ge 8) { throw 'No se pudo copiar el CPython base.' }
 New-Item -ItemType Directory -Force -Path (Join-Path $payload 'wheels') | Out-Null
-& $python -m pip download --disable-pip-version-check --only-binary=:all: `
-    -r (Join-Path $repo 'requirements-windows.lock') -d (Join-Path $payload 'wheels')
-if ($LASTEXITCODE -ne 0) { throw 'No se pudieron descargar todas las ruedas del lock.' }
+# `pip wheel` (no `pip download --only-binary=:all:`): algunas dependencias
+# del lock (p. ej. docopt, del que depende num2words) nunca han publicado
+# rueda en PyPI, solo el paquete fuente — con --only-binary=:all: esa
+# descarga falla siempre, para cualquier versión. `pip wheel` prefiere la
+# rueda ya publicada cuando existe (la inmensa mayoría, ya vienen
+# precompiladas para Windows) y, si no hay, la construye aquí mismo a
+# partir del fuente: el resultado en wheels\ es siempre .whl puro, que es
+# lo único que necesita la instalación sin conexión en la tienda.
+& $python -m pip wheel --disable-pip-version-check `
+    -r (Join-Path $repo 'requirements-windows.lock') -w (Join-Path $payload 'wheels')
+if ($LASTEXITCODE -ne 0) { throw 'No se pudieron preparar todas las ruedas del lock.' }
 
 # --- integridad.json (mapa hashes) + firma ---------------------------------
 & $python (Join-Path $repo 'tools/generar_integridad.py') --root $payload `
