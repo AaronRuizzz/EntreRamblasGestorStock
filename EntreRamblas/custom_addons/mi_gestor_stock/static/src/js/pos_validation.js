@@ -78,9 +78,6 @@ patch(PaymentScreen.prototype, {
         try {
             saved = await this.pos.syncAllOrders({ throw: true });
             if (!saved) throw new Error("No confirmation");
-            if (this.shouldDownloadInvoice() && order.is_to_invoice() && order.raw.account_move) {
-                await this.invoiceService.downloadPdf(order.raw.account_move);
-            }
         } catch (error) {
             if (error instanceof RPCError) {
                 order.state = "draft";
@@ -95,8 +92,23 @@ patch(PaymentScreen.prototype, {
         } finally {
             this.ui.unblock();
         }
+        // La venta ya está confirmada en el servidor: a partir de aquí ni el
+        // cajón ni la factura pueden abortar el resto del flujo. Antes, un
+        // fallo al generar el PDF de la factura (dentro del mismo try que el
+        // guardado) impedía llegar a abrir el cajón: pedir factura y pagar
+        // en efectivo se quedaba con la caja cerrada.
         if (order.is_paid_with_cash() || order.get_change()) {
             await this.pos.mgsOpenSaleDrawer(order);
+        }
+        if (this.shouldDownloadInvoice() && order.is_to_invoice() && order.raw.account_move) {
+            try {
+                await this.invoiceService.downloadPdf(order.raw.account_move);
+            } catch (error) {
+                this.notification.add(
+                    _t("Venta guardada y caja abierta. No se pudo generar el PDF de la factura: repítelo desde Facturación."),
+                    { type: "warning", sticky: true }
+                );
+            }
         }
         await this.afterOrderValidation();
     },

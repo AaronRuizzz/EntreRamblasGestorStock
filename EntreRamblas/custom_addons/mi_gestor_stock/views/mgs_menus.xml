@@ -47,6 +47,11 @@
               sequence="25" groups="mi_gestor_stock.group_mgs_user"/>
 
     <menuitem id="menu_mgs_reports" groups="mi_gestor_stock.group_mgs_manager" name="Informes" parent="menu_mgs_root" sequence="30"/>
+    <!-- Tickets primero: es donde se ve la venta, el ticket, la fecha y la
+         hora juntos (registro de tickets + de ventas, ver
+         views/mgs_pos_order_views.xml). -->
+    <menuitem id="menu_mgs_reports_tickets" name="Tickets" parent="menu_mgs_reports"
+              action="action_mgs_pos_orders" sequence="5" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_sales" name="Ventas y balance" parent="menu_mgs_reports"
               action="action_mgs_report_sales" sequence="10" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_top" name="Productos más vendidos" parent="menu_mgs_reports"
@@ -55,12 +60,7 @@
               action="action_mgs_consumption" sequence="25" groups="mi_gestor_stock.group_mgs_manager"/>
     <menuitem id="menu_mgs_reports_monthly" name="Informe mensual (PDF)" parent="menu_mgs_reports"
               action="action_mgs_monthly_report" sequence="30" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_reports_custom" name="Informes personalizados" parent="menu_mgs_reports"
-              action="action_mgs_report_templates" sequence="35" groups="mi_gestor_stock.group_mgs_manager"/>
-    <menuitem id="menu_mgs_reports_exclusion_log" name="Historial de líneas clasificadas" parent="menu_mgs_reports"
-              action="action_mgs_report_exclusion_log" sequence="36" groups="mi_gestor_stock.group_mgs_manager"/>
-    <!-- Historial de correcciones: es una auditoría, no un informe más, así que
-         va al lado de los informes y no dentro del constructor. -->
+    <!-- Historial de correcciones: es una auditoría, no un informe más. -->
     <menuitem id="menu_mgs_corrections" name="Correcciones" parent="menu_mgs_reports"
               action="action_mgs_corrections" sequence="37" groups="mi_gestor_stock.group_mgs_manager"/>
     <!-- El historial no tiene «Nuevo» (una corrección se registra por el

@@ -13,6 +13,7 @@ from odoo.tests import tagged, new_test_user
 from odoo.addons.point_of_sale.tests.common import TestPointOfSaleCommon
 
 from ..models import mgs_report_engine as engine
+from ..models.mgs_permissions import madrid_day_range
 
 
 @tagged("post_install", "-at_install")
@@ -296,11 +297,13 @@ class TestCorrection(TestPointOfSaleCommon):
             wizard.with_user(self.clerk).action_apply()
 
     def test_the_report_shows_the_original_the_correction_and_the_result(self):
+        # El constructor de «Informes personalizados» se retiró en 18.0.7.0.0
+        # (la propietaria lleva esos informes en papel); la sección
+        # «Correcciones» del motor sigue viva porque el informe mensual y
+        # este test la usan directamente, sin plantilla de por medio.
         correction = self.correction()
-        template = self.env["mgs.report.template"].create({
-            "name": "Con correcciones", "date_from": self.today, "date_to": self.today,
-        })
-        rows = engine.build(template)["correcciones"]
+        start, end = madrid_day_range(self.env, self.today, self.today)
+        rows = engine.correcciones(self.env, self.env.company, start, end)
         self.assertEqual(len(rows), 1)
         row = rows[0]
         self.assertEqual(row["name"], correction.name)
@@ -308,6 +311,3 @@ class TestCorrection(TestPointOfSaleCommon):
         self.assertEqual(row["corrected_value"], correction.corrected_value)
         self.assertEqual(row["resulting_value"], correction.resulting_value)
         self.assertEqual(row["reason"], "Cantidad mal cobrada.")
-        # Y la vista previa las cuenta.
-        template.action_refresh_preview()
-        self.assertEqual(template.preview_corrections_count, 1)

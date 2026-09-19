@@ -1,6 +1,6 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
-    "version": "18.0.6.0.1",
+    "version": "18.0.7.0.0",
     "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
@@ -25,7 +25,6 @@
         "data/mgs_hardware_data.xml",
         "data/mgs_bouquet_data.xml",
         "data/mgs_event_data.xml",
-        "data/mgs_report_template_data.xml",
         "data/mgs_correction_data.xml",
         # Los informes (ir.actions.report) van ANTES que cualquier vista: la
         # cabecera del formulario de evento referencia %(action_report_mgs_event)d
@@ -33,7 +32,7 @@
         # porque la vista se cargaba antes que su accion de informe.
         "report/mgs_monthly_report.xml",
         "report/mgs_event_report.xml",
-        "report/mgs_report_builder.xml",
+        "report/mgs_account_invoice_report.xml",
         "report/pos_order_receipt_report.xml",
         "views/mgs_config_views.xml",
         "views/mgs_hardware_job_views.xml",
@@ -46,12 +45,11 @@
         "views/mgs_stock_ledger_views.xml",
         "views/product_views.xml",
         "views/pos_report_views.xml",
+        "views/mgs_pos_order_views.xml",
         "views/mgs_pos_session_views.xml",
         "views/mgs_consumption_views.xml",
         # Antes de mgs_menus.xml: los menús nuevos referencian sus acciones
-        # (action_mgs_report_templates, action_mgs_corrections) por ID.
-        "views/mgs_report_template_views.xml",
-        "views/mgs_report_exclusion_views.xml",
+        # (action_mgs_pos_orders, action_mgs_corrections) por ID.
         "views/mgs_correction_views.xml",
         "views/mgs_menus.xml",
         "views/mgs_security_views.xml",
@@ -94,6 +92,7 @@
             "mi_gestor_stock/static/src/js/pos_hardware.js",
             "mi_gestor_stock/static/src/js/pos_catalog_refresh.js",
             "mi_gestor_stock/static/src/js/pos_validation.js",
+            "mi_gestor_stock/static/src/js/pos_invoice.js",
             "mi_gestor_stock/static/src/js/pos_bouquet.js",
             "mi_gestor_stock/static/src/js/pos_event_checkout.js",
             # pos_stock_check.js define mgsResolveDeficits, que usan tanto

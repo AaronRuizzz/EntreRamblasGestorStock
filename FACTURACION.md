@@ -62,8 +62,11 @@ rellenos), teléfono, número de ticket y fecha/hora, `Cliente:` si la venta lle
 cliente, la línea `Rectifica el ticket …` en las devoluciones, las líneas con
 cantidad y precio, el TOTAL, el **desglose de IVA** por tipo (base y cuota,
 recalculado desde los subtotales reales), los pagos con el cambio, un pie
-configurable y el número de ticket en código de barras. **No imprime**: QR,
-huella, número de registro de facturación, ni NIF/domicilio del cliente.
+configurable, un QR a las reseñas de Google y a la web de la tienda (si están
+configurados en Configuración → Dispositivos → «Enlace a las reseñas de
+Google») y el número de ticket en código de barras. **No imprime**: huella,
+número de registro de facturación, ni NIF/domicilio del cliente — eso sigue
+siendo lo que distingue el ticket de una factura completa (ver más abajo).
 
 - **El NIF solo aparece si `company.vat` está relleno.** Hoy la empresa de la base
   no tiene los datos fiscales reales puestos: hasta que se rellenen, el ticket
@@ -79,6 +82,33 @@ huella, número de registro de facturación, ni NIF/domicilio del cliente.
   producto a producto en el alta de catálogo.
 - Si la tienda está en **recargo de equivalencia**, cómo afecta a las compras y
   qué se espera del programa (hoy no lo contempla de forma específica).
+
+## 1bis. Factura completa (cuando el ticket no basta)
+
+Añadido en la versión 18.0.7.0.0, sobre `account.move` de contabilidad
+(`models/mgs_account_move.py`), sin tocar el ticket ni activar VERI\*FACTU:
+
+- **No se deja confirmar una factura o rectificativa a la que le falte el NIF
+  o el domicilio de la tienda o del cliente** (art. 6.1 RD 1619/2012):
+  `action_post` lo comprueba antes de contabilizar y dice qué dato falta y
+  dónde rellenarlo, en vez de dejar salir una factura incompleta.
+- El **contenido** (NIF y domicilio del emisor, desglose de base/tipo/cuota de
+  IVA por cada tipo) lo sigue poniendo la plantilla **nativa** de Odoo
+  (`web.external_layout` y `account.document_tax_totals`) cuando esos datos
+  están rellenos: no se ha duplicado ese trabajo. Lo único que la plantilla
+  nativa no señalaba de forma legible es a qué factura rectifica una
+  rectificativa (llevaba la referencia técnica «Reversión de: …», que cumple
+  la letra pero no salta a la vista): se añade un aviso «Rectifica la factura
+  …» arriba del documento (`report/mgs_account_invoice_report.xml`).
+- El botón de factura del TPV genera este PDF con `action_mgs_invoice_pdf` y
+  lo guarda en la carpeta **Facturas** (Configuración → Dispositivos →
+  «Carpetas de salida»), no en Descargas.
+
+**Esto sigue sin ser un sistema conforme al RD 1007/2023** (sin huella
+encadenada, sin firma, sin QR tributario, sin declaración responsable del
+fabricante): mejora el CONTENIDO de la factura, no cambia nada de lo que
+dice la §2 sobre VERI\*FACTU y el plazo de julio de 2025 para quien
+comercializa el software.
 
 ## 2. Sistemas informáticos de facturación (SIF) y VERI\*FACTU
 

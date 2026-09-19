@@ -62,6 +62,21 @@ class MgsReception(models.TransientModel):
     currency_id = fields.Many2one(
         "res.currency", default=lambda self: self.env.company.currency_id, readonly=True)
     new_cost = fields.Float("Precio de coste", digits="Product Price")
+    # Calculadora de margen: mismo criterio que las calculadoras financieras
+    # de márgenes (no el «markup» de comercio, que sería sobre el coste): el
+    # margen es la parte del PRECIO DE VENTA que es beneficio, así que
+    # PVP sin IVA = coste / (1 - margen/100). Con coste 10 € y margen 30 %
+    # salen 14,29 €, no 13 €. `new_markup_hint` muestra la equivalencia sobre
+    # el coste al lado, para que la cifra no sea una caja negra.
+    new_margin_preset = fields.Selection([
+        ("10", "10 %"), ("20", "20 %"), ("30", "30 %"), ("40", "40 %"), ("60", "60 %"),
+        ("otro", "Otro"),
+    ], string="Margen", default="30")
+    new_margin = fields.Float("Margen sobre el precio de venta (%)", default=30.0)
+    new_margin_amount = fields.Float(
+        "Beneficio", digits="Product Price", readonly=True,
+        help="Precio de venta sin IVA menos el coste.")
+    new_markup_hint = fields.Char("Equivalencia", readonly=True)
     new_price = fields.Float("Precio de venta sin IVA", digits="Product Price")
     new_tax_id = fields.Many2one(
         "account.tax", string="IVA",
@@ -73,6 +88,13 @@ class MgsReception(models.TransientModel):
         default=lambda self: self._mgs_default_sale_tax())
     new_price_taxed = fields.Float("Precio de venta", digits="Product Price")
     new_expiry_date = fields.Date("Caduca el")
+    # Alquiler para eventos (campo real en product.template, ver
+    # models/mgs_event.py): se decide aquí, al recibir el producto, para no
+    # tener que volver a la ficha después.
+    new_rental_ok = fields.Boolean("Se alquila para eventos")
+    new_rental_deposit = fields.Float(
+        "Fianza por unidad", digits="Product Price",
+        help="Importe que se pide en depósito por cada unidad que sale.")
 
     # ------------------------------------------------------------------
     # Entrada de escaneos
@@ -213,6 +235,65 @@ class MgsReception(models.TransientModel):
             self.new_price = expected
 
     # ------------------------------------------------------------------
+    # Modo "nuevo": calculadora de margen
+    # ------------------------------------------------------------------
+    _MARGIN_PRESETS = ("10", "20", "30", "40", "60")
+
+    @api.onchange("new_margin_preset")
+    def _onchange_new_margin_preset(self):
+        """Pulsar un preset (10/20/30/40/60 %) fija el margen; «Otro» no
+        toca nada, es solo lo que queda marcado cuando el margen no coincide
+        con ningún preset (ver _onchange_new_price_margin_display)."""
+        if self.new_margin_preset and self.new_margin_preset != "otro":
+            self.new_margin = float(self.new_margin_preset)
+
+    @api.onchange("new_margin", "new_cost")
+    def _onchange_new_margin(self):
+        """Margen -> precio de venta sin IVA: PVP = coste / (1 - margen/100).
+
+        Un margen de 100 % o más pediría un precio infinito (o negativo); un
+        coste de 0 no tiene margen que calcular sobre él. En los dos casos se
+        deja el precio como esté, en vez de escribir un número sin sentido.
+        """
+        precision = self.env["decimal.precision"].precision_get("Product Price")
+        if self.new_cost <= 0 or self.new_margin >= 100:
+            return
+        expected = self.new_cost / (1 - self.new_margin / 100.0)
+        if float_compare(expected, self.new_price, precision_digits=precision) != 0:
+            self.new_price = expected
+
+    @api.onchange("new_price", "new_cost")
+    def _onchange_new_price_margin_display(self):
+        """Camino inverso: si se teclea el precio a mano (o cambia el coste),
+        se recalculan el margen que ese precio representa, el beneficio en
+        euros y su equivalencia sobre el coste — y el preset se marca «Otro»
+        en cuanto el margen deja de coincidir con uno de los botones.
+
+        Comparte disparador (`new_price`, `new_cost`) con el camino
+        margen -> precio de arriba: cuando ES ese camino el que ha movido el
+        precio, el margen recalculado aquí coincide con el que ya había
+        (dentro de la precisión del campo) y el `float_compare` de abajo no
+        vuelve a tocarlo, así que no hay bucle entre los dos onchange.
+        """
+        if self.new_cost <= 0 or self.new_price <= 0:
+            self.new_margin_amount = 0.0
+            self.new_markup_hint = False
+            return
+        self.new_margin_amount = self.new_price - self.new_cost
+        markup_percent = (self.new_price - self.new_cost) / self.new_cost * 100
+        self.new_markup_hint = _("equivale a +%s %% sobre el coste") % ("%.1f" % markup_percent)
+
+        margin_from_price = (self.new_price - self.new_cost) / self.new_price * 100
+        if float_compare(margin_from_price, self.new_margin, precision_digits=2) != 0:
+            self.new_margin = margin_from_price
+        matched_preset = next(
+            (preset for preset in self._MARGIN_PRESETS
+             if float_compare(margin_from_price, float(preset), precision_digits=0) == 0),
+            "otro")
+        if self.new_margin_preset != matched_preset:
+            self.new_margin_preset = matched_preset
+
+    # ------------------------------------------------------------------
     # Modo "nuevo": alta del producto
     # ------------------------------------------------------------------
     def action_add_new_product(self):
@@ -241,6 +322,8 @@ class MgsReception(models.TransientModel):
             "tracking": "lot",
             "mgs_auto_lots": True,
             "use_expiration_date": True,
+            "mgs_rental_ok": self.new_rental_ok,
+            "mgs_rental_deposit": self.new_rental_deposit if self.new_rental_ok else 0.0,
         }
         if self.new_tax_id:
             vals["taxes_id"] = [Command.set(self.new_tax_id.ids)]
@@ -260,6 +343,12 @@ class MgsReception(models.TransientModel):
         self.new_price = 0.0
         self.new_price_taxed = 0.0
         self.new_cost = 0.0
+        self.new_margin = 30.0
+        self.new_margin_preset = "30"
+        self.new_margin_amount = 0.0
+        self.new_markup_hint = False
+        self.new_rental_ok = False
+        self.new_rental_deposit = 0.0
         self.new_expiry_date = False
         # Hallazgo 18: se limpiaba new_categ_id pero el formulario seguía en
         # modo "nuevo", que la vista exige rellenar (required="mode == 'nuevo'")
@@ -437,6 +526,9 @@ class MgsReceptionLine(models.TransientModel):
     expiry_date = fields.Date("Caduca el")
     unit_cost = fields.Float("Coste por unidad", digits="Product Price", required=True)
     uom_id = fields.Many2one(related="product_id.uom_id", string="Unidad", readonly=True)
+    # Para que en la propia lista de la recepción se vea de un vistazo qué
+    # es alquiler y qué no, sin tener que abrir cada ficha de producto.
+    rental_ok = fields.Boolean(related="product_id.mgs_rental_ok", string="Alquiler", readonly=True)
 
     def action_mgs_print_label(self):
         """Etiqueta solo de este producto (botón de la línea)."""
