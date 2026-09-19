@@ -116,6 +116,21 @@ class TestReception(TransactionCase):
         self.assertEqual(product.categ_id, wizard._mgs_default_category())
         self.assertEqual(product.taxes_id, wizard._mgs_default_sale_tax())
 
+    def test_new_product_tax_selector_only_offers_0_and_21_but_allows_creation(self):
+        """El filtro debe estar en la vista: es el que aplica el desplegable.
+
+        El dominio del campo protege también llamadas al modelo; mantenerlo en
+        la vista evita que el cliente muestre los impuestos auxiliares de
+        l10n_es antes de aplicar dicho dominio.
+        """
+        view = self.env.ref("mi_gestor_stock.view_mgs_reception_form")
+        arch = view._get_combined_arch()
+        tax_field = arch.xpath("//field[@name='new_tax_id']")[0]
+        domain = tax_field.get("domain")
+        self.assertIn("('amount', 'in', [0, 21])", domain)
+        self.assertIn("'default_type_tax_use': 'sale'", tax_field.get("context"))
+        self.assertIn("'no_create_edit': False", tax_field.get("options"))
+
     def test_margin_calculator_computes_price_from_cost_and_margin(self):
         # Margen sobre el PRECIO DE VENTA, como en una calculadora financiera:
         # coste 10 €, margen 30 % (preset por defecto) -> 14,29 € sin IVA,

@@ -91,10 +91,15 @@
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                                 <field name="new_markup_hint" nolabel="1"
                                        invisible="not new_markup_hint"/>
-                                <!-- El dominio del modelo limita la lista a IVA 21 % y
-                                     0 %. La dueña puede usar «Crear y editar…» si su
-                                     gestoría necesita habilitar un tipo adicional. -->
-                                <field name="new_tax_id" placeholder="Elige IVA…"/>
+                                <!-- La lista se limita aquí también (además de en el
+                                     modelo) para que el selector del navegador nunca
+                                     cargue los impuestos técnicos de la localización.
+                                     «Crear y editar…» sigue disponible para añadir un
+                                     tipo nuevo cuando lo indique la gestoría. -->
+                                <field name="new_tax_id" placeholder="Elige IVA…"
+                                       domain="[('type_tax_use', '=', 'sale'), ('company_id', '=', company_id), ('amount_type', '=', 'percent'), ('amount', 'in', [0, 21])]"
+                                       context="{'default_type_tax_use': 'sale', 'default_company_id': company_id}"
+                                       options="{'no_create': False, 'no_create_edit': False}"/>
                                 <field name="new_price_taxed" string="Precio de venta" class="mgs-price-field"
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                             </group>
