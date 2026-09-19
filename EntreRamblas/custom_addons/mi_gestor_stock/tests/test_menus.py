@@ -18,9 +18,9 @@ USER_MENUS = ["mi_gestor_stock." + m for m in (
 # dependienta no.
 MANAGER_MENUS = ["mi_gestor_stock." + m for m in (
     "menu_mgs_events", "menu_mgs_reception", "menu_mgs_catalog_import",
-    "menu_mgs_reports", "menu_mgs_reports_sales", "menu_mgs_reports_top",
-    "menu_mgs_reports_consumption", "menu_mgs_reports_monthly",
-    "menu_mgs_reports_custom", "menu_mgs_corrections", "menu_mgs_correction_new",
+    "menu_mgs_reports", "menu_mgs_reports_tickets", "menu_mgs_reports_sales",
+    "menu_mgs_reports_top", "menu_mgs_reports_consumption", "menu_mgs_reports_monthly",
+    "menu_mgs_corrections", "menu_mgs_correction_new",
     "menu_mgs_reports_sessions", "menu_mgs_settings",
     "menu_mgs_settings_devices", "menu_mgs_settings_backups", "menu_mgs_hardware_jobs",
     "menu_mgs_settings_security", "menu_mgs_settings_access_events",
@@ -74,6 +74,16 @@ class TestAppMenuVisibility(TransactionCase):
         visible = self.visible(self.propietaria)
         for xmlid in USER_MENUS + MANAGER_MENUS:
             self.assertIn(self.env.ref(xmlid).id, visible, "%s debería verse" % xmlid)
+
+    def test_the_custom_report_builder_and_report_exclusion_are_gone(self):
+        # «Informes personalizados» y «Historial de líneas clasificadas»
+        # (la clasificación «en B») se han retirado del programa: la
+        # propietaria los va a llevar en una libreta aparte (18.0.7.0.0).
+        for xmlid in ("mi_gestor_stock.menu_mgs_reports_custom",
+                     "mi_gestor_stock.menu_mgs_reports_exclusion_log"):
+            self.assertFalse(
+                self.env.ref(xmlid, raise_if_not_found=False),
+                "%s debería haberse eliminado" % xmlid)
 
 
 @tagged("post_install", "-at_install")

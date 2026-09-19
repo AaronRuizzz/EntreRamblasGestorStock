@@ -53,10 +53,11 @@ def madrid_day_range(env, date_from, date_to):
     informes: `start` es la medianoche de Madrid de `date_from`, `end` la
     medianoche de Madrid del día SIGUIENTE a `date_to` (exclusivo).
 
-    Extraído de mgs.monthly.report._mgs_period sin cambiar el cálculo: los
-    informes personalizados (mgs_report_engine.py) lo reutilizan tal cual
-    para no arriesgarse a que los dos calculen "hoy en Madrid" de forma
-    distinta cerca de la medianoche."""
+    Extraído de mgs.monthly.report._mgs_period sin cambiar el cálculo: otros
+    consumidores del mismo periodo (tests, el historial de correcciones vía
+    mgs_report_engine.correcciones) lo reutilizan tal cual para no arriesgarse
+    a que cada uno calcule "hoy en Madrid" de forma distinta cerca de la
+    medianoche."""
     if not date_from or not date_to or date_from > date_to:
         raise UserError(env._("Selecciona un periodo válido: la fecha inicial no puede superar la final."))
     zone = pytz.timezone("Europe/Madrid")

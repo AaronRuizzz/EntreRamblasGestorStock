@@ -179,9 +179,12 @@ class MgsConfig(models.Model):
     receipt_footer = fields.Char(
         "Pie del ticket", default="¡Gracias por su compra!")
     google_review_url = fields.Char(
-        "Enlace a Google Reseñas",
-        help="Si se rellena, el ticket en PDF imprime un código QR "
-             "invitando a dejar una reseña. Vacío: no sale ese QR.")
+        "Enlace a las reseñas de Google",
+        help="El enlace «Valorar» de la ficha de Google del negocio "
+             "(g.page/r/.../review). Si se rellena, tanto el ticket que sale "
+             "por la impresora térmica como el PDF de reimpresión llevan un "
+             "código QR invitando a dejar una reseña. Vacío: no sale ese QR "
+             "en ninguno de los dos.")
     label_copies = fields.Integer("Etiquetas por producto", default=1)
 
     pos_autoprint = fields.Boolean(

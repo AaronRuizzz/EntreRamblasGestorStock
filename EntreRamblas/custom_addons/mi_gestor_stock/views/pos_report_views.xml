@@ -18,6 +18,9 @@
         <field name="arch" type="xml">
             <list string="Ventas" create="0" edit="0" delete="0">
                 <field name="date"/>
+                <!-- Salta de una línea de venta a su ticket (Informes → Tickets),
+                     que es donde se ve la venta completa con su fecha y hora. -->
+                <field name="order_id" string="Ticket"/>
                 <field name="product_id"/>
                 <field name="product_categ_id" string="Categoría"/>
                 <field name="product_qty" string="Unidades"/>
