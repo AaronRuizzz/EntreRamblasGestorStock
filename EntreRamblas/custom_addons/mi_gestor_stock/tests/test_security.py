@@ -32,7 +32,7 @@ class TestSecurity(TransactionCase):
     def test_public_methods_enforce_roles_before_side_effects(self):
         config = self.env["mgs.config"]._mgs_get()
         with patch.object(type(config), "_mgs_send") as send:
-            for method in ("action_mgs_test_print", "action_mgs_open_drawer", "mgs_open_drawer", "action_mgs_backup_now"):
+            for method in ("action_mgs_save_configuration", "action_mgs_test_print", "action_mgs_open_drawer", "mgs_open_drawer", "action_mgs_backup_now"):
                 with self.assertRaises(AccessError):
                     getattr(config.with_user(self.staff), method)()
             with self.assertRaises(AccessError):
@@ -43,6 +43,11 @@ class TestSecurity(TransactionCase):
         report = self.env["mgs.monthly.report"].create({})
         with self.assertRaises(AccessError):
             report.with_user(self.staff).mgs_get_report_data()
+
+    def test_manager_can_confirm_saving_configuration(self):
+        result = self.env["mgs.config"]._mgs_get().with_user(self.owner).action_mgs_save_configuration()
+        self.assertEqual(result["tag"], "display_notification")
+        self.assertEqual(result["params"]["type"], "success")
 
     def test_staff_cannot_apply_inventory_adjustments(self):
         with self.assertRaises(AccessError):

@@ -289,6 +289,17 @@ class MgsConfig(models.Model):
                     "«Caja de la tienda»."))
         return pos_config.open_ui()
 
+    def action_mgs_save_configuration(self):
+        """Confirmación del botón visible de guardado de configuración.
+
+        El cliente de Odoo guarda los campos pendientes antes de ejecutar un
+        botón de objeto. Este método aporta la confirmación visible y mantiene
+        la misma comprobación de permisos que el resto de ajustes de tienda.
+        """
+        self.ensure_one()
+        require_manager(self.env)
+        return self._mgs_notify(_("Configuración guardada."))
+
     def write(self, vals):
         res = super().write(vals)
         if "scan_max_delay_ms" in vals:
