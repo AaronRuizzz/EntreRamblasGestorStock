@@ -7,6 +7,7 @@ import pytz
 import zipfile
 
 from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 from .mgs_permissions import require_manager, madrid_day_range, SOLD_STATES
 from . import mgs_report_engine
 
@@ -95,10 +96,14 @@ class MgsMonthlyReport(models.TransientModel):
                 'La cuenta de cliente se separa de los cobros efectivos.\n'
                 'Los textos que podrían interpretarse como fórmulas llevan un apóstrofo inicial.\n'
             ).encode('utf-8'))
-        self.write({'export_file': base64.b64encode(output.getvalue()),
+        content = output.getvalue()
+        self.write({'export_file': base64.b64encode(content),
                     'export_filename': 'estadisticas-%s-%s.zip' % (self.date_from, self.date_to)})
-        return {'type': 'ir.actions.act_url', 'target': 'download',
-                'url': '/web/content/mgs.monthly.report/%s/export_file/%s?download=true' % (self.id, self.export_filename)}
+        # Carpeta Informes (mgs_output.py), no la carpeta de Descargas del
+        # navegador: se guardan aquí las estadísticas y se avisa de la ruta.
+        config = self.env["mgs.config"]._mgs_get()
+        path = config._mgs_save_output("informes", self.export_filename, content)
+        return config._mgs_notify(_("Estadísticas guardadas en %s", path))
 
     def _mgs_period(self):
         self.ensure_one()
@@ -115,10 +120,12 @@ class MgsMonthlyReport(models.TransientModel):
             if name and name[0] in "=+-@\t\r\n":
                 name = "'" + name
             writer.writerow([name, row["qty"], row["revenue"], row["cost"], row["revenue"] - row["cost"]])
-        self.write({"csv_file": base64.b64encode(output.getvalue().encode("utf-8-sig")),
+        content = output.getvalue().encode("utf-8-sig")
+        self.write({"csv_file": base64.b64encode(content),
                     "csv_filename": "ventas-%s-%s.csv" % (self.date_from, self.date_to)})
-        return {"type": "ir.actions.act_url", "target": "download",
-                "url": "/web/content/mgs.monthly.report/%s/csv_file/%s?download=true" % (self.id, self.csv_filename)}
+        config = self.env["mgs.config"]._mgs_get()
+        path = config._mgs_save_output("informes", self.csv_filename, content)
+        return config._mgs_notify(_("Ventas guardadas en %s", path))
 
     @api.model
     def _default_from(self):
@@ -130,20 +137,20 @@ class MgsMonthlyReport(models.TransientModel):
         return first + relativedelta(months=1, days=-1)
 
     def action_print(self):
-        self.ensure_one()
-        return self.env.ref("mi_gestor_stock.action_report_mgs_monthly").report_action(self)
-
-    def action_open_report_builder(self):
-        """Puente al constructor de informes personalizados (Informes →
-        Informes personalizados), con el periodo ya elegido aquí. Este
-        asistente y sus exportaciones siguen funcionando igual."""
+        """Genera el PDF y lo guarda en la carpeta Informes (mgs_output.py)
+        en vez de abrir el diálogo de impresión del navegador: es el mismo
+        cambio que pide la propietaria para facturas e informes, «en vez de
+        tenerlo todo en descargas»."""
         self.ensure_one()
         require_manager(self.env)
-        action = self.env.ref("mi_gestor_stock.action_mgs_report_templates").read()[0]
-        action["context"] = dict(self.env.context,
-                                 default_date_from=self.date_from,
-                                 default_date_to=self.date_to)
-        return action
+        pdf_content, report_type = self.env["ir.actions.report"]._render_qweb_pdf(
+            "mi_gestor_stock.action_report_mgs_monthly", self.ids)
+        if report_type != "pdf":
+            raise UserError(_("No se ha podido generar el PDF del informe."))
+        config = self.env["mgs.config"]._mgs_get()
+        filename = "informe-mensual-%s-%s.pdf" % (self.date_from, self.date_to)
+        path = config._mgs_save_output("informes", filename, pdf_content)
+        return config._mgs_notify(_("Informe guardado en %s", path))
 
     # ------------------------------------------------------------------
     # Datos del informe (lo llama la plantilla QWeb)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Herencia sobre la plantilla NATIVA de factura (no una copia): así el
+         PDF sale igual desde cualquier camino que la use — «Enviar e
+         imprimir», el botón «Imprimir» de la factura, el portal del
+         cliente y mgs_account_move.action_mgs_invoice_pdf() (usado por el
+         TPV, ver static/src/js/pos_invoice.js) — sin mantener dos plantillas
+         que puedan divergir.
+
+         El NIF y el domicilio del emisor ya salen solos en la cabecera
+         (web.external_layout, campo company.vat / company.partner_id) si
+         están rellenos en la ficha de la compañía; el desglose de
+         base/tipo/cuota de IVA ya lo trae account.document_tax_totals. Lo
+         único que faltaba de verdad es señalar, de forma legible, a qué
+         factura rectifica una rectificativa: el campo `ref` nativo lleva la
+         referencia («Reversión de: FACT/2026/0001, motivo»), pero no
+         resalta como tal. -->
+    <template id="report_invoice_document_mgs"
+              inherit_id="account.report_invoice_document">
+        <xpath expr="//div[@id='informations']" position="before">
+            <div t-if="o.reversed_entry_id" class="alert alert-info" role="status"
+                 style="border:1px solid #999;padding:6px 10px;margin-bottom:10px;">
+                <strong>Rectifica la factura <span t-field="o.reversed_entry_id.name"/></strong>
+            </div>
+        </xpath>
+    </template>
+</odoo>

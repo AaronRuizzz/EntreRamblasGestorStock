@@ -7,11 +7,30 @@ QWeb/PDF), así que el desglose de IVA y el relabel del cambio se repiten
 aquí: son ~10 líneas cada uno, no compensa acoplar un modelo (pos.order) con
 el otro (mgs.config) por evitar duplicarlas.
 """
+from uuid import uuid4
+
 from odoo import _, fields, models
 
 
 class PosOrder(models.Model):
     _inherit = "pos.order"
+
+    def action_mgs_reprint_ticket(self):
+        """Botón «Reimprimir en la térmica» de Informes → Tickets.
+
+        Reutiliza el mismo camino que el TPV (mgs_pos_print_order, con outbox
+        transaccional: mgs_hardware_job.py): una petición desde el backend no
+        es distinta de una del TPV salvo en quién la pide. Se manda siempre
+        con `reprint_key` propio (no el «auto» del cobro) para que quede
+        registrada como una reimpresión, no como el ticket original.
+        """
+        self.ensure_one()
+        job = self.env["mgs.config"].mgs_pos_print_order(self.id, reprint_key=str(uuid4()))
+        if job.get("state") == "disabled":
+            return self.env["mgs.config"]._mgs_notify(
+                _("No hay impresora configurada (Configuración → Dispositivos)."), "warning")
+        return self.env["mgs.config"]._mgs_notify(
+            _("Reimpresión solicitada. Comprueba la impresora."))
 
     def _mgs_receipt_date_str(self):
         """Misma fecha/hora, mismo formato, que _mgs_pos_ticket."""

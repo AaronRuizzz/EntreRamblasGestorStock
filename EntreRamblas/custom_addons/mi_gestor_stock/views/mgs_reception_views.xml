@@ -54,7 +54,9 @@
 
                     <!-- ============ MODO: PRODUCTO NUEVO ============ -->
                     <div class="mgs-new-box" invisible="mode != 'nuevo'">
+                        <field name="currency_id" invisible="1"/>
                         <group>
+                            <!-- Columna izquierda: qué es el producto. -->
                             <group string="Información del producto">
                                 <field name="new_name" placeholder="Ej. Rosa roja de tallo largo"/>
                                 <!-- El selector estándar deja escoger una categoría ya
@@ -62,29 +64,50 @@
                                 <field name="new_categ_id"
                                        required="mode == 'nuevo'"
                                        placeholder="Elige o crea una categoría…"/>
-                                <field name="currency_id" invisible="1"/>
-                                <field name="new_cost" class="mgs-price-field"
+                                <field name="new_expiry_date" class="mgs-date-input"/>
+                                <!-- Alquiler para eventos: sale y vuelve (models/mgs_event.py). -->
+                                <field name="new_rental_ok" string="Se alquila para eventos"/>
+                                <field name="new_rental_deposit" string="Fianza por unidad"
+                                       class="mgs-price-field" widget="monetary"
+                                       options="{'currency_field': 'currency_id', 'field_digits': True}"
+                                       invisible="not new_rental_ok"/>
+                            </group>
+                            <!-- Columna derecha: la calculadora de margen — a partir del
+                                 coste y de un margen (10/20/30/40/60 % u «Otro»), el precio
+                                 de venta sin IVA se calcula solo; con el IVA se llega al
+                                 precio de venta. Escribir el precio a mano también funciona,
+                                 en sentido inverso: recalcula qué margen representa. -->
+                            <group string="Precio y margen">
+                                <field name="new_cost" string="Precio de coste" class="mgs-price-field"
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
-                                <field name="new_price" class="mgs-price-field"
+                                <field name="new_margin_preset" widget="radio"
+                                       options="{'horizontal': true}"/>
+                                <field name="new_margin" string="Margen (%)"
+                                       invisible="new_margin_preset != 'otro'"/>
+                                <field name="new_price" string="Precio de venta sin IVA"
+                                       class="mgs-price-field" widget="monetary"
+                                       options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                                <field name="new_margin_amount" string="Beneficio" class="mgs-price-field"
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                                <field name="new_markup_hint" nolabel="1"
+                                       invisible="not new_markup_hint"/>
                                 <!-- El dominio del modelo limita la lista a IVA 21 % y
                                      0 %. La dueña puede usar «Crear y editar…» si su
                                      gestoría necesita habilitar un tipo adicional. -->
                                 <field name="new_tax_id" placeholder="Elige IVA…"/>
-                                <field name="new_price_taxed" class="mgs-price-field"
+                                <field name="new_price_taxed" string="Precio de venta" class="mgs-price-field"
                                        widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
-                                <field name="new_expiry_date" class="mgs-date-input"/>
                             </group>
-                            <group string="Código de barras">
-                                <field name="new_barcode" nolabel="1" class="mgs-scan-input"
-                                       placeholder="Escanea el código para asignarlo…"/>
-                                <!-- Flores a granel, envoltorios o composiciones
-                                     propias no traen EAN: se les genera uno
-                                     interno y se imprime en una etiqueta. -->
-                                <button name="action_mgs_generate_barcode" type="object"
-                                        string="Generar código interno"
-                                        class="btn-link ps-0" colspan="2"/>
-                            </group>
+                        </group>
+                        <group string="Código de barras">
+                            <field name="new_barcode" nolabel="1" class="mgs-scan-input"
+                                   placeholder="Escanea el código para asignarlo…"/>
+                            <!-- Flores a granel, envoltorios o composiciones
+                                 propias no traen EAN: se les genera uno
+                                 interno y se imprime en una etiqueta. -->
+                            <button name="action_mgs_generate_barcode" type="object"
+                                    string="Generar código interno"
+                                    class="btn-link ps-0" colspan="2"/>
                         </group>
                         <div class="mgs-new-actions">
                             <button name="action_add_new_product" type="object"
@@ -109,6 +132,9 @@
                             <field name="uom_id"/>
                             <field name="unit_cost"/>
                             <field name="expiry_date" class="mgs-date-input"/>
+                            <!-- Qué sale de la recepción es alquiler y qué no,
+                                 de un vistazo, sin abrir cada ficha. -->
+                            <field name="rental_ok" widget="boolean_toggle" readonly="1"/>
                             <button name="action_mgs_print_label" type="object"
                                     icon="fa-print" title="Imprimir etiqueta"/>
                         </list>
