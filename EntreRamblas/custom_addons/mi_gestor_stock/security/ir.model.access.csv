@@ -22,6 +22,8 @@ access_mgs_event_line_component_user,mgs event line component user,model_mgs_eve
 access_mgs_event_line_component_manager,mgs event line component manager,model_mgs_event_line_component,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_event_payment_manager,mgs event payment manager,model_mgs_event_payment,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_event_payment_wizard,mgs event payment wizard,model_mgs_event_payment_wizard,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_event_pos_wizard,mgs event pos wizard,model_mgs_event_pos_wizard,mi_gestor_stock.group_mgs_manager,1,1,1,1
+access_mgs_event_pos_wizard_line,mgs event pos wizard line,model_mgs_event_pos_wizard_line,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_flower_consumption,mgs flower consumption,model_mgs_flower_consumption,mi_gestor_stock.group_mgs_manager,1,0,0,0
 access_mgs_stock_ledger_manager,mgs stock ledger manager,model_mgs_stock_ledger,mi_gestor_stock.group_mgs_manager,1,0,0,0
 access_mgs_stock_ledger_user,mgs stock ledger user,model_mgs_stock_ledger,mi_gestor_stock.group_mgs_user,1,0,0,0

@@ -144,8 +144,10 @@
                                     <field name="backup_retention_days" invisible="not backup_enabled"/>
                                 </group>
                                 <group string="Dónde">
-                                    <field name="backup_dir" string="Carpeta local"/>
-                                    <field name="backup_ssd_dir" placeholder="E:\CopiasEntreRamblas"/>
+                                    <field name="backup_dir" string="Carpeta local (ruta de Windows)"
+                                           placeholder="C:\CopiasEntreRamblas"/>
+                                    <field name="backup_ssd_dir" string="Carpeta externa SSD/USB (ruta de Windows)"
+                                           placeholder="E:\CopiasEntreRamblas"/>
                                     <field name="backup_latest_name"/>
                                     <field name="backup_last_date"/>
                                     <field name="backup_last_path"/>
@@ -165,7 +167,9 @@
                                     desde la carpeta <code>EntreRamblas</code>.
                                 </p>
                                 <p>
-                                    La copia local se conserva aunque el SSD esté desconectado.
+                                    Escribe una <b>ruta de carpeta</b>, por ejemplo
+                                    <code>E:\CopiasEntreRamblas</code>: no hace falta ni se debe
+                                    introducir una dirección IP. La copia local se conserva aunque el SSD esté desconectado.
                                     El historial muestra si la réplica externa está pendiente
                                     o ha fallado. Crea primero la carpeta de destino en el SSD y
                                     usa «Probar carpeta del SSD» para comprobarla sin esperar a la

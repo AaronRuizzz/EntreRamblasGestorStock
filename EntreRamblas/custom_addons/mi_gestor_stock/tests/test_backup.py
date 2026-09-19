@@ -133,3 +133,11 @@ class TestBackup(TransactionCase):
             result = self.env["mgs.config"]._mgs_get().action_mgs_backup_now()
         self.assertEqual(result["params"]["type"], "danger")
         self.assertTrue(self.env["mgs.backup"].search([("state", "=", "error"), ("message", "=", "Disco lleno")]))
+
+    def test_list_header_backup_button_accepts_the_selection_argument(self):
+        # Odoo pasa la selección de la lista al botón de cabecera, aun cuando
+        # el botón no necesita una copia ya existente para funcionar.
+        Backup = self.env["mgs.backup"]
+        with patch.object(type(Backup), "_mgs_run_backup", return_value=Backup):
+            result = Backup.action_mgs_backup_now([])
+        self.assertEqual(result["params"]["type"], "warning")

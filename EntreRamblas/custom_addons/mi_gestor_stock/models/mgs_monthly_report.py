@@ -380,7 +380,10 @@ class MgsMonthlyReport(models.TransientModel):
         # las ventas de mostrador de arriba: se separan para que quede claro que
         # esa parte no se suma dos veces.
         collected_pos = sum(payments.filtered(
-            lambda p: (p.note or "").startswith("Cobrado en caja")).mapped("amount"))
+            # La nota conserva la compatibilidad con cobros de caja anotados
+            # antes de que existiera el enlace explícito al pedido.
+            lambda p: p.pos_order_id or (p.note or "").startswith("Cobrado en caja")
+        ).mapped("amount"))
         return {
             "event_rows": rows,
             "event_total": sum(event.amount_total for event in events),

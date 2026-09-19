@@ -53,7 +53,7 @@ class TestEventPosCheckout(TestPointOfSaleCommon):
             "return_date": start + timedelta(days=1), "line_ids": lines,
         })
 
-    def _pos_order(self, event, product, qty, price_unit, paid):
+    def _pos_order(self, event, product, qty, price_unit, paid, selected_lines=None):
         order = self.env["pos.order"].create({
             "uuid": str(uuid4()), "session_id": self.session.id,
             "amount_tax": 0, "amount_total": paid, "amount_paid": paid, "amount_return": 0,
@@ -70,7 +70,7 @@ class TestEventPosCheckout(TestPointOfSaleCommon):
         order.state = "paid"
         order._create_order_picking()
         # En producción lo dispara pos.order._process_order / mgs_pos_link_order.
-        order._mgs_settle_event()
+        order._mgs_settle_event(selected_lines)
         return order
 
     # ------------------------------------------------------------------
@@ -87,8 +87,7 @@ class TestEventPosCheckout(TestPointOfSaleCommon):
         ])
         self.assertTrue(mixed.mgs_pos_chargeable)
         action = mixed.action_mgs_checkout_pos()
-        self.assertEqual(action["type"], "ir.actions.act_url")
-        self.assertIn("mgs_event=%d" % mixed.id, action["url"])
+        self.assertEqual(action["res_model"], "mgs.event.pos.wizard")
 
     def test_load_event_gives_net_prices_and_skips_rental(self):
         event = self._event([
@@ -144,3 +143,25 @@ class TestEventPosCheckout(TestPointOfSaleCommon):
         order._mgs_settle_event()
         event.invalidate_recordset()
         self.assertEqual(len(event.payment_ids), 1)
+
+    def test_two_partial_pos_payments_keep_the_remaining_quantity_available(self):
+        self._stock(self.flower, 20)
+        event = self._event([Command.create({
+            "product_id": self.flower.id, "quantity": 5, "unit_price": 5.0})])
+        line = event.line_ids
+        first = self._pos_order(event, self.flower, 2, 5.0 / 1.21, paid=10.0,
+                                selected_lines=[{"line_id": line.id, "qty": 2}])
+        event.invalidate_recordset()
+        self.assertTrue(event.mgs_pos_chargeable)
+        self.assertEqual(line.delivered_qty, 2)
+        self.assertAlmostEqual(event.amount_due, 15.0, places=2)
+        # El mismo pedido no puede generar otro cobro al reintentarse la sincronización.
+        first._mgs_settle_event([{"line_id": line.id, "qty": 2}])
+        self.assertEqual(len(event.payment_ids), 1)
+        self._pos_order(event, self.flower, 3, 5.0 / 1.21, paid=15.0,
+                        selected_lines=[{"line_id": line.id, "qty": 3}])
+        event.invalidate_recordset()
+        self.assertEqual(line.delivered_qty, 5)
+        self.assertEqual(len(event.payment_ids), 2)
+        self.assertAlmostEqual(event.amount_due, 0.0, places=2)
+        self.assertEqual(event.state, "done")

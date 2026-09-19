@@ -214,12 +214,16 @@ class MgsConfig(models.Model):
     # ==================================================================
     backup_enabled = fields.Boolean("Copia de seguridad automática", default=True)
     backup_dir = fields.Char(
-        "Carpeta de las copias",
-        default=lambda self: self.env["mgs.backup"]._mgs_default_dir())
+        "Carpeta local de las copias",
+        default=lambda self: self.env["mgs.backup"]._mgs_default_dir(),
+        help="Ruta local de Windows donde se guardan las copias, por ejemplo "
+             "C:\\CopiasEntreRamblas. No es una dirección IP.")
     backup_every_hours = fields.Integer("Hacer una copia cada (horas)", default=6)
     backup_retention_days = fields.Integer("Días de conservación", default=30)
-    backup_ssd_dir = fields.Char("Carpeta de réplica en SSD",
-        help="Carpeta existente del disco externo. Se mantiene también la copia local.")
+    backup_ssd_dir = fields.Char("Carpeta externa (SSD o USB)",
+        help="Ruta de una carpeta ya creada en el disco externo, por ejemplo "
+             "E:\\CopiasEntreRamblas. No se introduce una dirección IP; la copia "
+             "local se mantiene siempre.")
     backup_last_date = fields.Datetime("Última copia", readonly=True)
     backup_last_path = fields.Char("Archivo de la última copia", readonly=True)
     backup_latest_name = fields.Char(

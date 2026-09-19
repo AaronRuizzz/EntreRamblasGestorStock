@@ -23,6 +23,7 @@ Dos ideas que conviene entender antes de tocar nada:
 """
 import json
 import math
+from urllib.parse import urlencode
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError
@@ -150,10 +151,14 @@ class MgsEvent(models.Model):
                 ("mgs_event_ref", "=", event.id),
                 ("state", "in", ("paid", "done", "invoiced")),
             ]))
-            has_sellable = any(not line.is_rental for line in event.line_ids)
+            has_sellable = any(
+                not line.is_rental and float_compare(
+                    line.delivered_qty, line.quantity,
+                    precision_rounding=line.product_id.uom_id.rounding or 0.01) < 0
+                for line in event.line_ids)
             event.mgs_pos_charged = charged
             event.mgs_pos_chargeable = (
-                event.state in ("draft", "confirmed") and has_sellable and not charged)
+                event.state in ("draft", "confirmed") and has_sellable)
 
     @api.depends("line_ids.subtotal", "line_ids.quantity", "line_ids.is_rental",
                  "line_ids.delivered_qty", "line_ids.returned_qty", "line_ids.damaged_qty",
@@ -410,35 +415,24 @@ class MgsEvent(models.Model):
     # Cobro en caja
     # ------------------------------------------------------------------
     def action_mgs_checkout_pos(self):
-        """Abre el TPV con las partidas que se venden ya cargadas, listas para
-        cobrar. El alquiler y la fianza se quedan en el evento."""
+        """Abre el selector de partidas que se van a cobrar en el TPV."""
         require_manager(self.env)
         self.ensure_one()
         if not self.mgs_pos_chargeable:
             raise UserError(_(
                 "Este encargo no se puede cobrar en caja: o no tiene nada que "
-                "vender (todo es alquiler), o ya está cobrado, o no está en "
+                "vender (todo es alquiler o ya se entregó), o no está en "
                 "presupuesto/aceptado."))
-        sellable = self.line_ids.filtered(lambda line: not line.is_rental)
-        for line in sellable:
-            line._check_valid()
-            if not line.product_id.available_in_pos:
-                raise UserError(_(
-                    "«%s» no está disponible en el TPV. Márcala como disponible "
-                    "en su ficha o cóbrala con «Registrar cobro».",
-                    line.product_id.display_name))
-        config = self.env["pos.config"].sudo().search(
-            [("company_id", "=", self.company_id.id)], limit=1)
-        if not config:
-            raise UserError(_("No hay ninguna caja configurada. Entra una vez en «Vender»."))
         return {
-            "type": "ir.actions.act_url",
-            "url": "/pos/ui?config_id=%d&mgs_event=%d" % (config.id, self.id),
-            "target": "self",
+            "type": "ir.actions.act_window",
+            "res_model": "mgs.event.pos.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_event_id": self.id},
         }
 
     @api.model
-    def mgs_pos_load_event(self, event_id):
+    def mgs_pos_load_event(self, event_id, selected_lines=None):
         """Datos del encargo para que el TPV monte el pedido (lo llama
         pos_event_checkout.js al arrancar)."""
         if not (self.env.su or self.env.user.has_group("mi_gestor_stock.group_mgs_user")
@@ -449,11 +443,27 @@ class MgsEvent(models.Model):
             return {"error": _("El encargo ya no está disponible.")}
         if not event.mgs_pos_chargeable:
             return {"error": _("El encargo %s ya no se puede cobrar en caja.") % event.name}
+        selected = {int(item["line_id"]): float(item["qty"])
+                    for item in (selected_lines or [])
+                    if item.get("line_id") and item.get("qty")}
+        # Mantiene operativos enlaces de caja ya abiertos antes de esta mejora.
+        if not selected:
+            selected = {line.id: line.quantity - line.delivered_qty
+                        for line in event.line_ids if not line.is_rental}
         lines = []
-        for line in event.line_ids.filtered(lambda item: not item.is_rental):
+        for line in event.line_ids.filtered(lambda item: not item.is_rental and item.id in selected):
+            qty = selected[line.id]
+            remaining = line.quantity - line.delivered_qty
+            if qty <= 0 or float_compare(qty, remaining,
+                                         precision_rounding=line.product_id.uom_id.rounding or 0.01) > 0:
+                return {"error": _("La cantidad elegida para «%s» ya no está disponible.") % line.product_id.display_name}
+            line._check_valid()
+            if not line.product_id.available_in_pos:
+                return {"error": _("«%s» no está disponible en el TPV.") % line.product_id.display_name}
             entry = {
+                "event_line_id": line.id,
                 "product_id": line.product_id.id,
-                "qty": line.quantity,
+                "qty": qty,
                 # El presupuesto va con impuestos incluidos (lo que paga el
                 # cliente). El TPV suma el IVA sobre el precio que le pasamos,
                 # así que hay que darle el neto para que el total del ticket
@@ -492,7 +502,7 @@ class MgsEvent(models.Model):
         return line.unit_price * (excluded / included)
 
     @api.model
-    def mgs_pos_link_order(self, event_id, order_uuid):
+    def mgs_pos_link_order(self, event_id, order_uuid, selected_lines=None):
         """El TPV enlaza el pedido con el encargo (lo llama nada más montarlo, y
         otra vez al cobrarlo). Deja `mgs_event_ref` en el pedido —así el enlace
         sobrevive aunque falle el aviso posterior— y, si el pedido ya está
@@ -509,7 +519,7 @@ class MgsEvent(models.Model):
         if order.mgs_event_ref != event.id:
             order.write({"mgs_event_ref": event.id})
         if order.state in ("paid", "done", "invoiced"):
-            order._mgs_settle_event()
+            order._mgs_settle_event(selected_lines)
         return True
 
     def _mgs_force_done(self):
@@ -732,6 +742,8 @@ class MgsEventPayment(models.Model):
     date = fields.Datetime("Fecha", default=fields.Datetime.now, readonly=True)
     user_id = fields.Many2one("res.users", "Registrado por", readonly=True)
     note = fields.Char("Concepto")
+    pos_order_id = fields.Many2one("pos.order", "Pedido TPV", readonly=True,
+                                   copy=False, index=True)
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -808,6 +820,72 @@ class MgsEventPaymentWizard(models.TransientModel):
         return {"type": "ir.actions.act_window_close"}
 
 
+class MgsEventPosWizard(models.TransientModel):
+    """Selección temporal: no abre la edición de las partidas del encargo."""
+    _name = "mgs.event.pos.wizard"
+    _description = "Partidas del encargo para cobrar en caja"
+
+    event_id = fields.Many2one("mgs.event", "Encargo", required=True, readonly=True)
+    line_ids = fields.One2many("mgs.event.pos.wizard.line", "wizard_id", "Partidas")
+
+    @api.model
+    def default_get(self, field_list):
+        values = super().default_get(field_list)
+        event = self.env["mgs.event"].browse(values.get("event_id") or self.env.context.get("default_event_id")).exists()
+        if event:
+            values["event_id"] = event.id
+            values["line_ids"] = [(0, 0, {
+                "event_line_id": line.id,
+                "quantity": line.quantity - line.delivered_qty,
+            }) for line in event.line_ids if not line.is_rental and float_compare(
+                line.delivered_qty, line.quantity,
+                precision_rounding=line.product_id.uom_id.rounding or 0.01) < 0]
+        return values
+
+    def action_open_pos(self):
+        require_manager(self.env)
+        self.ensure_one()
+        if not self.event_id.mgs_pos_chargeable:
+            raise UserError(_("Este encargo ya no tiene partidas disponibles para cobrar en caja."))
+        selected = []
+        for item in self.line_ids:
+            line = item.event_line_id
+            remaining = line.quantity - line.delivered_qty
+            if item.quantity <= 0:
+                continue
+            if float_compare(item.quantity, remaining,
+                             precision_rounding=line.product_id.uom_id.rounding or 0.01) > 0:
+                raise UserError(_("De «%s» solo quedan %g unidades para cobrar en caja.") %
+                                (line.product_id.display_name, remaining))
+            line._check_valid()
+            if not line.product_id.available_in_pos:
+                raise UserError(_("«%s» no está disponible en el TPV.") % line.product_id.display_name)
+            selected.append({"line_id": line.id, "qty": item.quantity})
+        if not selected:
+            raise UserError(_("Elige al menos una cantidad mayor que cero."))
+        config = self.env["pos.config"].sudo().search(
+            [("company_id", "=", self.event_id.company_id.id)], limit=1)
+        if not config:
+            raise UserError(_("No hay ninguna caja configurada. Entra una vez en «Vender»."))
+        return {"type": "ir.actions.act_url",
+                "url": "/pos/ui?" + urlencode({"config_id": config.id,
+                                                   "mgs_event": self.event_id.id,
+                                                   "mgs_lines": json.dumps(selected)}),
+                "target": "self"}
+
+
+class MgsEventPosWizardLine(models.TransientModel):
+    _name = "mgs.event.pos.wizard.line"
+    _description = "Partida seleccionada para cobrar en caja"
+
+    wizard_id = fields.Many2one("mgs.event.pos.wizard", required=True, ondelete="cascade")
+    event_line_id = fields.Many2one("mgs.event.line", "Partida", required=True, readonly=True)
+    product_id = fields.Many2one(related="event_line_id.product_id", string="Producto", readonly=True)
+    available_qty = fields.Float(related="event_line_id.quantity", string="Presupuestado", readonly=True)
+    delivered_qty = fields.Float(related="event_line_id.delivered_qty", string="Ya cobrado", readonly=True)
+    quantity = fields.Float("Cantidad a cobrar", required=True, digits="Product Unit of Measure")
+
+
 class PosOrder(models.Model):
     """Enlace de una venta de caja con el encargo que la originó.
 
@@ -842,34 +920,47 @@ class PosOrder(models.Model):
             return "cash"
         return "card"
 
-    def _mgs_settle_event(self):
+    def _mgs_settle_event(self, selected_lines=None):
         self.ensure_one()
         event = self.env["mgs.event"].sudo().browse(self.mgs_event_ref).exists()
         if not event or event.state in ("done", "cancelled"):
             return
-        sellable = event.line_ids.filtered(lambda line: not line.is_rental)
-        rounding = lambda line: line.product_id.uom_id.rounding or 0.01
-        # Idempotencia: no volver a liquidar si ya se hizo (reintento de sync o
-        # una segunda venta para el mismo encargo).
-        if sellable and all(float_compare(line.delivered_qty, line.quantity,
-                                          precision_rounding=rounding(line)) >= 0
-                            for line in sellable):
+        if self.env["mgs.event.payment"].sudo().search_count([("pos_order_id", "=", self.id)]):
             return
-        if self.env["mgs.event.payment"].sudo().search_count([
-            ("event_id", "=", event.id),
-            ("note", "=", self._mgs_event_payment_note()),
-        ]):
+        selected = {int(item["line_id"]): float(item["qty"])
+                    for item in (selected_lines or []) if item.get("line_id") and item.get("qty")}
+        # Red de seguridad para pedidos antiguos que llegaron ya enlazados.
+        if not selected:
+            selected = {line.id: line.quantity - line.delivered_qty
+                        for line in event.line_ids if not line.is_rental}
+        sellable = event.line_ids.filtered(lambda line: line.id in selected and not line.is_rental)
+        if not sellable or len(sellable) != len(selected):
+            return
+        rounding = lambda line: line.product_id.uom_id.rounding or 0.01
+        # La selección se entrega al TPV antes de pagar. Si allí se cambia una
+        # cantidad, no marcamos el encargo como entregado con datos antiguos.
+        selected_by_product = {}
+        for line in sellable:
+            selected_by_product[line.product_id.id] = selected_by_product.get(line.product_id.id, 0.0) + selected[line.id]
+        ordered_by_product = {}
+        for order_line in self.lines:
+            ordered_by_product[order_line.product_id.id] = ordered_by_product.get(order_line.product_id.id, 0.0) + order_line.qty
+        if any(float_compare(ordered_by_product.get(product_id, 0.0), quantity,
+                             precision_rounding=self.env["product.product"].browse(product_id).uom_id.rounding or 0.01) != 0
+               for product_id, quantity in selected_by_product.items()):
             return
         for line in sellable:
-            if float_compare(line.delivered_qty, line.quantity,
-                             precision_rounding=rounding(line)) < 0:
-                line.sudo().write({"delivered_qty": line.quantity})
+            qty = selected[line.id]
+            remaining = line.quantity - line.delivered_qty
+            if qty <= 0 or float_compare(qty, remaining, precision_rounding=rounding(line)) > 0:
+                return
+            line.sudo().write({"delivered_qty": line.delivered_qty + qty})
         # Lo que valen esas partidas según el presupuesto. Si el TPV ha cobrado
         # esa cifra salvo redondeo (el neto por unidad no siempre divide justo),
         # se anota el importe del presupuesto para que el encargo cuadre; si hay
         # una diferencia real (un descuento en caja), se anota lo cobrado y el
         # encargo queda pendiente para que la responsable lo revise.
-        expected = sum(sellable.mapped("subtotal"))
+        expected = sum(line.unit_price * selected[line.id] for line in sellable)
         amount = self.amount_paid
         if abs(amount - expected) <= max(0.05, 0.01 * len(sellable)):
             amount = expected
@@ -879,6 +970,7 @@ class PosOrder(models.Model):
             "method": self._mgs_event_payment_method(),
             "note": self._mgs_event_payment_note(),
             "user_id": (self.user_id or self.env.user).id,
+            "pos_order_id": self.id,
         })
         event.invalidate_recordset()
         if (float_is_zero(event.amount_due, precision_rounding=0.01)

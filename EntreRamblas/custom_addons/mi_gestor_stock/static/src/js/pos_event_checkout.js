@@ -25,13 +25,22 @@ patch(PosStore.prototype, {
             return;
         }
         // Quita el parámetro: un refresco de página no debe recargar el encargo.
+        let selectedLines;
+        try {
+            selectedLines = JSON.parse(params.get("mgs_lines") || "null");
+        } catch {
+            selectedLines = null;
+        }
         params.delete("mgs_event");
+        params.delete("mgs_lines");
         const query = params.toString();
         window.history.replaceState(
             {}, "", window.location.pathname + (query ? "?" + query : "")
         );
         try {
-            const data = await this.data.call("mgs.event", "mgs_pos_load_event", [eventId]);
+            const data = await this.data.call(
+                "mgs.event", "mgs_pos_load_event", [eventId, selectedLines]
+            );
             if (!data || data.error) {
                 this.notification.add(
                     data?.error || _t("No se pudo cargar el encargo."),
@@ -88,12 +97,10 @@ patch(PosStore.prototype, {
         // para avisar al servidor). Se marca también en el propio pedido por si
         // viaja al servidor al guardar (pos.order sincroniza todos sus campos):
         // entonces pos.order._process_order es una red más.
-        (this._mgsEventByUuid ||= {})[order.uuid] = data.event_id;
-        try {
-            order.mgs_event_ref = data.event_id;
-        } catch {
-            /* el mapa por uuid y el aviso de después del cobro bastan */
-        }
+        (this._mgsEventByUuid ||= {})[order.uuid] = {
+            eventId: data.event_id,
+            lines: data.lines.map((line) => ({ line_id: line.event_line_id, qty: line.qty })),
+        };
 
         if (missing) {
             this.notification.add(
@@ -111,12 +118,12 @@ patch(PosStore.prototype, {
 patch(PaymentScreen.prototype, {
     async afterOrderValidation() {
         const order = this.currentOrder;
-        const eventId = order && this.pos._mgsEventByUuid?.[order.uuid];
+        const eventData = order && this.pos._mgsEventByUuid?.[order.uuid];
         const uuid = order?.uuid;
         const result = await super.afterOrderValidation(...arguments);
-        if (eventId && uuid) {
+        if (eventData && uuid) {
             try {
-                await this.pos.data.call("mgs.event", "mgs_pos_link_order", [eventId, uuid]);
+                await this.pos.data.call("mgs.event", "mgs_pos_link_order", [eventData.eventId, uuid, eventData.lines]);
                 delete this.pos._mgsEventByUuid[uuid];
             } catch {
                 this.pos.notification.add(

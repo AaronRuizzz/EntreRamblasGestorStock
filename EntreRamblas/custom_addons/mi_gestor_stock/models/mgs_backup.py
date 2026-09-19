@@ -414,10 +414,15 @@ class MgsBackup(models.Model):
         return False
 
     @api.model
-    def action_mgs_backup_now(self):
+    def action_mgs_backup_now(self, *ignored_args):
+        """Botón de la lista de copias.
+
+        Las cabeceras de lista de Odoo pasan la selección actual como argumento
+        posicional, incluso con ``display=always`` y sin ninguna fila elegida.
+        La copia es global, por lo que esa selección se ignora.
+        """
         from .mgs_permissions import require_manager
         require_manager(self.env)
-        """Botón «Hacer copia ahora» de la lista de copias."""
         backup = self._mgs_run_backup(kind="manual")
         if not backup:
             return {"type": "ir.actions.client", "tag": "display_notification",

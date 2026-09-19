@@ -38,6 +38,32 @@
         <field name="target">new</field>
     </record>
 
+    <record id="event_pos_wizard_form" model="ir.ui.view">
+        <field name="name">mgs.event.pos.wizard.form</field>
+        <field name="model">mgs.event.pos.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Cobrar partidas en caja" class="o_mgs_event_form">
+                <group>
+                    <field name="event_id" readonly="1"/>
+                </group>
+                <p class="text-muted">Indica qué cantidades se lleva el cliente ahora. Las restantes seguirán disponibles para otro cobro.</p>
+                <field name="line_ids" nolabel="1">
+                    <list create="0" delete="0" editable="bottom">
+                        <field name="product_id"/>
+                        <field name="available_qty"/>
+                        <field name="delivered_qty"/>
+                        <field name="quantity"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_open_pos" type="object" string="Abrir caja"
+                            class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
     <record id="event_form" model="ir.ui.view">
         <field name="name">mgs.event.form</field>
         <field name="model">mgs.event</field>
