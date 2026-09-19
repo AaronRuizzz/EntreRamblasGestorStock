@@ -87,8 +87,7 @@
                                 <group string="Impresora de tickets (Approx appPOS80AM)">
                                     <field name="printer_mode"/>
                                     <field name="printer_host" placeholder="192.168.1.50"
-                                           invisible="printer_mode != 'network'"
-                                           required="printer_mode == 'network'"/>
+                                           invisible="printer_mode != 'network'"/>
                                     <field name="printer_port"
                                            invisible="printer_mode != 'network'"/>
                                     <field name="printer_name" placeholder="POS-80"

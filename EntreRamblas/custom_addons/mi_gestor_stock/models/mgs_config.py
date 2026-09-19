@@ -372,6 +372,11 @@ class MgsConfig(models.Model):
                 "Dispositivos y elige cómo está conectada."))
         try:
             if self.printer_mode == "network":
+                if not (self.printer_host or "").strip():
+                    raise UserError(_(
+                        "Falta la dirección IP de la impresora. Indícala en "
+                        "Configuración → Dispositivos → Impresora y cajón "
+                        "antes de imprimir."))
                 escpos.send_network(payload, self.printer_host, self.printer_port,
                                     timeout=self.printer_timeout or 5)
             elif self.printer_mode == "windows":

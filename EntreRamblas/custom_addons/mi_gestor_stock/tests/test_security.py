@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged, new_test_user
 from ..models.mgs_permissions import is_manager
 
@@ -48,6 +48,12 @@ class TestSecurity(TransactionCase):
         result = self.env["mgs.config"]._mgs_get().with_user(self.owner).action_mgs_save_configuration()
         self.assertEqual(result["tag"], "display_notification")
         self.assertEqual(result["params"]["type"], "success")
+
+    def test_missing_printer_ip_only_blocks_printing(self):
+        config = self.env["mgs.config"]._mgs_get()
+        config.write({"printer_mode": "network", "printer_host": False})
+        with self.assertRaisesRegex(UserError, "dirección IP de la impresora"):
+            config._mgs_send(b"prueba")
 
     def test_staff_cannot_apply_inventory_adjustments(self):
         with self.assertRaises(AccessError):
