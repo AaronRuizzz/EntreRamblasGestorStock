@@ -34,9 +34,9 @@
     &:hover { background-color: rgba(30, 58, 95, .08); }
 }
 
-// Botón "Eliminar" de cada línea de venta (pos_delete_line.xml): objetivo
-// táctil de al menos 44px, con el icono centrado dentro.
-.o_mgs_delete_line {
+// Botones "Cantidad" y "Eliminar" de cada línea de venta (pos_delete_line.xml):
+// objetivo táctil de al menos 44px, con el icono centrado dentro.
+.o_mgs_delete_line, .o_mgs_edit_qty {
     display: inline-flex;
     align-items: center;
     justify-content: center;

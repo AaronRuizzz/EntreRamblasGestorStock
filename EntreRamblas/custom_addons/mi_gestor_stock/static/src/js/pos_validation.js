@@ -104,8 +104,22 @@ patch(PaymentScreen.prototype, {
             try {
                 await this.invoiceService.downloadPdf(order.raw.account_move);
             } catch (error) {
+                // 18.0.7.1.0: la causa que reportó la tienda (AttributeError
+                // de Odoo por deferred_start_date al generar el Factur-X) ya
+                // está corregida en el servidor (mgs_account_move.py,
+                // AccountEdiCii). Esto se deja igualmente: si algún día falla
+                // por otro motivo (permisos al guardar el PDF, disco lleno...),
+                // el mensaje real llega a la propia notificación (para poder
+                // anotarlo) y a la consola del navegador, en vez de un aviso
+                // genérico que no dice nada de lo que pasó.
+                const detail = error instanceof RPCError
+                    ? (error.data?.message || error.message || String(error))
+                    : (error?.message || String(error));
+                console.error("mgs: fallo al generar/descargar la factura del TPV", error);
                 this.notification.add(
-                    _t("Venta guardada y caja abierta. No se pudo generar el PDF de la factura: repítelo desde Facturación."),
+                    _t("Venta guardada y caja abierta. No se pudo generar el PDF de la factura "
+                       + "(%s): repítelo desde Facturación y, si vuelve a pasar, anota este "
+                       + "mensaje.", detail),
                     { type: "warning", sticky: true }
                 );
             }

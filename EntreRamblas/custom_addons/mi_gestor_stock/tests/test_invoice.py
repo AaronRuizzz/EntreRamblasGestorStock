@@ -10,10 +10,12 @@ FACTURACION.md."""
 import os
 import shutil
 import tempfile
+from uuid import uuid4
 
 from odoo import Command
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
+from odoo.addons.point_of_sale.tests.common import TestPointOfSaleCommon
 
 
 @tagged("post_install", "-at_install")
@@ -21,15 +23,18 @@ class TestInvoiceLegalData(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        spain = cls.env.ref("base.es")
         cls.env.company.write({
             "vat": "ESB83355065", "street": "Calle Mayor 1", "city": "Barcelona",
+            "zip": "08001", "country_id": spain.id,
         })
         cls.partner = cls.env["res.partner"].create({
             "name": "Clienta con factura",
             "vat": "ESB39118237", "street": "Calle Luna 2", "city": "Madrid",
+            "zip": "28001", "country_id": spain.id,
         })
         cls.income_account = cls.env["account.account"].search([
-            ("account_type", "=", "income"), ("company_id", "=", cls.env.company.id),
+            ("account_type", "=", "income"), ("company_ids", "in", cls.env.company.id),
         ], limit=1)
 
     def invoice(self, partner=None, move_type="out_invoice", reversed_entry_id=False):
@@ -52,6 +57,35 @@ class TestInvoiceLegalData(TransactionCase):
     def test_an_invoice_cannot_be_posted_if_the_shop_is_missing_legal_data(self):
         self.env.company.vat = False
         move = self.invoice()
+        with self.assertRaises(UserError):
+            move.action_post()
+
+    def test_an_invoice_to_a_customer_without_zip_or_country_cannot_be_posted(self):
+        partner_incompleto = self.env["res.partner"].create({
+            "name": "Clienta sin CP", "vat": "ESB11111112",
+            "street": "Calle Sin CP 1", "city": "Vigo",
+        })
+        move = self.invoice(partner=partner_incompleto)
+        with self.assertRaises(UserError):
+            move.action_post()
+
+    def test_an_invoice_cannot_be_posted_if_the_shop_is_missing_zip_or_country(self):
+        self.env.company.zip = False
+        move = self.invoice()
+        with self.assertRaises(UserError):
+            move.action_post()
+
+    def test_an_invoice_without_a_payment_term_cannot_be_posted(self):
+        # Empresa: no recibe "al contado" por defecto (solo particulares,
+        # res_partner.py), así que hay que quitárselo a mano para probar
+        # el hueco.
+        empresa = self.env["res.partner"].create({
+            "name": "Floristería Mayorista SL", "is_company": True,
+            "vat": "ESB22222223", "street": "Polígono Norte 3", "city": "Getafe",
+            "zip": "28901", "country_id": self.env.ref("base.es").id,
+        })
+        empresa.property_payment_term_id = False
+        move = self.invoice(partner=empresa)
         with self.assertRaises(UserError):
             move.action_post()
 
@@ -87,15 +121,18 @@ class TestInvoicePdfSavesToTheFacturasFolder(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        spain = cls.env.ref("base.es")
         cls.env.company.write({
             "vat": "ESB83355065", "street": "Calle Mayor 1", "city": "Barcelona",
+            "zip": "08001", "country_id": spain.id,
         })
         cls.partner = cls.env["res.partner"].create({
             "name": "Clienta con factura",
             "vat": "ESB39118237", "street": "Calle Luna 2", "city": "Madrid",
+            "zip": "28001", "country_id": spain.id,
         })
         cls.income_account = cls.env["account.account"].search([
-            ("account_type", "=", "income"), ("company_id", "=", cls.env.company.id),
+            ("account_type", "=", "income"), ("company_ids", "in", cls.env.company.id),
         ], limit=1)
 
     def setUp(self):
@@ -121,3 +158,69 @@ class TestInvoicePdfSavesToTheFacturasFolder(TransactionCase):
         self.assertTrue(os.path.isfile(expected))
         with open(expected, "rb") as handle:
             self.assertTrue(handle.read().startswith(b"%PDF-"))
+
+
+@tagged("post_install", "-at_install")
+class TestInvoiceFromPos(TestPointOfSaleCommon):
+    """`_mgs_check_legal_data` se comprueba en `_post()`, no en
+    `action_post()`: el TPV factura llamando a `pos.order.action_pos_order_invoice`
+    → `_generate_pos_order_invoice` → `_post()` directamente
+    (point_of_sale/models/pos_order.py), sin pasar nunca por `action_post()`.
+    Antes de moverlo, ese camino se saltaba la validación legal por
+    completo; estas pruebas recorren el camino real, no solo el del
+    backend (que es el que ya cubría TestInvoiceLegalData y que NUNCA
+    reprodujo el hueco)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        spain = cls.env.ref("base.es")
+        cls.env.company.write({
+            "vat": "ESB83355065", "street": "Calle Mayor 1", "city": "Barcelona",
+            "zip": "08001", "country_id": spain.id,
+        })
+        cls.session = cls.env["pos.session"].create({"config_id": cls.pos_config.id})
+        cls.flower = cls.env["product.product"].create({
+            "name": "Ramo de prueba (TPV)", "available_in_pos": True, "list_price": 10.0,
+        })
+
+    def _paid_order(self, partner):
+        order = self.env["pos.order"].create({
+            "uuid": str(uuid4()), "session_id": self.session.id,
+            "partner_id": partner.id,
+            "amount_tax": 0, "amount_total": 10.0, "amount_paid": 10.0, "amount_return": 0,
+            "lines": [Command.create({
+                "product_id": self.flower.id, "qty": 1, "price_unit": 10.0,
+                "price_subtotal": 10.0, "price_subtotal_incl": 10.0,
+            })],
+        })
+        self.env["pos.payment"].create({
+            "pos_order_id": order.id, "payment_method_id": self.cash_payment_method.id,
+            "amount": 10.0,
+        })
+        order.state = "paid"
+        return order
+
+    def test_invoicing_from_the_pos_without_legal_data_raises_a_clear_error(self):
+        partner_sin_datos = self.env["res.partner"].create({"name": "Clienta de caja sin datos"})
+        order = self._paid_order(partner_sin_datos)
+        with self.assertRaises(UserError):
+            order.action_pos_order_invoice()
+
+    def test_invoicing_from_the_pos_with_complete_data_posts_and_uses_the_payment_term(self):
+        spain = self.env.ref("base.es")
+        partner = self.env["res.partner"].create({
+            "name": "Clienta de caja con factura",
+            "vat": "ESB39118237", "street": "Calle Luna 2", "city": "Madrid",
+            "zip": "28001", "country_id": spain.id,
+        })
+        # Particular: res_partner.py ya le ha puesto "al contado" al crearla.
+        immediate = self.env.ref("account.account_payment_term_immediate")
+        self.assertEqual(partner.property_payment_term_id, immediate)
+
+        order = self._paid_order(partner)
+        order.action_pos_order_invoice()
+        move = order.account_move
+        self.assertTrue(move)
+        self.assertEqual(move.state, "posted")
+        self.assertEqual(move.invoice_payment_term_id, immediate)

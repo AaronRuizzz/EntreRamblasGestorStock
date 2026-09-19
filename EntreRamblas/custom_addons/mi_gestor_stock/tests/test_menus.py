@@ -20,7 +20,7 @@ MANAGER_MENUS = ["mi_gestor_stock." + m for m in (
     "menu_mgs_events", "menu_mgs_reception", "menu_mgs_catalog_import",
     "menu_mgs_reports", "menu_mgs_reports_tickets", "menu_mgs_reports_sales",
     "menu_mgs_reports_top", "menu_mgs_reports_consumption", "menu_mgs_reports_monthly",
-    "menu_mgs_corrections", "menu_mgs_correction_new",
+    "menu_mgs_reports_clients", "menu_mgs_corrections", "menu_mgs_correction_new",
     "menu_mgs_reports_sessions", "menu_mgs_settings",
     "menu_mgs_settings_devices", "menu_mgs_settings_backups", "menu_mgs_hardware_jobs",
     "menu_mgs_settings_security", "menu_mgs_settings_access_events",

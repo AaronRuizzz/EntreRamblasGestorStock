@@ -37,3 +37,5 @@ access_mgs_diagnostic,mgs diagnostic,model_mgs_diagnostic,mi_gestor_stock.group_
 access_mgs_update,mgs update,model_mgs_update,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_correction_manager,mgs correction manager,model_mgs_correction,mi_gestor_stock.group_mgs_manager,1,1,1,1
 access_mgs_correction_wizard_manager,mgs correction wizard manager,model_mgs_correction_wizard,mi_gestor_stock.group_mgs_manager,1,1,1,1
+
+access_mgs_account_move_manager,account.move mgs manager (escritura acotada: plazo/vencimiento desde Informes -> Clientes; sin crear ni borrar),account.model_account_move,mi_gestor_stock.group_mgs_manager,1,1,0,0

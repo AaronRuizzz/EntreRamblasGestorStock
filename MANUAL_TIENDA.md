@@ -169,9 +169,15 @@ En el TPV: escanea o toca el producto, cobra y valida.
   esa venta esté abierta, y queda anotado para revisarlo después (Stock →
   Alertas). Si vuelves a aumentar la cantidad, el programa vuelve a
   preguntar: aceptar una vez no vale para lo que se añada después.
-- Cada línea de la venta tiene un botón **Eliminar** para quitarla con un
-  solo toque, sin pasar antes por cantidad 0. Solo en cuentas todavía sin
-  cobrar: un ticket ya pagado se corrige con una devolución (apartado 6).
+- Cada línea de la venta tiene, junto al nombre del producto, un botón
+  **✏️ (Cambiar cantidad)** y un botón **🗑️ Eliminar**. El lápiz abre un
+  teclado numérico para escribir la cantidad de una vez (30 rosas: toca el
+  lápiz, teclea 30, confirma). La papelera quita el producto entero con un
+  solo toque, sin pasar antes por cantidad 0. La **flecha roja** del teclado
+  numérico de abajo, en cambio, quita **una unidad cada vez** que se pulsa
+  (con una sola unidad, la quita entera). Los tres solo funcionan en cuentas
+  todavía sin cobrar: un ticket ya pagado se corrige con una devolución
+  (apartado 6).
 - **Cliente**: el botón dice **«Añadir cliente — opcional»**. Si no se
   elige ninguno, la venta queda como **«Venta de mostrador»** — no se crea
   ninguna ficha de cliente falsa. Se puede buscar, crear (solo el nombre es

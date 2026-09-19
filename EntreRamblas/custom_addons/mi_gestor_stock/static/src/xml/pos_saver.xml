@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Quita el logo de Odoo del salvapantallas del TPV (se muestra a los 5
+     minutos de inactividad, o a los 2 si la pantalla de login ya estaba
+     abierta: ver point_of_sale/static/src/app/store/pos_store.js,
+     idleTimeout). Mismo patrón que ya usa LoginScreen para su logo: la
+     imagen de la compañía, que branding.xml ya deja puesta al emblema de la
+     tienda (res_company.py, _img_b64). -->
+<templates id="template" xml:space="preserve">
+    <t t-name="mi_gestor_stock.SaverScreen" t-inherit="point_of_sale.SaverScreen"
+       t-inherit-mode="extension">
+        <xpath expr="//img[@src='/web/static/img/odoo_logo.svg']" position="attributes">
+            <attribute name="src"/>
+            <attribute name="t-attf-src">/web/image?model=res.company&amp;id={{pos.company.id}}&amp;field=logo</attribute>
+        </xpath>
+    </t>
+</templates>

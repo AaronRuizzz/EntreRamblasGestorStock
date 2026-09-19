@@ -2,10 +2,16 @@
 param([string]$Tags = '/mi_gestor_stock', [switch]$Restore)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
-$pgBin = 'C:\Program Files\PostgreSQL\18\bin'
+# Se toma la versión de PostgreSQL más reciente instalada en vez de fijar un
+# número: este equipo pasó de tener la 18 a solo tener la 16 instalada, y la
+# suite no debe bloquearse por eso (Odoo 18 soporta cualquiera de las dos).
+$pgRoot = Get-ChildItem 'C:\Program Files\PostgreSQL' -Directory -ErrorAction SilentlyContinue |
+    Where-Object { Test-Path (Join-Path $_.FullName 'bin\pg_ctl.exe') } |
+    Sort-Object { [int]$_.Name } -Descending | Select-Object -First 1
+if (-not $pgRoot) { throw 'Se requiere PostgreSQL para las pruebas (no se ha encontrado ninguna versión en C:\Program Files\PostgreSQL).' }
+$pgBin = Join-Path $pgRoot.FullName 'bin'
 $cluster = Join-Path $PSScriptRoot '.odoo_data\validation-postgres'
 $python = Join-Path $PSScriptRoot 'venv\Scripts\python.exe'
-if (-not (Test-Path "$pgBin\pg_ctl.exe")) { throw 'Se requiere PostgreSQL 18 para las pruebas.' }
 if (-not (Test-Path "$cluster\PG_VERSION")) {
     & "$pgBin\initdb.exe" -D $cluster -U mgs_test --encoding=UTF8 --locale=C --auth=trust
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear la instancia de pruebas.' }

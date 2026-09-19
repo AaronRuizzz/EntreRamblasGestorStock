@@ -51,7 +51,7 @@ def payment_rows(env, company, start, end, payment_method_ids=None, category_ids
         # `date_order`) dejaría las líneas fuera y el prorrateo saldría 0
         # aunque no haya ningún filtro de categoría/producto puesto.
         domain = _category_domain(category_ids or []) + _product_domain(product_ids or []) + [
-            ("order_id", "in", orders.ids), ("mgs_report_excluded", "=", False),
+            ("order_id", "in", orders.ids),
         ]
         for line in env["pos.order.line"].search(domain):
             included_by_order.setdefault(line.order_id.id, env["pos.order.line"])

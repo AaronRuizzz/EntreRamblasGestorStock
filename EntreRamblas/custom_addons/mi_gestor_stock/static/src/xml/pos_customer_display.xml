@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Quita las dos marcas "Powered by Odoo" de la pantalla del cliente
+     (segunda pantalla o pestaña que se le muestra mientras se cobra). Nota:
+     este fichero va SOLO en el bundle 'point_of_sale.customer_display_assets'
+     (__manifest__.py) porque point_of_sale excluye expresamente
+     static/src/customer_display/** de _assets_pos, así que no puede
+     compartir bundle con el resto de plantillas del TPV. -->
+<templates id="template" xml:space="preserve">
+    <t t-name="mi_gestor_stock.CustomerDisplay" t-inherit="point_of_sale.CustomerDisplay"
+       t-inherit-mode="extension">
+        <!-- Las dos plaquitas "Powered by <OdooLogo/>": una en la barra
+             lateral, otra en el pie de la pantalla principal envuelta en un
+             div contenedor que no pinta nada más (se quita también, para no
+             dejar una franja vacía). -->
+        <xpath expr="//div[contains(@class,'o_customer_display_sidebar')]/div[OdooLogo]"
+               position="replace"/>
+        <xpath expr="//div[contains(@class,'o_customer_display_main')]/div[div[OdooLogo]]"
+               position="replace"/>
+    </t>
+</templates>

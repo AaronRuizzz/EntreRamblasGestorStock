@@ -154,6 +154,9 @@
                             <div class="mt-3">
                                 <button name="action_mgs_backup_now" type="object"
                                         string="Hacer una copia ahora" class="btn-primary"/>
+                                <button name="action_mgs_test_ssd" type="object"
+                                        string="Probar carpeta del SSD" class="btn-secondary ms-2"
+                                        invisible="not backup_ssd_dir"/>
                             </div>
                             <div class="text-muted mt-3">
                                 <p>
@@ -164,7 +167,9 @@
                                 <p>
                                     La copia local se conserva aunque el SSD esté desconectado.
                                     El historial muestra si la réplica externa está pendiente
-                                    o ha fallado. Crea primero la carpeta de destino en el SSD.
+                                    o ha fallado. Crea primero la carpeta de destino en el SSD y
+                                    usa «Probar carpeta del SSD» para comprobarla sin esperar a la
+                                    próxima copia.
                                 </p>
                             </div>
                         </page>

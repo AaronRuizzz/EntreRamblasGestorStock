@@ -47,6 +47,38 @@ necesita** Git, ni clonar repositorios, ni escribir comandos.
    `publicar-release.ps1` (recomendado en vez de este paso a paso) busca
    `ISCC.exe` solo en ambas rutas automáticamente.
 
+## Configurar la copia en el SSD externo
+
+El servicio de Windows corre con una cuenta de privilegios reducidos
+(`NT AUTHORITY\LocalService`), que **no** tiene acceso a un disco externo
+recién conectado aunque tu propio usuario lo vea sin problema en el
+Explorador. Sin este paso, «Configuración → Copia de seguridad → Carpeta de
+réplica en SSD» guarda la ruta sin quejarse, pero la réplica falla con
+«El SSD o su carpeta no están disponibles» — el programa no puede
+distinguir un disco desconectado de uno sin permiso, así que da el mismo
+aviso para los dos casos.
+
+1. Conecta el disco y crea en él la carpeta de copias (por ejemplo,
+   `E:\CopiasEntreRamblas`).
+2. Abre PowerShell **como administrador** y da acceso al servicio:
+
+   ```powershell
+   icacls "E:\CopiasEntreRamblas" /grant "*S-1-5-19:(OI)(CI)M"
+   ```
+
+   (`S-1-5-19` es `NT AUTHORITY\LocalService`; `M` es "modificar" — leer,
+   escribir y borrar dentro de esa carpeta, nada más. Es el mismo comando
+   que usa el instalador para dar acceso al código y a la configuración,
+   `tools/windows_service.py`.)
+3. Escribe esa misma ruta en «Carpeta de réplica en SSD» y pulsa
+   «Probar carpeta del SSD»: confirma en el momento si existe, si se puede
+   escribir en ella y si tiene sitio, sin esperar a la próxima copia
+   automática.
+
+Si el disco se cambia de puerto USB o de letra de unidad, Windows no vuelve
+a pedir permiso (el `icacls` queda en el disco, no en el puerto), pero si se
+formatea o se sustituye por otro, hay que repetir el paso 2.
+
 ## Lo que queda fuera del alcance de una sesión de agente
 
 - Firmar el `.exe` con un certificado de firma de código (recomendado para que

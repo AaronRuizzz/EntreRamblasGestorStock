@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import _, models
+from odoo import _, api, models
 
 from .mgs_permissions import require_manager
 
@@ -11,6 +11,26 @@ _SALE_MOVE_TYPES = ("out_invoice", "out_refund", "out_receipt")
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        partners = super().create(vals_list)
+        partners._mgs_apply_default_payment_term()
+        return partners
+
+    def _mgs_apply_default_payment_term(self):
+        """«Al contado» por defecto solo para particulares (decisión de la
+        propietaria: a empresas se les deja elegir plazo). Se aplica al
+        crear, sin pisar nunca una forma de pago ya elegida — ni aquí ni si
+        se cambia is_company más tarde: un alta rápida desde el TPV crea la
+        ficha con is_company=False sin que nadie la haya tocado."""
+        immediate = self.env.ref("account.account_payment_term_immediate",
+                                 raise_if_not_found=False)
+        if not immediate:
+            return
+        for partner in self:
+            if not partner.is_company and not partner.property_payment_term_id:
+                partner.property_payment_term_id = immediate
 
     def mgs_pos_delete(self):
         """Botón "Eliminar cliente" del TPV (partner_line.xml).

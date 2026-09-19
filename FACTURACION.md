@@ -88,10 +88,13 @@ siendo lo que distingue el ticket de una factura completa (ver más abajo).
 Añadido en la versión 18.0.7.0.0, sobre `account.move` de contabilidad
 (`models/mgs_account_move.py`), sin tocar el ticket ni activar VERI\*FACTU:
 
-- **No se deja confirmar una factura o rectificativa a la que le falte el NIF
-  o el domicilio de la tienda o del cliente** (art. 6.1 RD 1619/2012):
-  `action_post` lo comprueba antes de contabilizar y dice qué dato falta y
-  dónde rellenarlo, en vez de dejar salir una factura incompleta.
+- **No se deja confirmar una factura o rectificativa a la que le falte el NIF,
+  la razón social, el domicilio completo (calle, código postal, ciudad y
+  país) o el plazo de pago de la tienda o del cliente** (art. 6.1 RD
+  1619/2012): se comprueba en `_post()`, así que se aplica **tanto** al
+  confirmar desde el backend **como** al cobrar con factura desde el TPV
+  (antes solo cubría el backend: el TPV llama a `_post()` directamente, sin
+  pasar por `action_post()`, y se colaba sin comprobar nada).
 - El **contenido** (NIF y domicilio del emisor, desglose de base/tipo/cuota de
   IVA por cada tipo) lo sigue poniendo la plantilla **nativa** de Odoo
   (`web.external_layout` y `account.document_tax_totals`) cuando esos datos
@@ -103,6 +106,27 @@ Añadido en la versión 18.0.7.0.0, sobre `account.move` de contabilidad
 - El botón de factura del TPV genera este PDF con `action_mgs_invoice_pdf` y
   lo guarda en la carpeta **Facturas** (Configuración → Dispositivos →
   «Carpetas de salida»), no en Descargas.
+- **Forma de pago**: a los particulares se les pone «Pago inmediato» (al
+  contado) por defecto al dar de alta la ficha (`models/res_partner.py`); a
+  las empresas se les deja elegir. El TPV nativo forzaba
+  `invoice_payment_term_id: False` en toda factura que emitía —se ha
+  corregido para que tome la del cliente (`models/mgs_pos_stock.py`,
+  `_prepare_invoice_vals`)—. Plazo y vencimiento también se pueden consultar
+  y cambiar (mientras la factura siga en borrador) desde Informes →
+  Clientes.
+- **Bug real de Odoo (Community) corregido, no nuestro**: pagar con factura
+  desde el TPV lanzaba `AttributeError: 'account.move.line' object has no
+  attribute 'deferred_start_date'`. `account_edi_ubl_cii` incrusta SIEMPRE un
+  Factur-X en el PDF de cualquier factura («Always silently generate a
+  Factur-X… for inter-portability», no es opcional ni depende de ningún
+  ajuste), y para construirlo lee `deferred_start_date`/`deferred_end_date`
+  (periodificación de Enterprise, que esta instalación no tiene) sin
+  comprobar antes si el campo existe —al contrario que otro punto del mismo
+  módulo, que sí lo comprueba—. Se ha corregido con la misma comprobación,
+  heredando `account.edi.cii` (`models/mgs_account_move.py`,
+  `AccountEdiCii._cii_get_billing_specified_period_node`). No cambia nada
+  del contenido legal de la factura: el Factur-X sigue generándose igual,
+  solo que sin reventar cuando faltan esos dos campos.
 
 **Esto sigue sin ser un sistema conforme al RD 1007/2023** (sin huella
 encadenada, sin firma, sin QR tributario, sin declaración responsable del

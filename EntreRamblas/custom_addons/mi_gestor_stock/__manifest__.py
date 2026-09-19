@@ -1,6 +1,6 @@
 {
     "name": "Mi Gestor de Stock Personalizado",
-    "version": "18.0.7.0.0",
+    "version": "18.0.7.1.0",
     "summary": "Recepción, stock con avisos e informes para la floristería Entre Ramblas",
     "author": "aarm5719",
     "license": "LGPL-3",
@@ -15,6 +15,12 @@
         "point_of_sale",    # TPV (sigue registrando las ventas; no esta en el menu)
         "contacts",         # Directorio de clientes/proveedores
         "l10n_es",          # Localizacion fiscal espanola (IVA, plan PYMEs, NIF)
+        # Se instala solo con "account" (auto_install), y con el ya viene
+        # de la mano l10n_es -> l10n_es_edi_facturae: se declara aqui a
+        # proposito porque mgs_account_move.py hereda uno de sus modelos
+        # (account.edi.cii, para el fallo real de deferred_start_date al
+        # facturar desde el TPV).
+        "account_edi_ubl_cii",
     ],
     "data": [
         "security/mgs_security.xml",
@@ -49,8 +55,10 @@
         "views/mgs_pos_session_views.xml",
         "views/mgs_consumption_views.xml",
         # Antes de mgs_menus.xml: los menús nuevos referencian sus acciones
-        # (action_mgs_pos_orders, action_mgs_corrections) por ID.
+        # (action_mgs_pos_orders, action_mgs_corrections, action_mgs_report_clients)
+        # por ID.
         "views/mgs_correction_views.xml",
+        "views/mgs_partner_views.xml",
         "views/mgs_menus.xml",
         "views/mgs_security_views.xml",
         "views/login_templates.xml",
@@ -104,6 +112,7 @@
             "mi_gestor_stock/static/src/js/pos_delete_line.js",
             "mi_gestor_stock/static/src/js/pos_refund.js",
             "mi_gestor_stock/static/src/js/pos_partner_delete.js",
+            "mi_gestor_stock/static/src/js/pos_saver.js",
             "mi_gestor_stock/static/src/xml/pos_bouquet.xml",
             "mi_gestor_stock/static/src/xml/pos_navbar.xml",
             "mi_gestor_stock/static/src/xml/pos_refund.xml",
@@ -111,6 +120,13 @@
             "mi_gestor_stock/static/src/xml/pos_receipt.xml",
             "mi_gestor_stock/static/src/xml/pos_stock_banner.xml",
             "mi_gestor_stock/static/src/xml/pos_delete_line.xml",
+            "mi_gestor_stock/static/src/xml/pos_saver.xml",
+        ],
+        # Pantalla de cliente (segunda pantalla/pestaña): bundle aparte
+        # porque point_of_sale._assets_pos excluye a propósito
+        # static/src/customer_display/** (ver su __manifest__.py).
+        "point_of_sale.customer_display_assets": [
+            "mi_gestor_stock/static/src/xml/pos_customer_display.xml",
         ],
         # Tours de navegador (odoo.tests HttpCase.start_tour) — solo se
         # cargan en modo test (--test-enable), nunca en producción.

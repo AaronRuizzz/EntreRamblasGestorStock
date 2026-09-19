@@ -307,4 +307,5 @@ Write-Output 'Primer acceso: en la pantalla de acceso, escribir el código de ac
 Write-Output 'del archivo de arriba, elegir la contraseña (12+ caracteres) y guardar la'
 Write-Output 'clave de recuperación que aparece. Después, completar los datos fiscales de'
 Write-Output 'la empresa, los métodos de pago, la impresora y el cajón, y la carpeta de'
-Write-Output 'copias en el SSD externo (INSTALACION.md).'
+Write-Output 'copias en el SSD externo (instalador\README.md, "Configurar la copia en'
+Write-Output 'el SSD externo").'

@@ -292,6 +292,27 @@ class PosOrder(models.Model):
             ]).write({"pos_order_id": order_id})
         return order_id
 
+    def _prepare_invoice_vals(self):
+        # El TPV nativo fija invoice_payment_term_id: False en TODAS sus
+        # facturas (point_of_sale/models/pos_order.py, _prepare_invoice_vals):
+        # asume que se cobra siempre al contado, así que la forma de pago que
+        # tenga el cliente en su ficha (res_partner.py, "al contado" por
+        # defecto para particulares) nunca llegaba a la factura. Se toma la
+        # del cliente y, si no tiene ninguna, se cae al mismo "Pago
+        # inmediato" que ya usa el resto del programa (mismo id que
+        # aplica res_partner.py: account.account_payment_term_immediate).
+        # invoice_date_due se recalcula solo a partir de este plazo
+        # (account.move._compute_invoice_date_due).
+        vals = super()._prepare_invoice_vals()
+        partner = self.partner_id
+        term = partner.property_payment_term_id
+        if not term:
+            term = self.env.ref("account.account_payment_term_immediate",
+                                raise_if_not_found=False)
+        if term:
+            vals["invoice_payment_term_id"] = term.id
+        return vals
+
     def _should_create_picking_real_time(self):
         return True
 

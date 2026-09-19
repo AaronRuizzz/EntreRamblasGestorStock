@@ -274,6 +274,66 @@ class MgsBackup(models.Model):
             if removed:
                 backup.unlink()
 
+    # Margen de seguridad sobre el tamaño de la copia (zip + .sha256 + el
+    # ".part" temporal mientras se escribe: caben dos copias del archivo a
+    # la vez un instante). Para el botón de prueba, sin una copia de
+    # referencia a mano, un mínimo razonable para poder guardar ALGO.
+    _MGS_SSD_SAFETY_MARGIN = 1.2
+    _MGS_SSD_MIN_FREE_BYTES = 50 * 1024 * 1024
+
+    @api.model
+    def _mgs_check_replica_dir(self, destination, local_dir, required_bytes=None):
+        """Comprueba que `destination` (Path, ya resuelta) sirve como carpeta
+        de réplica SSD, distinguiendo el motivo exacto en vez de agruparlo
+        todo bajo "no disponible" (antes `Path.is_dir()` devolvía `False`
+        tanto si el disco estaba desconectado como si estaba conectado pero
+        sin permiso de lectura, y el mensaje decía siempre lo mismo). No
+        copia nada: la usan tanto `_mgs_replicate` (antes de copiar de
+        verdad) como el botón "Probar carpeta del SSD" (mgs_config.py), que
+        no hace ninguna copia.
+
+        Lanza OSError/ValueError con un mensaje en español lo bastante
+        concreto para que se pueda actuar (reconectar el disco, dar
+        permisos, liberar espacio, elegir otra carpeta)."""
+        if not destination.is_dir():
+            raise OSError(_(
+                "El SSD o su carpeta no están disponibles. Comprueba que el disco está "
+                "conectado y que la carpeta \"%s\" existe.", destination))
+        if destination == local_dir:
+            raise ValueError(_(
+                "La copia local y la réplica SSD necesitan carpetas diferentes."))
+        probe = destination / (".mgs-test-%s" % uuid4().hex[:8])
+        try:
+            probe.write_text("mgs", encoding="ascii")
+        except OSError:
+            raise OSError(_(
+                "La carpeta \"%s\" existe pero no se puede escribir en ella. Revisa "
+                "los permisos: si el programa corre como servicio de Windows, la "
+                "cuenta del servicio necesita permiso de escritura sobre el SSD, no "
+                "solo tu usuario.", destination)) from None
+        finally:
+            probe.unlink(missing_ok=True)
+        try:
+            free = shutil.disk_usage(destination).free
+        except OSError:
+            free = None
+        if free is not None:
+            needed = int((required_bytes or 0) * self._MGS_SSD_SAFETY_MARGIN) \
+                if required_bytes else self._MGS_SSD_MIN_FREE_BYTES
+            if free < needed:
+                raise OSError(_(
+                    "No queda espacio suficiente en el SSD: libres %(free)s, hacen "
+                    "falta al menos %(needed)s.",
+                    free=self._mgs_human_size(free), needed=self._mgs_human_size(needed)))
+
+    @api.model
+    def _mgs_human_size(self, size):
+        size = float(size or 0)
+        for unit in ("B", "KB", "MB", "GB"):
+            if size < 1024 or unit == "GB":
+                return "%.1f %s" % (size, unit)
+            size /= 1024
+
     def _mgs_replicate(self, config=None):
         self.ensure_one()
         config = config or self.env["mgs.config"]._mgs_get()
@@ -281,10 +341,8 @@ class MgsBackup(models.Model):
             return
         destination = Path(config.backup_ssd_dir).resolve()
         try:
-            if not destination.is_dir():
-                raise OSError("El SSD o su carpeta no están disponibles")
-            if destination == Path(self.path).resolve().parent:
-                raise ValueError("La copia local y la réplica SSD necesitan carpetas diferentes")
+            self._mgs_check_replica_dir(
+                destination, Path(self.path).resolve().parent, required_bytes=self.size)
             target = destination / self.name
             temporary = Path(str(target) + ".part")
             shutil.copyfile(self.path, temporary)

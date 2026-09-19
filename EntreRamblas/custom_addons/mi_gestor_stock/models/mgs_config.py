@@ -17,6 +17,8 @@ Todo lo que se manda a la impresora se construye en models/mgs_escpos.py.
 import base64
 import io
 import logging
+import os
+from pathlib import Path
 
 import qrcode
 
@@ -497,6 +499,28 @@ class MgsConfig(models.Model):
         if backup.replica_state == "error":
             return self._mgs_notify(backup.message, "warning")
         return self._mgs_notify(_("Copia guardada en %s", backup.path))
+
+    def action_mgs_test_ssd(self):
+        """Botón «Probar carpeta del SSD»: comprueba la carpeta de réplica
+        SIN copiar nada, para no tener que esperar a la próxima copia
+        automática (o forzar una manual) solo para saber si la ruta sirve.
+        Usa la misma comprobación que la réplica real (mgs_backup.py,
+        _mgs_check_replica_dir), así que el resultado es el mismo que daría
+        la próxima copia de verdad."""
+        require_manager(self.env)
+        self.ensure_one()
+        if not self.backup_ssd_dir:
+            return self._mgs_notify(_("Escribe primero una carpeta de réplica en SSD."), "warning")
+        local_dir = Path(self.env["mgs.backup"]._mgs_dir(self)).resolve()
+        destination = Path(self.backup_ssd_dir).resolve()
+        latest = self.backup_last_path
+        required = os.path.getsize(latest) if latest and os.path.isfile(latest) else None
+        try:
+            self.env["mgs.backup"]._mgs_check_replica_dir(destination, local_dir, required)
+        except Exception as err:  # noqa: BLE001 - mismo criterio que _mgs_replicate
+            return self._mgs_notify(str(err), "danger")
+        return self._mgs_notify(_("La carpeta del SSD está lista: existe, se puede "
+                                  "escribir en ella y tiene sitio."))
 
     def _mgs_notify(self, message, kind="success"):
         return {
