@@ -14,8 +14,9 @@
 
         .\publicar\publicar-release.ps1 -Firmar "D:\claves\firma-privada.pem"
 
-    Requiere PowerShell 7, y en PATH: git, gh (autenticado como
-    AaronRuizzz) e ISCC.exe (Inno Setup 6, o indícalo con -Iscc).
+    Requiere PowerShell 7, y en PATH: git, gh (con permiso de escritura en
+    el repositorio de releases) e ISCC.exe (Inno Setup 6, o indícalo con
+    -Iscc).
 
     Un `git push` normal al repo de desarrollo NO publica nada: solo esto
     (o los pasos manuales de PUBLICAR.md) lo hace.
@@ -68,19 +69,22 @@ try {
     Write-Host "   No se encontró manifiesto publicado (probablemente el primer release): $version" -ForegroundColor DarkGray
 }
 
-# --- 2. gh autenticado como AaronRuizzz ------------------------------------
+# --- 2. gh autenticado con permiso para publicar ---------------------------
 Write-Host '2. Comprobando sesión de GitHub CLI...' -ForegroundColor Cyan
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     throw "No se encuentra 'gh' (GitHub CLI) en PATH. Instálalo (winget install GitHub.cli) antes de publicar."
 }
 $authStatus = & gh auth status 2>&1 | Out-String
 if ($LASTEXITCODE -ne 0) {
-    throw "gh no tiene ninguna sesión activa. Ejecuta 'gh auth login' como AaronRuizzz antes de publicar.`n$authStatus"
+    throw "gh no tiene ninguna sesión activa. Ejecuta 'gh auth login' antes de publicar.`n$authStatus"
 }
-if ($authStatus -notmatch 'account\s+AaronRuizzz\b') {
-    throw "gh está autenticado, pero no como AaronRuizzz:`n$authStatus`nEjecuta 'gh auth switch' (o 'gh auth login') con esa cuenta antes de publicar."
+$publisherAccount = (& gh api user --jq .login).Trim()
+$publisherPermission = (& gh repo view $repoReleases --json viewerPermission --jq .viewerPermission).Trim()
+if ($publisherPermission -notin @('ADMIN', 'MAINTAIN', 'WRITE')) {
+    throw "La cuenta $publisherAccount no tiene permiso de escritura sobre $repoReleases (permiso: $publisherPermission)."
 }
-Write-Host '   Sesión de gh: AaronRuizzz' -ForegroundColor DarkGray
+$publisherEmail = "$publisherAccount@users.noreply.github.com"
+Write-Host "   Sesión de gh: $publisherAccount ($publisherPermission en $repoReleases)" -ForegroundColor DarkGray
 
 # --- Preparar el clon local del repo de releases -----------------------
 # Aquí, antes de empaquetar (paso largo) y no al final: `gh release create`
@@ -116,7 +120,7 @@ Publicado con ``publicar/publicar-release.ps1`` desde el repositorio de desarrol
 "@ | Out-File -FilePath $readmePath -Encoding utf8
     }
     git -C $ReleasesRepoDir add README.md
-    git -C $ReleasesRepoDir -c user.name='AaronRuizzz' -c user.email='aaron.r.m@um.es' `
+    git -C $ReleasesRepoDir -c user.name=$publisherAccount -c user.email=$publisherEmail `
         commit -m 'Primer commit: crea el canal de releases'
     git -C $ReleasesRepoDir push origin main
 }
@@ -193,7 +197,7 @@ $hayCambios = git -C $ReleasesRepoDir status --porcelain
 if (-not $hayCambios) {
     Write-Host '   manifest.json ya estaba al día; nada que publicar.' -ForegroundColor DarkGray
 } else {
-    git -C $ReleasesRepoDir -c user.name='AaronRuizzz' -c user.email='aaron.r.m@um.es' `
+    git -C $ReleasesRepoDir -c user.name=$publisherAccount -c user.email=$publisherEmail `
         commit -m "Versión $version"
     git -C $ReleasesRepoDir push origin main
 }
