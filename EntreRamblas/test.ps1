@@ -2,6 +2,13 @@
 param([string]$Tags = '/mi_gestor_stock', [switch]$Restore)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
+# Los informes PDF usan el motor que viaja con el proyecto. El servicio y
+# start-odoo.ps1 ya lo añaden al PATH; las pruebas deben hacer exactamente lo
+# mismo para comprobar la generación real de facturas y tickets.
+$wkhtmlDir = Join-Path $PSScriptRoot 'tools\wkhtmltox\bin'
+if (Test-Path (Join-Path $wkhtmlDir 'wkhtmltopdf.exe')) {
+    $env:Path = "$wkhtmlDir;$env:Path"
+}
 # Se toma la versión de PostgreSQL más reciente instalada en vez de fijar un
 # número: este equipo pasó de tener la 18 a solo tener la 16 instalada, y la
 # suite no debe bloquearse por eso (Odoo 18 soporta cualquiera de las dos).
