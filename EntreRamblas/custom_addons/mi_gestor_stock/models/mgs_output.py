@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Carpetas de salida para lo que genera el programa (informes y facturas).
+"""Carpetas de salida para lo que genera el programa.
 
 Antes, todo lo que se podía descargar (informe mensual, CSV de estadísticas,
 factura...) salía como `ir.actions.act_url` con `target: "download"`: el
@@ -9,16 +9,18 @@ mismo PC que la tienda, así que puede escribir el archivo él mismo en la
 carpeta que toque — ver mgs.config.output_dir (pestaña «Carpetas de salida»
 de Configuración → Dispositivos) y `_mgs_save_output` más abajo, que es el
 único punto de escritura para no repetir la lógica de nombres/carpetas en
-cada informe.
+cada informe o ticket.
 """
 import os
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
-# Subcarpetas fijas dentro de la carpeta configurada: una para lo que se
-# genera para consulta/gestoría (informes), otra para lo que tiene validez
-# fiscal (facturas) — así nunca se mezclan en el explorador de archivos.
-SUBFOLDERS = {"informes": "Informes", "facturas": "Facturas"}
+from .mgs_permissions import require_manager
+
+# Subcarpetas fijas dentro de la carpeta configurada. Así nunca se mezclan
+# los documentos para consulta/gestoría, las facturas fiscales y los tickets.
+SUBFOLDERS = {"informes": "Informes", "facturas": "Facturas", "tickets": "Tickets"}
 
 
 class MgsConfig(models.Model):
@@ -27,13 +29,28 @@ class MgsConfig(models.Model):
     output_dir = fields.Char(
         "Carpeta de informes y facturas",
         default=lambda self: self._mgs_default_output_dir(),
-        help="Dentro se crean, si no existen, las subcarpetas «Informes» y "
-             "«Facturas». Vacía: se usa la carpeta «Documentos\\Entre "
+        help="Dentro se crean, si no existen, las subcarpetas «Informes», "
+             "«Facturas» y «Tickets». Vacía: se usa la carpeta «Documentos\\Entre "
              "Ramblas» del usuario que ejecuta el servidor.")
+    output_invoices_dir = fields.Char(
+        "Carpeta de facturas", compute="_compute_output_directories", readonly=True)
+    output_reports_dir = fields.Char(
+        "Carpeta de informes", compute="_compute_output_directories", readonly=True)
+    output_tickets_dir = fields.Char(
+        "Carpeta de tickets", compute="_compute_output_directories", readonly=True)
 
     @api.model
     def _mgs_default_output_dir(self):
         return os.path.join(os.path.expanduser("~"), "Documents", "Entre Ramblas")
+
+    @api.depends("output_dir")
+    def _compute_output_directories(self):
+        """Muestra las rutas finales sin crear archivos al abrir Ajustes."""
+        for config in self:
+            base = (config.output_dir or "").strip() or config._mgs_default_output_dir()
+            config.output_invoices_dir = os.path.join(base, SUBFOLDERS["facturas"])
+            config.output_reports_dir = os.path.join(base, SUBFOLDERS["informes"])
+            config.output_tickets_dir = os.path.join(base, SUBFOLDERS["tickets"])
 
     def _mgs_output_dir(self, kind):
         """Ruta absoluta de la subcarpeta `kind` («informes» o «facturas»),
@@ -63,3 +80,39 @@ class MgsConfig(models.Model):
         with open(path, "wb") as handle:
             handle.write(content)
         return path
+
+    def action_mgs_prepare_output_folders(self):
+        """Crea las dos carpetas antes de generar el primer documento."""
+        self.ensure_one()
+        require_manager(self.env)
+        try:
+            invoices = self._mgs_output_dir("facturas")
+            reports = self._mgs_output_dir("informes")
+            tickets = self._mgs_output_dir("tickets")
+        except OSError as err:
+            raise UserError(self.env._("No se han podido preparar las carpetas: %s", err)) from err
+        return self._mgs_notify(self.env._(
+            "Carpetas preparadas. Facturas: %s | Informes: %s | Tickets: %s",
+            invoices, reports, tickets))
+
+    def _mgs_open_output_folder(self, kind):
+        self.ensure_one()
+        require_manager(self.env)
+        directory = self._mgs_output_dir(kind)
+        if os.name != "nt" or not hasattr(os, "startfile"):
+            raise UserError(self.env._(
+                "Esta función abre carpetas desde Windows. La carpeta está en: %s", directory))
+        try:
+            os.startfile(directory)  # noqa: S606 - carpeta local elegida en Ajustes, Windows únicamente.
+        except OSError as err:
+            raise UserError(self.env._("No se ha podido abrir la carpeta: %s", err)) from err
+        return self._mgs_notify(self.env._("Carpeta abierta: %s", directory))
+
+    def action_mgs_open_invoices_folder(self):
+        return self._mgs_open_output_folder("facturas")
+
+    def action_mgs_open_reports_folder(self):
+        return self._mgs_open_output_folder("informes")
+
+    def action_mgs_open_tickets_folder(self):
+        return self._mgs_open_output_folder("tickets")

@@ -101,7 +101,7 @@ class AccountMove(models.Model):
             raise UserError(_("No se ha podido generar el PDF de la factura."))
         filename = "%s.pdf" % (self.name or _("Factura")).replace("/", "-")
         config = self.env["mgs.config"]._mgs_get()
-        config._mgs_save_output("facturas", filename, pdf_content)
+        output_path = config._mgs_save_output("facturas", filename, pdf_content)
         attachment = self.env["ir.attachment"].create({
             "name": filename,
             "type": "binary",
@@ -114,6 +114,9 @@ class AccountMove(models.Model):
             "type": "ir.actions.act_url",
             "url": "/web/content/%s?download=true" % attachment.id,
             "target": "download",
+            # El TPV usa este dato solo para confirmar al usuario dónde ha
+            # quedado la copia ordenada en disco.
+            "mgs_output_path": output_path,
         }
 
 

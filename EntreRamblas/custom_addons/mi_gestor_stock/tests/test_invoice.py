@@ -62,7 +62,7 @@ class TestInvoiceLegalData(TransactionCase):
 
     def test_an_invoice_to_a_customer_without_zip_or_country_cannot_be_posted(self):
         partner_incompleto = self.env["res.partner"].create({
-            "name": "Clienta sin CP", "vat": "ESB11111112",
+            "name": "Clienta sin CP", "vat": "ESB39118237",
             "street": "Calle Sin CP 1", "city": "Vigo",
         })
         move = self.invoice(partner=partner_incompleto)
@@ -81,7 +81,7 @@ class TestInvoiceLegalData(TransactionCase):
         # el hueco.
         empresa = self.env["res.partner"].create({
             "name": "Floristería Mayorista SL", "is_company": True,
-            "vat": "ESB22222223", "street": "Polígono Norte 3", "city": "Getafe",
+            "vat": "ESB83355065", "street": "Polígono Norte 3", "city": "Getafe",
             "zip": "28901", "country_id": self.env.ref("base.es").id,
         })
         empresa.property_payment_term_id = False
@@ -100,13 +100,14 @@ class TestInvoiceLegalData(TransactionCase):
         credit_note = self.invoice(move_type="out_refund", reversed_entry_id=original)
         credit_note.action_post()
         html, report_type = self.env["ir.actions.report"]._render_qweb_html(
-            "account.report_invoice_document", credit_note.ids)
+            "account.account_invoices", credit_note.ids)
         self.assertEqual(report_type, "html")
-        self.assertIn(("Rectifica la factura " + original.name).encode(), html)
+        self.assertIn(b"Rectifica la factura", html)
+        self.assertIn(original.name.encode(), html)
 
         # Una factura normal (no rectificativa) no lleva ese aviso.
         html, _ = self.env["ir.actions.report"]._render_qweb_html(
-            "account.report_invoice_document", original.ids)
+            "account.account_invoices", original.ids)
         self.assertNotIn(b"Rectifica la factura", html)
 
 
@@ -155,6 +156,7 @@ class TestInvoicePdfSavesToTheFacturasFolder(TransactionCase):
         self.assertEqual(action["type"], "ir.actions.act_url")
         self.assertIn("download=true", action["url"])
         expected = os.path.join(self.tmp_dir, "Facturas", "%s.pdf" % move.name.replace("/", "-"))
+        self.assertEqual(action["mgs_output_path"], expected)
         self.assertTrue(os.path.isfile(expected))
         with open(expected, "rb") as handle:
             self.assertTrue(handle.read().startswith(b"%PDF-"))

@@ -35,6 +35,8 @@
                 <header>
                     <button name="%(action_report_mgs_pos_order_receipt)d" type="action"
                             string="Ver ticket (PDF)" class="btn-primary"/>
+                    <button name="action_mgs_save_ticket_pdf" type="object"
+                            string="Guardar en carpeta Tickets"/>
                     <button name="action_mgs_reprint_ticket" type="object"
                             string="Reimprimir en la térmica"
                             invisible="state not in ('paid', 'done', 'invoiced')"/>

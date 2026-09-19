@@ -25,5 +25,11 @@ patch(AccountMoveService.prototype, {
             [accountMoveId]
         );
         await this.action.doAction(downloadAction);
+        if (downloadAction.mgs_output_path) {
+            this.notification.add(
+                _t("Factura guardada en: %s", downloadAction.mgs_output_path),
+                { type: "success" }
+            );
+        }
     },
 });

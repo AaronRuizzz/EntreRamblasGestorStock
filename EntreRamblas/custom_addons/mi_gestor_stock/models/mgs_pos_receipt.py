@@ -10,10 +10,28 @@ el otro (mgs.config) por evitar duplicarlas.
 from uuid import uuid4
 
 from odoo import _, fields, models
+from odoo.exceptions import UserError
 
 
 class PosOrder(models.Model):
     _inherit = "pos.order"
+
+    def action_mgs_save_ticket_pdf(self):
+        """Guarda una copia PDF del ticket en la carpeta Tickets elegida.
+
+        No sustituye la impresora térmica ni el botón de vista previa: permite
+        archivar únicamente los tickets que la responsable necesite conservar
+        como PDF desde Informes → Tickets.
+        """
+        self.ensure_one()
+        self.check_access("read")
+        pdf_content, report_type = self.env["ir.actions.report"]._render_qweb_pdf(
+            "mi_gestor_stock.action_report_mgs_pos_order_receipt", self.ids)
+        if report_type != "pdf":
+            raise UserError(_("No se ha podido generar el PDF del ticket."))
+        filename = "ticket-%s.pdf" % (self.name or self.id).replace("/", "-")
+        path = self.env["mgs.config"]._mgs_get()._mgs_save_output("tickets", filename, pdf_content)
+        return self.env["mgs.config"]._mgs_notify(_("Ticket guardado en %s", path))
 
     def action_mgs_reprint_ticket(self):
         """Botón «Reimprimir en la térmica» de Informes → Tickets.
