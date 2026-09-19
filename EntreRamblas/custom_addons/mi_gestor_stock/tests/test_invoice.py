@@ -224,3 +224,22 @@ class TestInvoiceFromPos(TestPointOfSaleCommon):
         self.assertTrue(move)
         self.assertEqual(move.state, "posted")
         self.assertEqual(move.invoice_payment_term_id, immediate)
+
+    def test_pos_invoice_does_not_require_enterprise_deferred_dates(self):
+        """Reproducción del error visto en caja: Community no instala los
+        campos de periodificación de Enterprise, pero Factur-X los consultaba
+        al emitir una factura desde TPV."""
+        spain = self.env.ref("base.es")
+        partner = self.env["res.partner"].create({
+            "name": "Empresa de caja", "is_company": True,
+            "vat": "ESB39118237", "street": "Calle Luna 2", "city": "Madrid",
+            "zip": "28001", "country_id": spain.id,
+            "property_payment_term_id": self.env.ref("account.account_payment_term_immediate").id,
+        })
+        order = self._paid_order(partner)
+        order.action_pos_order_invoice()
+        move = order.account_move
+        self.assertNotIn("deferred_start_date", self.env["account.move.line"]._fields)
+        period = self.env["account.edi.cii"]._cii_get_billing_specified_period_node({"invoice": move})
+        self.assertIn("ram:StartDateTime", period)
+        self.assertIn("ram:EndDateTime", period)
