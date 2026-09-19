@@ -168,6 +168,20 @@
                                 </p>
                             </div>
                         </page>
+
+                        <!-- ============ CARPETAS DE SALIDA ============ -->
+                        <page string="Carpetas de salida" name="output">
+                            <div class="alert alert-info" role="status">
+                                Los informes y las facturas que genera el programa se
+                                guardan aquí en vez de en la carpeta de Descargas del
+                                navegador: dentro se crean, si no existen, las subcarpetas
+                                <b>Informes</b> y <b>Facturas</b>.
+                            </div>
+                            <group>
+                                <field name="output_dir" string="Carpeta"
+                                       placeholder="C:\Users\...\Documents\Entre Ramblas"/>
+                            </group>
+                        </page>
                     </notebook>
                 </sheet>
             </form>

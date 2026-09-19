@@ -1,4 +1,5 @@
 from . import mgs_config
+from . import mgs_output
 from . import mgs_access
 from . import mgs_diagnostic
 from . import mgs_update
@@ -29,8 +30,6 @@ from . import mgs_bouquet
 from . import mgs_event
 from . import mgs_consumption
 from . import mgs_stock_ledger
-from . import mgs_report_template
-from . import mgs_report_xlsx
-from . import mgs_report_exclusion
 from . import mgs_correction
 from . import mgs_pos_receipt
+from . import mgs_account_move
