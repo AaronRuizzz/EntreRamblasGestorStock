@@ -105,9 +105,16 @@ try {
 # ------------------------------------------------------------ Entorno Python
 Write-Paso 'Entorno Python (propio del paquete, sin internet)'
 $venvPython = Join-Path $CodeDir 'venv\Scripts\python.exe'
+$venvConfig = Join-Path $CodeDir 'venv\pyvenv.cfg'
 $vendoredPython = Join-Path $CodeDir 'python\python.exe'
 $wheelDir = Join-Path $CodeDir 'wheels'
-if (-not (Test-Path -LiteralPath $venvPython)) {
+# Una instalación interrumpida puede dejar venv\Scripts\python.exe pero no
+# pyvenv.cfg. Ese Python no puede arrancar ("No pyvenv.cfg file") y no debe
+# impedir que una nueva ejecución del instalador reconstruya el entorno.
+if (-not (Test-Path -LiteralPath $venvPython) -or -not (Test-Path -LiteralPath $venvConfig)) {
+    if (Test-Path -LiteralPath (Join-Path $CodeDir 'venv')) {
+        Remove-Item -LiteralPath (Join-Path $CodeDir 'venv') -Recurse -Force
+    }
     if (-not (Test-Path -LiteralPath $vendoredPython)) {
         throw 'Falta el CPython del paquete en python\. Reconstruye el paquete con empaquetar.ps1.'
     }
