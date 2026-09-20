@@ -351,14 +351,41 @@ class TestPosStock(TestPointOfSaleCommon):
         self.assertIn("ESB12345674", ticket)
         self.assertIn(sale.name, ticket)
         self.assertIn("Rosa TPV", ticket)
-        # El tipo impositivo, no el nombre interno del impuesto de l10n_es.
-        self.assertIn("IVA 21%", ticket)
-        self.assertNotIn("21% G", ticket)
+        # Ticket simplificado: precios finales con IVA incluido (2 x 12,10 =
+        # 24,20) y TOTAL, sin base, cuota ni porcentaje.
+        amount = lambda value: config._mgs_amount(value, sale.currency_id)  # noqa: E731
+        self.assertIn("2 x %s" % amount(12.1), ticket)
+        self.assertIn(amount(24.2), ticket)
+        self.assertIn("TOTAL", ticket)
+        for hidden in ("IVA", "21%", "base", "Sin IVA"):
+            self.assertNotIn(hidden, ticket)
         self.assertNotIn("Rectifica", ticket)
 
         refund = self.order(-1, sale.lines)
         refund_ticket = config._mgs_pos_ticket(refund).to_bytes().decode("cp858", errors="replace")
         self.assertIn("Rectifica el ticket %s" % sale.name, refund_ticket)
+        self.assertIn("-1 x %s" % amount(10), refund_ticket)
+        self.assertIn(amount(-10), refund_ticket)
+        self.assertNotIn("IVA", refund_ticket)
+
+    def test_pdf_ticket_shows_final_prices_and_no_tax_breakdown(self):
+        self.receive(5, 2, 3)
+        tax = self.env["account.tax"].create({
+            "name": "21% G", "amount": 21.0, "amount_type": "percent",
+            "type_tax_use": "sale", "company_id": self.env.company.id,
+        })
+        sale = self.order(2)
+        sale.lines.write({"tax_ids": [Command.set(tax.ids)], "price_subtotal": 20,
+                          "price_subtotal_incl": 24.2, "discount": 0})
+        config = self.env["mgs.config"]._mgs_get()
+        html, _ = self.env["ir.actions.report"]._render_qweb_html(
+            "mi_gestor_stock.action_report_mgs_pos_order_receipt", sale.ids)
+        text = html.decode()
+        self.assertIn("Rosa TPV", text)
+        self.assertIn(config._mgs_amount(12.1, sale.currency_id), text)
+        self.assertIn("TOTAL", text)
+        for hidden in ("IVA", " base ", "21%"):
+            self.assertNotIn(hidden, text)
 
     def test_ticket_lines_never_overflow_the_configured_paper_width(self):
         """Hallazgo de revisión: el nombre de la empresa, la dirección, el

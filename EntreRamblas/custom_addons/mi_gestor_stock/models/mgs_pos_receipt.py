@@ -3,7 +3,7 @@
 
 El ticket ESC/POS (mgs_config.py:_mgs_pos_ticket) y este informe muestran el
 mismo contenido por dos caminos distintos (bytes de impresora térmica vs.
-QWeb/PDF), así que el desglose de IVA y el relabel del cambio se repiten
+QWeb/PDF), así que las líneas con precio final y el relabel del cambio se repiten
 aquí: son ~10 líneas cada uno, no compensa acoplar un modelo (pos.order) con
 el otro (mgs.config) por evitar duplicarlas.
 """
@@ -151,20 +151,27 @@ class PosOrder(models.Model):
             return False
         return self._mgs_receipt_invoice_portal_url()
 
-    def _mgs_receipt_tax_breakdown(self):
-        """Agrupado por TIPO impositivo (no por línea ni por el nombre interno
-        del impuesto de l10n_es) — mismo criterio que _mgs_pos_ticket."""
+    def _mgs_receipt_lines(self):
+        """Líneas del ticket con precios FINALES (impuestos incluidos): el
+        ticket no enseña base ni IVA, solo lo que paga la clienta. El precio
+        unitario sale del total de la línea entre la cantidad, así que ya
+        refleja el descuento; en una devolución la cantidad y el total van en
+        negativo y el unitario en positivo."""
         self.ensure_one()
-        taxes = {}
+        currency = self.currency_id
+        result = []
         for line in self.lines:
-            label = ", ".join(
-                _("IVA %g%%", tax.amount) if tax.amount_type == "percent" else tax.name
-                for tax in line.tax_ids) or _("Sin IVA")
-            base, quota = taxes.get(label, (0.0, 0.0))
-            taxes[label] = (base + line.price_subtotal,
-                            quota + line.price_subtotal_incl - line.price_subtotal)
-        return [{"label": label, "base": base, "quota": quota}
-                for label, (base, quota) in taxes.items()]
+            total = line.price_subtotal_incl
+            unit = currency.round(total / line.qty) if line.qty else 0.0
+            result.append({
+                "line": line,
+                "name": line.full_product_name or line.product_id.display_name,
+                "qty": line.qty,
+                "unit": unit,
+                "total": total,
+                "discount": line.discount,
+            })
+        return result
 
     def _mgs_receipt_payments(self):
         """Cada línea de pago, con el cambio (importe negativo) relabelado."""

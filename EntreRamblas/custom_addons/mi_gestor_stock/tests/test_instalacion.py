@@ -188,6 +188,20 @@ class TestOwnerProvisioning(TransactionCase):
         icp = self.env["ir.config_parameter"].sudo()
         self.assertTrue((icp.get_param("mail.catchall.domain") or "").endswith(".invalid"))
 
+    def test_company_email_is_the_real_shop_email_without_touching_custom_ones(self):
+        company = self.env.company
+        for placeholder in (False, "tienda@entreramblas.invalid", "TIENDA@entreramblas.invalid"):
+            company.email = placeholder
+            self.Access._mgs_ensure_company_sender()
+            self.assertEqual(company.email, "entreramblasclavelyazahar@gmail.com")
+            self.assertEqual(company.partner_id.email, "entreramblasclavelyazahar@gmail.com")
+        company.email = "otra@tienda.example"
+        self.Access._mgs_ensure_company_sender()
+        self.assertEqual(company.email, "otra@tienda.example")
+        # El remitente técnico interno se conserva, sin verse.
+        icp = self.env["ir.config_parameter"].sudo()
+        self.assertTrue((icp.get_param("mail.catchall.domain") or "").endswith(".invalid"))
+
 
 @tagged("post_install", "-at_install")
 class TestCompareDiagnostics(TransactionCase):

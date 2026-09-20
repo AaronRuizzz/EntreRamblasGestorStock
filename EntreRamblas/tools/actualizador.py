@@ -545,6 +545,7 @@ def cmd_aplicar(args):
                        "--stop-after-init", "--no-http")
         if rc != 0:
             raise RuntimeError("La migración terminó con error (%s)." % rc)
+        _prepare_documents(args.config, destino)
 
         # PASO 5 — comprobaciones.
         st.save(paso="comprobando")
@@ -574,6 +575,22 @@ def cmd_aplicar(args):
             return 6
         print("fallo (revertido):", err)
         return 5
+
+
+def _prepare_documents(config, destino):
+    """Permisos y acceso directo de la carpeta de documentos (este proceso es
+    LocalSystem: puede escribir en el Escritorio común). Mejor esfuerzo: un
+    fallo aquí no revierte una actualización ya migrada."""
+    script = Path(destino) / "instalador" / "preparar-documentos.ps1"
+    if not script.is_file():
+        return
+    try:
+        subprocess.run(
+            ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+             "-DataDir", str(Path(config).resolve().parent), "-CodeDir", str(destino)],
+            check=False, capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as err:
+        print("aviso: no se pudo preparar la carpeta de documentos:", err)
 
 
 def _rollback(odoo, args, st, destino, message):

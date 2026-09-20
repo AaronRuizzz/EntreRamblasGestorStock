@@ -208,6 +208,10 @@ if ($currentSddl -and $currentSddl -notmatch 'S-1-5-19') {
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo limitar el permiso del servicio actualizador.' }
 }
 
+# ------------------------------------------------- Carpeta de documentos
+Write-Paso 'Carpeta de documentos (Facturas, Informes, Tickets)'
+& (Join-Path $CodeDir 'instalador\preparar-documentos.ps1') -DataDir $DataDir -CodeDir $CodeDir
+
 # ----------------------------------------------------------- Acceso directo
 Write-Paso 'Acceso directo'
 $lnk = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) 'Gestor Stock Clavel Y Azahar.lnk'

@@ -32,6 +32,11 @@ from odoo.exceptions import AccessDenied, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
+# Correo visible de la tienda (facturas, informes, datos de empresa) y los
+# marcadores técnicos que el programa generaba antes y que se sustituyen.
+SHOP_EMAIL = "entreramblasclavelyazahar@gmail.com"
+PLACEHOLDER_SHOP_EMAILS = frozenset({"tienda@entreramblas.invalid"})
+
 # --- Política de contraseña -------------------------------------------------
 MIN_PASSWORD_LENGTH = 12
 _TRIVIAL = {
@@ -267,10 +272,24 @@ class MgsAccess(models.Model):
             partner.email = "%s@entreramblas.invalid" % (owner.login or "propietaria")
 
     @api.model
+    def _mgs_is_placeholder_email(self, email):
+        """True si `email` es uno de los marcadores técnicos que generaba el
+        programa (``tienda@entreramblas.invalid``). Cualquier otro correo, aunque
+        sea de prueba, es de la tienda y no se toca."""
+        return (email or "").strip().lower() in PLACEHOLDER_SHOP_EMAILS
+
+    @api.model
     def _mgs_ensure_company_sender(self):
-        """Dominio de alias y correo de empresa locales no enrutables, para que
-        cualquier envío interno tenga remitente sin depender de que la tienda
-        configure un correo real."""
+        """Correo visible de la empresa (`SHOP_EMAIL`) y remitente técnico
+        interno.
+
+        El correo visible sale en facturas, informes y datos de empresa. Se
+        pone si está vacío o es un marcador técnico anterior, nunca sobre un
+        correo que la tienda haya escrito. El dominio de alias local NO
+        enrutable (``entreramblas.invalid``) y ``mail.default.from`` se
+        conservan, sin verse, para que Odoo tenga remitente en operaciones
+        internas aunque no haya servidor de correo configurado. Esto no
+        configura el envío: hace falta un SMTP para mandar correos de verdad."""
         ICP = self.env["ir.config_parameter"].sudo()
         company = (self.env.ref("base.main_company", raise_if_not_found=False)
                    or self.env["res.company"].sudo().search([], order="id", limit=1))
@@ -283,10 +302,14 @@ class MgsAccess(models.Model):
             alias_domain = self.env["mail.alias.domain"].sudo().create({
                 "name": domain, "default_from": "tienda"})
         if company:
+            company = company.sudo()
             if not company.alias_domain_id:
-                company.sudo().alias_domain_id = alias_domain.id
-            if not company.email:
-                company.sudo().email = "tienda@%s" % domain
+                company.alias_domain_id = alias_domain.id
+            if not company.email or self._mgs_is_placeholder_email(company.email):
+                company.email = SHOP_EMAIL
+            partner = company.partner_id
+            if not partner.email or self._mgs_is_placeholder_email(partner.email):
+                partner.email = SHOP_EMAIL
         if not ICP.get_param("mail.catchall.domain"):
             ICP.set_param("mail.catchall.domain", alias_domain.name)
         if not ICP.get_param("mail.default.from"):

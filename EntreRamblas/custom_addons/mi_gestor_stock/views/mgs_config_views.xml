@@ -184,27 +184,21 @@
                         <!-- ============ CARPETAS DE SALIDA ============ -->
                         <page string="Carpetas de salida" name="output">
                             <div class="alert alert-info" role="status">
-                                Elige una carpeta base, por ejemplo <b>Escritorio\Documentos de la tienda</b>.
-                                Al guardarla, el programa crea dentro las carpetas separadas
-                                <b>Facturas</b>, <b>Informes</b> y <b>Tickets</b>. Las facturas del TPV se guardan
-                                siempre en <b>Facturas</b>, además de descargarse en el navegador.
+                                Los documentos se guardan siempre en una ubicación fija del equipo,
+                                con las carpetas separadas <b>Facturas</b>, <b>Informes</b> y <b>Tickets</b>.
+                                En el Escritorio tienes el acceso directo <b>Documentos Clavel y Azahar</b>.
+                                Las facturas del TPV se guardan siempre en <b>Facturas</b>, además de
+                                descargarse en el navegador.
                             </div>
                             <group>
-                                <field name="output_dir" string="Carpeta"
-                                       placeholder="C:\Users\...\Desktop\Documentos de la tienda"/>
+                                <field name="output_dir" readonly="1"/>
                                 <field name="output_invoices_dir" readonly="1"/>
                                 <field name="output_reports_dir" readonly="1"/>
                                 <field name="output_tickets_dir" readonly="1"/>
                             </group>
                             <div class="mt-3">
-                                <button name="action_mgs_prepare_output_folders" type="object"
-                                        string="Crear las carpetas" class="btn-primary"/>
-                                <button name="action_mgs_open_invoices_folder" type="object"
-                                        string="Abrir Facturas" class="btn-secondary ms-2"/>
-                                <button name="action_mgs_open_reports_folder" type="object"
-                                        string="Abrir Informes" class="btn-secondary ms-2"/>
-                                <button name="action_mgs_open_tickets_folder" type="object"
-                                        string="Abrir Tickets" class="btn-secondary ms-2"/>
+                                <button name="action_mgs_check_output_folders" type="object"
+                                        string="Comprobar carpetas" class="btn-primary"/>
                             </div>
                         </page>
                     </notebook>

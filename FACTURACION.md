@@ -43,7 +43,7 @@ Contenido obligatorio (artículo 7 del RD 1619/2012) y estado en el programa:
 | Fecha de expedición (y de la operación, si difiere) | Sí |
 | NIF y nombre del expedidor | Sí, si están rellenos en la ficha de la empresa |
 | Descripción de los bienes | Sí |
-| **Tipo impositivo** (y opcionalmente «IVA incluido») | Sí — se imprime el porcentaje, p. ej. `IVA 21%` |
+| **Tipo impositivo** (y opcionalmente «IVA incluido») | **No** desde 18.0.7.9.0 — el ticket muestra solo productos con precio final y `TOTAL`. **Validar con la gestoría**: la Agencia Tributaria pide el tipo aplicado en la factura simplificada. Los cálculos internos no cambian. |
 | Contraprestación total | Sí |
 | En rectificativas, referencia a la factura rectificada | Sí — línea `Rectifica el ticket …` |
 | NIF y domicilio del **destinatario** | **No automático** |
@@ -104,8 +104,9 @@ Añadido en la versión 18.0.7.0.0, sobre `account.move` de contabilidad
   la letra pero no salta a la vista): se añade un aviso «Rectifica la factura
   …» arriba del documento (`report/mgs_account_invoice_report.xml`).
 - El botón de factura del TPV genera este PDF con `action_mgs_invoice_pdf` y
-  lo guarda en la carpeta **Facturas** (Configuración → Dispositivos →
-  «Carpetas de salida»), no en Descargas.
+  lo guarda en la carpeta **Facturas** de `%ProgramData%\EntreRamblas\Documentos`
+  (acceso directo «Documentos Clavel y Azahar» en el Escritorio; se comprueba en
+  Configuración → Dispositivos → «Carpetas de salida»), no en Descargas.
 - **Forma de pago**: a los particulares se les pone «Pago inmediato» (al
   contado) por defecto al dar de alta la ficha (`models/res_partner.py`); a
   las empresas se les deja elegir. El TPV nativo forzaba

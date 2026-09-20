@@ -7,23 +7,14 @@
     <t t-name="mi_gestor_stock.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
         <xpath expr="//p[text()='Powered by Odoo']" position="replace"/>
 
-        <!-- Hallazgo 23: la plantilla nativa aplica taxTotals.order_sign al
-             TOTAL (más abajo, sin tocar) pero no al desglose de base e IVA:
-             una devolución salía con base y cuota en positivo y solo el
-             total en negativo. Se multiplica por el mismo order_sign, igual
-             que ya hace el total. -->
-        <xpath expr="//div[@class='d-flex']/span[contains(@t-esc,'subtotal.base_amount_currency')]"
-               position="replace">
-            <span t-esc="props.formatCurrency(taxTotals.order_sign * subtotal.base_amount_currency)"
-                  class="ms-auto"/>
-        </xpath>
-        <xpath expr="//span[contains(@t-esc,'tax_group.base_amount_currency')]" position="replace">
-            <span t-esc="props.formatCurrency(taxTotals.order_sign * tax_group.base_amount_currency)"/>
-        </xpath>
-        <xpath expr="//span[contains(@t-esc,'tax_group.tax_amount_currency')]" position="replace">
-            <span t-esc="props.formatCurrency(taxTotals.order_sign * tax_group.tax_amount_currency)"
-                  class="ms-auto"/>
-        </xpath>
+        <!-- Ticket simplificado: solo productos con su precio final (IVA
+             incluido, ver pos.config.iface_tax_included = "total") y el
+             TOTAL. Se quita el bloque completo de base imponible, cuota y
+             porcentaje (`pos-receipt-taxes`, con su primera línea de
+             guiones); los cálculos fiscales de la venta no cambian. El
+             TOTAL nativo conserva `taxTotals.order_sign`, así que una
+             devolución sigue saliendo en negativo. -->
+        <xpath expr="//div[contains(@class,'pos-receipt-taxes')]" position="replace"/>
 
         <!-- QR de reseña de Google y/o web de la tienda: los mismos datos
              que ya llevan el ticket térmico y el PDF de reimpresión

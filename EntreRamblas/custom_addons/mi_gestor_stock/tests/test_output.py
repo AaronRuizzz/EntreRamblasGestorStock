@@ -5,7 +5,10 @@ navegador."""
 import os
 import shutil
 import tempfile
+from types import SimpleNamespace
+from unittest.mock import patch
 
+from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -53,10 +56,75 @@ class TestOutputFolders(TransactionCase):
         self.assertTrue(os.path.isdir(os.path.join(self.tmp_dir, "Informes")))
         self.assertTrue(os.path.isdir(os.path.join(self.tmp_dir, "Tickets")))
 
-    def test_default_output_dir_is_under_the_users_documents_folder(self):
+    def test_default_output_dir_is_the_managed_documents_folder(self):
         # No se llama a _mgs_output_dir aquí (crearía la carpeta de verdad en
         # el equipo que ejecuta las pruebas): solo se comprueba la ruta.
-        self.assertIn("Entre Ramblas", self.config._mgs_default_output_dir())
+        default = self.config._mgs_default_output_dir()
+        self.assertTrue(default.endswith(os.path.join("EntreRamblas", "Documentos")))
+        if os.name == "nt":
+            self.assertTrue(default.lower().startswith(
+                (os.environ.get("ProgramData") or r"C:\ProgramData").lower()))
+
+    def test_check_folders_and_no_open_folder_actions(self):
+        self.assertEqual(self.config.action_mgs_check_output_folders()["tag"], "display_notification")
+        for name in ("invoices", "reports", "tickets"):
+            self.assertFalse(hasattr(self.config, "action_mgs_open_%s_folder" % name))
+
+    def test_a_file_where_a_folder_should_be_gives_a_clear_error(self):
+        with open(os.path.join(self.tmp_dir, "Informes"), "wb") as handle:
+            handle.write(b"no soy una carpeta")
+        with self.assertRaises(UserError) as caught:
+            self.config._mgs_save_output("informes", "x.pdf", b"x")
+        self.assertIn("archivo donde debería haber una carpeta", str(caught.exception))
+
+    def test_reserved_windows_names_are_rejected(self):
+        for name in ("CON.pdf", "nul.txt", "COM1.csv", "", ".."):
+            with self.assertRaises(UserError, msg=name):
+                self.config._mgs_save_output("informes", name, b"x")
+
+    def test_missing_permissions_give_a_clear_error(self):
+        with patch("odoo.addons.mi_gestor_stock.models.mgs_output.os.makedirs",
+                   side_effect=PermissionError("denegado")):
+            with self.assertRaises(UserError) as caught:
+                self.config._mgs_output_dir("tickets")
+        self.assertIn("permiso", str(caught.exception))
+
+    def test_unavailable_disk_gives_a_clear_error(self):
+        with patch("odoo.addons.mi_gestor_stock.models.mgs_output.os.makedirs",
+                   side_effect=OSError("disco no disponible")):
+            with self.assertRaises(UserError):
+                self.config._mgs_output_dir("facturas")
+
+    def test_low_disk_space_is_reported(self):
+        with patch("odoo.addons.mi_gestor_stock.models.mgs_output.shutil.disk_usage",
+                   return_value=SimpleNamespace(free=1024)):
+            with self.assertRaises(UserError):
+                self.config._mgs_output_dir("facturas")
+
+    def test_legacy_documents_are_copied_without_touching_the_originals(self):
+        old_base = tempfile.mkdtemp(prefix="mgs-old-")
+        self.addCleanup(shutil.rmtree, old_base, ignore_errors=True)
+        for folder, name, data in (("Facturas", "f.pdf", b"factura"),
+                                   ("Informes", "i.csv", b"informe"),
+                                   ("Tickets", "t.pdf", b"ticket")):
+            os.makedirs(os.path.join(old_base, folder))
+            with open(os.path.join(old_base, folder, name), "wb") as handle:
+                handle.write(data)
+        # El mismo nombre ya existe en destino con OTRO contenido.
+        os.makedirs(os.path.join(self.tmp_dir, "Facturas"))
+        with open(os.path.join(self.tmp_dir, "Facturas", "f.pdf"), "wb") as handle:
+            handle.write(b"distinta")
+
+        copied = self.config._mgs_copy_legacy_documents(old_base, self.tmp_dir)
+        self.assertEqual(copied, 3)
+        with open(os.path.join(self.tmp_dir, "Facturas", "f.pdf"), "rb") as handle:
+            self.assertEqual(handle.read(), b"distinta")
+        with open(os.path.join(self.tmp_dir, "Facturas", "f-2.pdf"), "rb") as handle:
+            self.assertEqual(handle.read(), b"factura")
+        self.assertTrue(os.path.isfile(os.path.join(old_base, "Facturas", "f.pdf")))
+        # Repetir la migración no duplica nada.
+        self.assertEqual(self.config._mgs_copy_legacy_documents(old_base, self.tmp_dir), 0)
+        self.assertFalse(os.path.exists(os.path.join(self.tmp_dir, "Facturas", "f-3.pdf")))
 
     def test_monthly_report_csv_export_lands_in_the_informes_folder(self):
         report = self.env["mgs.monthly.report"].create({})

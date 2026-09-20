@@ -41,6 +41,9 @@ _logger = logging.getLogger(__name__)
 DEFAULT_INTERNAL_PREFIX = "28"
 
 
+# Líneas en blanco tras cada QR y antes del código de barras del ticket.
+QR_GAP = 2
+
 class MgsConfig(models.Model):
     _name = "mgs.config"
     _description = "Configuración de dispositivos y copias"
@@ -647,41 +650,20 @@ class MgsConfig(models.Model):
             doc.ln(_("Rectifica el ticket %s", order.refunded_order_id.name))
         doc.rule()
 
-        # --- Líneas ---
-        for line in order.lines:
-            doc.wrapped(line.full_product_name or line.product_id.display_name)
-            qty = ("%g" % line.qty)
-            detail = _("%(qty)s x %(price)s", qty=qty,
-                       price=self._mgs_amount(line.price_unit, currency))
-            if line.discount:
-                detail = _("%(detail)s  (-%(disc)g%%)", detail=detail, disc=line.discount)
-            doc.columns(detail, self._mgs_amount(line.price_subtotal_incl, currency), indent=2)
+        # --- Líneas: precio final, IVA incluido (sin base ni desglose fiscal) ---
+        for row in order._mgs_receipt_lines():
+            doc.wrapped(row["name"])
+            detail = _("%(qty)s x %(price)s", qty="%g" % row["qty"],
+                       price=self._mgs_amount(row["unit"], currency))
+            if row["discount"]:
+                detail = _("%(detail)s  (-%(disc)g%%)", detail=detail, disc=row["discount"])
+            doc.columns(detail, self._mgs_amount(row["total"], currency), indent=2)
         doc.rule()
 
         # --- Total ---
         doc.bold(True).size(1, 2)
         doc.columns(_("TOTAL"), self._mgs_amount(order.amount_total, currency))
         doc.size().bold(False)
-
-        # --- Desglose de IVA (ticket simplificado español) ---
-        # El artículo 7 del RD 1619/2012 pide el TIPO IMPOSITIVO, así que se
-        # imprime el porcentaje ("IVA 21%") y no el nombre interno del impuesto
-        # de l10n_es ("21% G"), que a un cliente no le dice nada.
-        taxes = {}
-        for line in order.lines:
-            label = ", ".join(
-                _("IVA %g%%", tax.amount) if tax.amount_type == "percent" else tax.name
-                for tax in line.tax_ids) or _("Sin IVA")
-            base, quota = taxes.get(label, (0.0, 0.0))
-            taxes[label] = (base + line.price_subtotal,
-                            quota + line.price_subtotal_incl - line.price_subtotal)
-        if taxes:
-            doc.rule()
-            doc.ln(_("IVA incluido:"))
-            for label, (base, quota) in taxes.items():
-                doc.columns(_("%(label)s  base %(base)s", label=label,
-                              base=self._mgs_amount(base, currency)),
-                            self._mgs_amount(quota, currency), indent=2)
 
         # --- Pagos y cambio ---
         if order.payment_ids:
@@ -702,6 +684,9 @@ class MgsConfig(models.Model):
         doc.ln()
         self._mgs_receipt_marketing_block(doc, order)
         self._mgs_receipt_invoice_block(doc, order)
+        # El QR no avanza papel al imprimirse: sin este hueco el código de
+        # barras salía pegado a él.
+        doc.feed(QR_GAP)
         doc.barcode(order.name.replace("/", "-"), height=50, width=2)
         doc.align("left").cut()
         return doc
@@ -720,9 +705,11 @@ class MgsConfig(models.Model):
         if review_url:
             doc.wrapped(_("Valóranos en Google"))
             doc.qr(review_url)
+            doc.feed(QR_GAP)
         if website_url:
             doc.wrapped(website_url)
             doc.qr(website_url)
+            doc.feed(QR_GAP)
         doc.align("left")
 
     def _mgs_receipt_invoice_block(self, doc, order):
@@ -741,6 +728,7 @@ class MgsConfig(models.Model):
         doc.wrapped(_("¿Necesita factura de esta compra?"))
         if mode in ("qr_code", "qr_code_and_url"):
             doc.qr(url)
+            doc.feed(QR_GAP)
         if mode in ("url", "qr_code_and_url"):
             doc.wrapped(url)
         doc.wrapped(_("Código: %s", order.ticket_code))

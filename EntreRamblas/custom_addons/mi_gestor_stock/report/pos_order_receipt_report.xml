@@ -104,22 +104,22 @@
                     <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
 
                     <table border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;font-size:11px;">
-                        <t t-foreach="doc.lines" t-as="line" t-key="line.id">
+                        <t t-foreach="doc._mgs_receipt_lines()" t-as="row" t-key="row['line'].id">
+                            <t t-set="line" t-value="row['line']"/>
                             <tr>
                                 <td colspan="2" style="border:none !important;padding:3px 0 0;font-weight:bold;"
-                                    t-esc="line.full_product_name or line.product_id.display_name"/>
+                                    t-esc="row['name']"/>
                             </tr>
                             <tr>
                                 <td style="border:none !important;padding:0 0 2px;">
-                                    <span t-esc="'%g' % line.qty"/> x
-                                    <span t-field="line.price_unit"/>
-                                    <span t-if="line.discount">
-                                        (-<t t-esc="'%g' % line.discount"/>%)
+                                    <span t-esc="'%g' % row['qty']"/> x
+                                    <span t-esc="mgs_config._mgs_amount(row['unit'], doc.currency_id)"/>
+                                    <span t-if="row['discount']">
+                                        (-<t t-esc="'%g' % row['discount']"/>%)
                                     </span>
                                 </td>
-                                <td style="border:none !important;padding:0 0 2px;text-align:right;white-space:nowrap;">
-                                    <span t-field="line.price_subtotal_incl"/>
-                                </td>
+                                <td style="border:none !important;padding:0 0 2px;text-align:right;white-space:nowrap;"
+                                    t-esc="mgs_config._mgs_amount(row['total'], doc.currency_id)"/>
                             </tr>
                             <!-- Un "Ramo a medida" es una sola línea de
                                  venta: sin esto no se ve qué flores
@@ -142,20 +142,6 @@
                             <td style="border:none !important;padding:0;text-align:right;"><span t-field="doc.amount_total"/></td>
                         </tr>
                     </table>
-
-                    <t t-if="doc._mgs_receipt_tax_breakdown()">
-                        <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
-                        <div style="font-size:10px;color:#666;">IVA incluido</div>
-                        <table border="0" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none !important;font-size:10px;color:#666;">
-                            <tr t-foreach="doc._mgs_receipt_tax_breakdown()" t-as="tax_row">
-                                <td style="border:none !important;padding:0;"
-                                    t-esc="'%s  base %s' % (
-                                        tax_row['label'], mgs_config._mgs_amount(tax_row['base'], doc.currency_id))"/>
-                                <td style="border:none !important;padding:0;text-align:right;white-space:nowrap;"
-                                    t-esc="mgs_config._mgs_amount(tax_row['quota'], doc.currency_id)"/>
-                            </tr>
-                        </table>
-                    </t>
 
                     <t t-if="doc.payment_ids">
                         <div style="border-top:1px dashed #bbb;margin:6px 0;"/>
