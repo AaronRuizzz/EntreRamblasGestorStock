@@ -125,6 +125,18 @@ almacén y para la caja: agrupa el panel de Stock y los informes, y además es e
 - Con una **caja abierta** el botón no se retira en ese momento (no se toca el
   TPV a media venta): se va al cerrar la caja, en el siguiente arranque.
 
+### Eliminar un producto
+
+Con la **caja cerrada**, en la lista de productos: selecciónalo → **Acciones →
+Eliminar**.
+
+- Si el producto **nunca se ha usado**, se borra del todo.
+- Si ya tiene **historial** (alguna entrada, venta, merma o factura), no se
+  puede borrar sin descuadrar el stock y los informes: se **archiva**.
+  Desaparece de la lista, del buscador y de la caja igual que si se hubiera
+  borrado, pero sus ventas y movimientos pasados se conservan. Para
+  recuperarlo: filtro **Archivado** → ábrelo → **Desarchivar**.
+
 ### Pedidos a proveedor
 
 **Gestor de Stock → Pedidos a proveedor.** Para saber qué se ha pedido y qué

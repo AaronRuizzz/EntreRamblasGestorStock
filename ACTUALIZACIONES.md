@@ -57,6 +57,37 @@ publicadas expresamente:
    (`mgs.update.releases_url`, `data/mgs_access_data.xml`); solo hace falta
    cambiarla si se usa un repositorio distinto.
 
+## Al entrar al programa (automático)
+
+Desde la versión 18.0.8.0.0, **publicar en GitHub basta**: la próxima vez que
+alguien abra el programa desde el acceso directo del escritorio, se instala
+sola, sin que la dueña tenga que pulsar nada.
+
+1. `instaladorbrir-app.ps1` espera a que la app responda y llama a
+   `POST /mgs/actualizacion/al-entrar` (solo desde el propio equipo).
+2. La app ejecuta `actualizador.py auto --decidir` (comprueba la firma del
+   manifiesto, ~1 s) y contesta al momento. Si hay una versión más nueva,
+   lanza en segundo plano `actualizador.py auto`, que descarga y verifica el
+   paquete (si no estaba ya descargado), deja el consentimiento
+   (`aceptacion.json`, atado a esa versión y ese SHA-256, usuario
+   «automatico») y arranca el servicio `EntreRamblasActualizador`.
+3. El lanzador enseña una ventana «Actualizando el programa…» con el paso en
+   curso (leyendo `estado.json`) y abre el programa cuando la app vuelve a
+   responder. Se puede pulsar «Abrir sin esperar».
+
+La aplicación sigue siendo la de siempre (abajo): firma, hash, copia previa,
+reversión. Casos:
+
+- **Caja abierta o venta sin terminar**: se aplaza; se abre el programa y la
+  actualización se instala sola en cuanto se cierre la caja.
+- **Falla y se revierte**: se abre la versión anterior con un aviso. Ese
+  mismo paquete **no** se reintenta solo en cada arranque (`auto_sha256` en
+  `estado.json`); se reintenta al publicar otro, o a mano desde
+  Configuración → Actualizaciones.
+- **Sin conexión**: se abre el programa sin más.
+- Para volver al flujo manual («Actualizar al cerrar»): parámetro del sistema
+  `mgs.update.automatica` = `0`.
+
 ## Recepción (en el PC de la tienda)
 
 - Al **arrancar** y **una vez al día** el programa comprueba si hay una versión

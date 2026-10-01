@@ -26,3 +26,6 @@ from . import test_pos_category
 from . import test_correction
 from . import test_invoice
 from . import test_output
+from . import test_label_price
+from . import test_product_delete
+from . import test_ticket_logo

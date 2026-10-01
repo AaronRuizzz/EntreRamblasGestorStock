@@ -435,3 +435,118 @@ class TestPreparaDownloadUrl(TransactionCase):
         rc, fetch_calls = self._preparar(manifest, payload, releases_url="https://raw.example/canal")
         self.assertEqual(rc, 0)
         self.assertEqual(fetch_calls[0], "https://raw.example/canal/paquete.zip")
+
+
+@tagged("post_install", "-at_install")
+class TestAutoAlEntrar(TransactionCase):
+    """`actualizador.py auto`: al entrar al programa se instala sola una
+    versión firmada más nueva, sin esperar a «Actualizar al cerrar»."""
+
+    VERSION = "18.0.99.0.0"
+
+    def setUp(self):
+        super().setUp()
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        self.upd = _load("actualizador")
+        self.firma = _load("paquete_firma")
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.runtime = str(Path(self.tmp.name) / "runtime")
+        self.key = Ed25519PrivateKey.generate()
+        self.upd.PUBLIC_KEY = Path(self.tmp.name) / "publica.pem"
+        self.upd.PUBLIC_KEY.write_bytes(self.key.public_key().public_bytes(
+            serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo))
+        self.payload = b"contenido del paquete"
+        self.manifest = {"version": self.VERSION, "archivo": "paquete.zip", "incluye_motor": False,
+                         "sha256": hashlib.sha256(self.payload).hexdigest(),
+                         "tamano": len(self.payload)}
+
+    def _args(self, decidir=False):
+        return argparse.Namespace(runtime=self.runtime, releases_url="https://raw.example/canal",
+                                  decidir=decidir)
+
+    def _fake_preparar(self, args):
+        # Lo mismo que deja cmd_preparar: paquete + manifiesto firmado crudo.
+        st = self.upd.State(args.runtime)
+        st.staging.mkdir(parents=True, exist_ok=True)
+        package = st.staging / "paquete.zip"
+        package.write_bytes(self.payload)
+        raw = json.dumps(self.manifest).encode("utf-8")
+        (st.staging / self.upd.MANIFEST_NAME).write_bytes(raw)
+        (st.staging / (self.upd.MANIFEST_NAME + ".sig")).write_text(
+            self.firma.sign_bytes(self.key, raw) + "\n", encoding="ascii")
+        st.save(fase="preparado", verificado=True, paquete_local=str(package))
+        return 0
+
+    def _run_auto(self, decidir=False, preparar=None):
+        calls = []
+
+        def fake_run(cmd, *a, **k):
+            calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0, stdout=b"", stderr=b"")
+
+        with patch.object(self.upd, "_load_signed_manifest", return_value=self.manifest), \
+             patch.object(self.upd, "cmd_preparar", side_effect=preparar or self._fake_preparar), \
+             patch.object(self.upd.subprocess, "run", side_effect=fake_run):
+            rc = self.upd.cmd_auto(self._args(decidir))
+        return rc, calls, self.upd.State(self.runtime)
+
+    def test_decidir_announces_the_update_without_downloading(self):
+        prepare = []
+        rc, calls, st = self._run_auto(decidir=True, preparar=lambda a: prepare.append(a) or 0)
+        self.assertEqual(rc, 0)
+        self.assertEqual(prepare, [])
+        self.assertEqual(calls, [])
+        self.assertEqual(st.data["fase"], "disponible")
+        self.assertIn(self.VERSION, st.data["mensaje"])
+
+    def test_auto_accepts_exactly_the_signed_package_and_starts_the_service(self):
+        rc, calls, st = self._run_auto()
+        self.assertEqual(rc, 0)
+        self.assertIn(["sc", "start", self.upd.UPDATE_SERVICE], calls)
+        acceptance = json.loads((st.dir / "aceptacion.json").read_text(encoding="utf-8"))
+        self.assertEqual(acceptance["version"], self.VERSION)
+        self.assertEqual(acceptance["sha256"], self.manifest["sha256"])
+        self.assertTrue(st.data["aceptada_por_duena"])
+        self.assertEqual(st.data["auto_sha256"], self.manifest["sha256"])
+        self.assertFalse((st.dir / "auto.lock").exists())
+        # Y el servicio con privilegios lo da por bueno con su propia verificación.
+        self.assertEqual(self.upd._reverify_staged_package(st)["version"], self.VERSION)
+
+    def test_an_already_prepared_package_is_not_downloaded_again(self):
+        self._run_auto()
+        prepare = []
+        rc, calls, st = self._run_auto(preparar=lambda a: prepare.append(a) or 0)
+        self.assertEqual(rc, 0)
+        self.assertEqual(prepare, [])
+        self.assertEqual(st.data["fase"], "preparado")
+        self.assertIn(["sc", "start", self.upd.UPDATE_SERVICE], calls)
+
+    def test_a_package_that_failed_to_install_is_not_retried_on_every_start(self):
+        self._run_auto()
+        self.upd.State(self.runtime).save(fase="fallo", mensaje="La migración terminó con error.")
+        rc, calls, st = self._run_auto()
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls, [])
+        self.assertEqual(st.data["fase"], "fallo")
+        # Un paquete NUEVO (otro SHA-256) sí se instala.
+        self.payload = b"paquete corregido"
+        self.manifest = dict(self.manifest, sha256=hashlib.sha256(self.payload).hexdigest())
+        rc, calls, st = self._run_auto()
+        self.assertIn(["sc", "start", self.upd.UPDATE_SERVICE], calls)
+        self.assertEqual(st.data["auto_sha256"], self.manifest["sha256"])
+
+    def test_nothing_happens_while_another_auto_is_running(self):
+        st = self.upd.State(self.runtime)
+        st.save()
+        (st.dir / "auto.lock").write_text("", encoding="utf-8")
+        prepare = []
+        rc, calls, st = self._run_auto(preparar=lambda a: prepare.append(a) or 0)
+        self.assertEqual((rc, prepare, calls), (0, [], []))
+
+    def test_nothing_happens_when_up_to_date(self):
+        self.manifest = dict(self.manifest, version="18.0.0.0.1")
+        rc, calls, st = self._run_auto()
+        self.assertEqual((rc, calls), (0, []))
+        self.assertEqual(st.data["fase"], "al-dia")

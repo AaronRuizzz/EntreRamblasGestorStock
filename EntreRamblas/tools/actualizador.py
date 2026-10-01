@@ -15,6 +15,9 @@ Comandos:
     comprobar --releases-url URL [--config C --database D]
     preparar  --releases-url URL
     aceptar | rechazar            (la dueña, desde la app: «Actualizar al cerrar»)
+    auto      --releases-url URL [--decidir]
+                                  (al entrar al programa: comprobar + preparar +
+                                   aceptar + arrancar el servicio aplicador)
     aplicar   --config C --database D [--servicio NOMBRE] [--destino DIR]
     estado
 
@@ -31,6 +34,8 @@ Reglas del plan:
 """
 import argparse
 import ast
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -51,6 +56,8 @@ from paquete_firma import load_public, sha256_file, verify_bytes  # noqa: E402
 PUBLIC_KEY = ROOT / "instalador" / "firma-publica.pem"
 MANIFEST_NAME = "manifest.json"
 MIN_FREE_BYTES = 2 * 1024 * 1024 * 1024               # 2 GiB de holgura
+UPDATE_SERVICE = "EntreRamblasActualizador"
+AUTO_LOCK_MAX_AGE = 60 * 60                           # un `auto` colgado no bloquea para siempre
 
 
 # --------------------------------------------------------------------- utilidades
@@ -186,6 +193,17 @@ def cmd_comprobar(args):
         print("al-dia")
         return 0
 
+    # Ya descargada y verificada esta MISMA versión (mismo SHA-256): no se
+    # vuelve a «disponible», que obligaría a descargar otra vez el paquete
+    # entero (~450 MB) en cada comprobación.
+    staged = st.data.get("paquete_local")
+    if (st.data["fase"] == "preparado" and st.data.get("verificado")
+            and (st.data.get("manifest") or {}).get("sha256") == manifest.get("sha256")
+            and staged and Path(staged).is_file()):
+        st.save(comprobado_en=_now())
+        print("disponible", version)
+        return 0
+
     problems = compat_problems(manifest)
     if problems:
         st.save(fase="fallo", version_disponible=version, manifest=manifest,
@@ -271,6 +289,119 @@ def cmd_estado(args):
     st = State(args.runtime)
     print(json.dumps(st.data, indent=2, ensure_ascii=False))
     return 0
+
+
+# ------------------------------------------------- al entrar al programa (auto)
+def _auto_lock(st):
+    return st.dir / "auto.lock"
+
+
+def _auto_running(st):
+    try:
+        return time.time() - _auto_lock(st).stat().st_mtime < AUTO_LOCK_MAX_AGE
+    except OSError:
+        return False
+
+
+def _auto_decide(args, st):
+    """(decisión, versión). «actualizar» = hay una versión firmada más nueva
+    que instalar ya; cualquier otra cosa dice por qué no."""
+    if st.data["fase"] == "aplicando":
+        return "aplicando", st.data.get("version_disponible")
+    if _auto_running(st):
+        return "en-curso", st.data.get("version_disponible")
+    # Un paquete que ya se intentó instalar solo y falló (y se revirtió) no
+    # se reintenta en cada arranque: solo cuando se publique otro distinto.
+    # Reintentarlo a mano sigue en Configuración → Actualizaciones.
+    failed_sha = st.data.get("auto_sha256") if st.data["fase"] == "fallo" else None
+    if failed_sha:
+        try:
+            remote = _load_signed_manifest(args.releases_url)
+        except Exception:  # noqa: BLE001 - sin red o firma inválida: nada que hacer
+            remote = None
+        if not remote or remote.get("sha256") == failed_sha:
+            return "fallo-previo", st.data.get("version_disponible")
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        cmd_comprobar(args)
+    if out.getvalue().startswith("sin-conexion"):
+        return "sin-conexion", None
+    st = State(args.runtime)
+    version = st.data.get("version_disponible")
+    if (st.data["fase"] in ("disponible", "preparado") and version
+            and is_newer(version, st.data["version_instalada"])):
+        return "actualizar", version
+    return st.data["fase"], version
+
+
+def _start_update_service():
+    try:
+        subprocess.run(["sc", "start", UPDATE_SERVICE], capture_output=True,
+                       timeout=30, check=False)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def cmd_auto(args):
+    """Al entrar al programa: si hay una versión firmada más nueva, se
+    descarga y verifica, se deja el consentimiento vinculado a esa versión y
+    ese SHA-256 exactos (como «Actualizar al cerrar», pero sin esperar a que
+    la dueña lo pulse) y se arranca el servicio aplicador. Las garantías de
+    `aplicar` no cambian: firma, hash, copia previa, nunca con caja abierta,
+    reversión si algo falla.
+
+    Con `--decidir` solo dice qué haría (para que la app conteste al
+    lanzador al momento y deje lo lento en segundo plano)."""
+    st = State(args.runtime)
+    decision, version = _auto_decide(args, st)
+    if decision == "actualizar":
+        # Borra cualquier mensaje viejo (p. ej. un «Aplazada» de otro día):
+        # el lanzador lo lee para decidir cuándo deja de esperar.
+        State(args.runtime).save(mensaje="Preparando la versión %s..." % version)
+    if args.decidir or decision != "actualizar":
+        print(decision, version or "")
+        return 0
+
+    lock = _auto_lock(st)
+    st.dir.mkdir(parents=True, exist_ok=True)
+    if not _auto_running(st):
+        lock.unlink(missing_ok=True)   # resto de un `auto` que murió a medias
+    try:
+        os.close(os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+    except FileExistsError:
+        print("en-curso", version)
+        return 0
+    try:
+        st = State(args.runtime)
+        if st.data["fase"] != "preparado":
+            st.save(mensaje="Descargando la versión %s..." % version)
+            try:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    rc = cmd_preparar(args)
+            except Exception as err:  # noqa: BLE001 - p. ej. se corta la conexión
+                State(args.runtime).save(mensaje="No se pudo descargar la actualización: %s" % err)
+                print("fallo-descarga:", err)
+                return 2
+            if rc:
+                print("fallo-descarga")
+                return rc
+            st = State(args.runtime)
+        # El consentimiento se ata a lo que dice el manifiesto FIRMADO del
+        # staging, no a la copia de estado.json.
+        manifest = _verify_manifest_bytes(
+            (st.staging / MANIFEST_NAME).read_bytes(),
+            (st.staging / (MANIFEST_NAME + ".sig")).read_text(encoding="ascii").strip())
+        (st.dir / "aceptacion.json").write_text(json.dumps({
+            "version": manifest["version"], "sha256": manifest["sha256"],
+            "fecha": _now(), "usuario": "automatico (al entrar al programa)",
+        }, ensure_ascii=False), encoding="utf-8")
+        st.save(aceptada_por_duena=True, auto_sha256=manifest["sha256"],
+                mensaje="Instalando la versión %s..." % manifest["version"])
+        _start_update_service()
+        print("aplicando", manifest["version"])
+        return 0
+    finally:
+        lock.unlink(missing_ok=True)
 
 
 # ----------------------------------------------------- aplicación segura (pasos)
@@ -786,6 +917,8 @@ def main():
     p.set_defaults(func=cmd_preparar)
     p = sub.add_parser("aceptar"); p.set_defaults(func=cmd_aceptar)
     p = sub.add_parser("rechazar"); p.set_defaults(func=cmd_rechazar)
+    p = sub.add_parser("auto"); p.add_argument("--releases-url", required=True)
+    p.add_argument("--decidir", action="store_true"); p.set_defaults(func=cmd_auto)
     p = sub.add_parser("estado"); p.set_defaults(func=cmd_estado)
     p = sub.add_parser("aplicar")
     p.add_argument("--config", required=True); p.add_argument("--database", required=True)

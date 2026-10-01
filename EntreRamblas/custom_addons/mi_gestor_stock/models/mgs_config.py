@@ -24,7 +24,7 @@ import qrcode
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
-from odoo.tools import formatLang
+from odoo.tools import file_path, formatLang
 
 from . import mgs_escpos as escpos
 from .mgs_permissions import require_manager, require_operator
@@ -390,8 +390,40 @@ class MgsConfig(models.Model):
             raise UserError(str(err)) from err
         return True
 
+    # Logo propio del ticket: dibujo de líneas negras sobre blanco, hecho para
+    # la térmica (static/src/img/logo-ticket.jpeg). El emblema de la empresa
+    # (`res.company.logo`, con color y sombreados) sigue siendo el de la
+    # aplicación; solo se usa en el ticket como respaldo si falta este archivo.
+    _MGS_TICKET_LOGO = "mi_gestor_stock/static/src/img/logo-ticket.jpeg"
+    _MGS_TICKET_LOGO_MAX_H = 300   # ~38 mm a 203 ppp: legible el texto del dibujo
+
+    def _mgs_ticket_logo_image(self):
+        """El logo del ticket ya en escala de grises y sin el margen blanco
+        sobrante (con el borde del escaneo incluido), o None si no está o no se
+        puede leer. Nunca lanza: el logo es decorativo."""
+        try:
+            from PIL import Image
+            path = file_path(self._MGS_TICKET_LOGO, filter_ext=(".jpeg", ".jpg", ".png"))
+            img = Image.open(path).convert("L")
+            # Se ignora un 1,5 % por cada lado al buscar el dibujo: los
+            # escaneos traen un filo gris pegado al borde que, si no, hace
+            # creer que el dibujo ocupa toda la imagen.
+            margin = max(1, int(min(img.size) * 0.015))
+            inner = img.crop((margin, margin, img.width - margin, img.height - margin))
+            box = inner.point(lambda v: 255 if v < 140 else 0).getbbox()
+            if not box:
+                return None
+            pad = 2
+            return img.crop((
+                max(0, box[0] + margin - pad), max(0, box[1] + margin - pad),
+                min(img.width, box[2] + margin + pad), min(img.height, box[3] + margin + pad)))
+        except Exception:  # noqa: BLE001 - sin logo propio, se usa el de la empresa
+            _logger.warning("mi_gestor_stock: no se pudo leer el logo del ticket", exc_info=True)
+            return None
+
     def _mgs_logo_bitmap(self, doc):
-        """Convierte el logo de la empresa (PNG, `res.company.logo`) al mapa
+        """Convierte el logo del ticket (`logo-ticket.jpeg`; si falta, el de la
+        empresa, PNG, `res.company.logo`) al mapa
         de bits que entiende la impresora (doc.raster_image), escalado al
         ancho del papel.
 
@@ -405,7 +437,8 @@ class MgsConfig(models.Model):
         tiene que salir siempre.
         """
         company = self.env.company
-        if not company.logo:
+        ticket_logo = self._mgs_ticket_logo_image()
+        if not ticket_logo and not company.logo:
             return None
         try:
             from PIL import Image, ImageEnhance
@@ -413,6 +446,9 @@ class MgsConfig(models.Model):
             _logger.warning("mi_gestor_stock: Pillow no disponible; el ticket sale sin logo.")
             return None
         try:
+            if ticket_logo:
+                return self._mgs_logo_to_bitmap(ticket_logo, doc.width * 12,
+                                                self._MGS_TICKET_LOGO_MAX_H, enhance=False)
             img = Image.open(io.BytesIO(base64.b64decode(company.logo)))
             if img.mode not in ("L", "1"):
                 img = img.convert("RGBA")
@@ -435,30 +471,39 @@ class MgsConfig(models.Model):
             # El más restrictivo de los dos manda; luego queda centrado
             # (align("center")) porque casi nunca llega a ocupar todo el
             # ancho del papel.
-            max_paper_w = doc.width * 12
-            max_logo_h = 220
-            ratio = min(max_paper_w / img.width, max_logo_h / img.height)
-            target_w = max(1, round(img.width * ratio))
-            target_h = max(1, round(img.height * ratio))
-            gray = img.convert("L").resize((target_w, target_h))
+            return self._mgs_logo_to_bitmap(img, doc.width * 12, 220, enhance=True)
+        except Exception:  # noqa: BLE001 - un logo mal formado no debe tumbar la venta
+            _logger.exception("mi_gestor_stock: no se pudo convertir el logo para el ticket")
+            return None
+
+    @staticmethod
+    def _mgs_logo_to_bitmap(img, max_paper_w, max_logo_h, enhance):
+        """(ancho en bytes, alto, datos) de `img` a 1 bit, encajada en el ancho
+        del papel y en `max_logo_h` puntos de alto (manda el más restrictivo)."""
+        from PIL import Image, ImageEnhance
+        ratio = min(max_paper_w / img.width, max_logo_h / img.height)
+        target_w = max(1, round(img.width * ratio))
+        target_h = max(1, round(img.height * ratio))
+        gray = img.convert("L").resize((target_w, target_h), Image.LANCZOS)
+        if enhance:
             # Un dibujo detallado con líneas finas y sombreados suaves (no un
             # bloque de color plano) pierde casi todo el contraste al
             # reducirlo a 160-220 puntos de alto; sin esto sale gris borroso
             # e ilegible. Con más contraste, el trazo del dibujo se conserva
             # nítido en blanco y negro puro.
             gray = ImageEnhance.Contrast(gray).enhance(1.6)
-            pixels = gray.load()
-            width_bytes = (target_w + 7) // 8
-            data = bytearray(width_bytes * target_h)
-            threshold = 160  # más oscuro que esto -> punto negro impreso
-            for y in range(target_h):
-                for x in range(target_w):
-                    if pixels[x, y] < threshold:
-                        data[y * width_bytes + x // 8] |= 0x80 >> (x % 8)
-            return width_bytes, target_h, bytes(data)
-        except Exception:  # noqa: BLE001 - un logo mal formado no debe tumbar la venta
-            _logger.exception("mi_gestor_stock: no se pudo convertir el logo para el ticket")
-            return None
+        pixels = gray.load()
+        width_bytes = (target_w + 7) // 8
+        data = bytearray(width_bytes * target_h)
+        # Más oscuro que esto -> punto negro impreso. El dibujo de líneas finas
+        # del ticket ya es negro puro sobre blanco: umbral algo más alto para
+        # que el trazo fino no se pierda al reducirlo.
+        threshold = 160 if enhance else 190
+        for y in range(target_h):
+            for x in range(target_w):
+                if pixels[x, y] < threshold:
+                    data[y * width_bytes + x // 8] |= 0x80 >> (x % 8)
+        return width_bytes, target_h, bytes(data)
 
     def _mgs_company_header(self, doc):
         """Cabecera del ticket: logo (si hay), nombre, dirección y NIF."""
@@ -556,7 +601,7 @@ class MgsConfig(models.Model):
     # Etiquetas de producto
     # ==================================================================
     def _mgs_print_labels(self, products, copies=None):
-        """Etiqueta de 80 mm: nombre, precio y código de barras impreso.
+        """Etiqueta de 80 mm: nombre, precio con IVA y código de barras impreso.
 
         La impresora dibuja las barras por su cuenta (comando GS k), así que
         no hace falta generar una imagen ni pasar por el PDF.
@@ -582,7 +627,8 @@ class MgsConfig(models.Model):
                 doc.wrapped(product.name)
                 doc.size().bold(False)
                 template = product.product_tmpl_id if product._name == "product.product" else product
-                doc.ln(self._mgs_amount(template.list_price))
+                # El precio que paga el cliente: venta + IVA.
+                doc.ln(self._mgs_amount(template.mgs_list_price_taxed))
                 doc.ln()
                 doc.barcode(product.barcode, height=80, width=3)
                 doc.align("left").cut(feed=2)

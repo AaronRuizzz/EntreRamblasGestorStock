@@ -204,7 +204,8 @@ class MgsUpdate(models.TransientModel):
         self._mgs_run_check(url, download_in_background=False)
 
     @api.model
-    def _mgs_run_check(self, url, download_in_background):
+    def _mgs_updater(self):
+        """(orden base de tools/actualizador.py, opciones de subprocess)."""
         import subprocess
         import sys
         runtime = config.get("data_dir") or "."
@@ -216,6 +217,42 @@ class MgsUpdate(models.TransientModel):
         # servicio, fuera de Odoo, responde en un segundo.
         quiet = {"stdin": subprocess.DEVNULL,
                  "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+        return base, quiet
+
+    @api.model
+    def _mgs_auto_on_enter(self):
+        """Al entrar al programa (el acceso directo del escritorio llama a
+        /mgs/actualizacion/al-entrar): si hay una versión firmada más nueva
+        se instala ya, sin esperar a «Actualizar al cerrar». Contesta al
+        momento; la descarga y la instalación siguen en segundo plano
+        (`actualizador.py auto`) y el lanzador espera mirando estado.json.
+
+        `mgs.update.automatica` = 0 lo desactiva (vuelve el flujo manual)."""
+        import subprocess
+        params = self.env["ir.config_parameter"].sudo()
+        url = params.get_param("mgs.update.releases_url")
+        if not url or params.get_param("mgs.update.automatica", "1") in ("0", "false", "False"):
+            return {"actualizando": False, "motivo": "desactivada", "version": ""}
+        base, quiet = self._mgs_updater()
+        try:
+            result = subprocess.run(base + ["auto", "--decidir", "--releases-url", url],
+                                    timeout=60, capture_output=True, check=False, **quiet)
+            decision, _sep, version = (result.stdout or b"").decode(
+                "utf-8", "replace").strip().partition(" ")
+            if decision == "actualizar":
+                subprocess.Popen(base + ["auto", "--releases-url", url],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **quiet)
+        except (OSError, subprocess.SubprocessError):
+            _logger.warning("mi_gestor_stock: no se pudo comprobar actualizaciones al entrar",
+                            exc_info=True)
+            return {"actualizando": False, "motivo": "error", "version": ""}
+        return {"actualizando": decision in ("actualizar", "en-curso", "aplicando"),
+                "motivo": decision, "version": version.strip()}
+
+    @api.model
+    def _mgs_run_check(self, url, download_in_background):
+        import subprocess
+        base, quiet = self._mgs_updater()
         try:
             result = subprocess.run(
                 base + ["comprobar", "--releases-url", url],

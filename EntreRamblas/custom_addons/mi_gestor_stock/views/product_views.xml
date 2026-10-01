@@ -76,6 +76,11 @@
                     <div name="list_price_uom" class="d-flex align-items-center gap-2">
                         <field name="list_price" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                     </div>
+                    <!-- Lo que paga el cliente (y lo que sale en la etiqueta);
+                         se recalcula al cambiar el precio de venta. -->
+                    <field name="mgs_list_price_taxed" string="Precio de venta + IVA (€)" widget="monetary"
+                           options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                    <field name="taxes_id" invisible="1"/>
                     <field name="standard_price" string="Precio de coste (€)" widget="monetary"
                            options="{'currency_field': 'cost_currency_id', 'field_digits': True}"/>
                     <!-- Lista de categorías existentes, con la acción nativa para

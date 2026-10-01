@@ -72,7 +72,8 @@
                      t-att-data-oe-lang="doc and doc.env.context.get('lang')"
                      style="width:72mm;max-width:72mm;margin:0 auto;padding:2mm 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.45;color:#1a1a1a;border:none !important;box-shadow:none;background:#fff;">
 
-                    <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"
+                    <t t-set="mgs_logo" t-value="doc._mgs_receipt_logo()"/>
+                    <img t-if="mgs_logo" t-att-src="image_data_uri(mgs_logo)"
                          style="display:block;max-width:38mm;max-height:38mm;margin:0 auto 6px;"/>
                     <div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:2px;"
                          t-esc="doc.company_id.name"/>

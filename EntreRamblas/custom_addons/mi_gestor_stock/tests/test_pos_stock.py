@@ -403,6 +403,10 @@ class TestPosStock(TestPointOfSaleCommon):
             "city": "Barcelona",
         })
         config = self.env["mgs.config"]._mgs_get()
+        # ...ni el logo propio del ticket (logo-ticket.jpeg), que es igual de binario.
+        no_ticket_logo = patch.object(type(config), "_mgs_ticket_logo_image", return_value=None)
+        no_ticket_logo.start()
+        self.addCleanup(no_ticket_logo.stop)
         config.receipt_footer = (
             "¡Gracias por confiar en nosotras y esperamos verte muy pronto de "
             "nuevo por la floristería!")

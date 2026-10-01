@@ -1,11 +1,37 @@
 # -*- coding: utf-8 -*-
+import psycopg2
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from odoo.tools import mute_logger
 from odoo.tools.float_utils import float_compare
 from .mgs_permissions import require_operator, is_manager
 
 # Cuantas tarjetas de "stock mas bajo" muestra el panel de Stock.
 LOW_STOCK_CARDS = 3
+
+
+def _mgs_unlink_or_archive(records, unlink):
+    """Borra los productos que se puedan borrar; los que ya tienen historial
+    (entradas, ventas, facturas...) los ARCHIVA. La base de datos impide
+    borrarlos (clave ajena RESTRICT de stock_move, pos_order_line...) y no
+    debe: perder ese historial descuadraría stock, caja e informes. Archivado
+    desaparece de listas, buscador y TPV, que es lo que se busca al
+    «eliminar»; se puede recuperar con el filtro «Archivado».
+
+    Igual que product.product._unlink_or_archive de Odoo, pero también para
+    la ficha (product.template) y desde el botón «Eliminar». Devuelve lo
+    archivado."""
+    to_archive = records.browse()
+    for record in records:
+        try:
+            with records.env.cr.savepoint(), mute_logger("odoo.sql_db"):
+                unlink(record)
+        # RESTRICT (stock_move) y NO ACTION (el resto) llegan como
+        # excepciones distintas.
+        except (psycopg2.errors.RestrictViolation, psycopg2.errors.ForeignKeyViolation):
+            to_archive |= record
+    return to_archive
 
 
 class ProductTemplate(models.Model):
@@ -20,6 +46,22 @@ class ProductTemplate(models.Model):
     available_in_pos = fields.Boolean(default=True)
     mgs_auto_lots = fields.Boolean("Partidas automáticas", default=False,
                                    help="El TPV asigna las partidas por caducidad y antigüedad.")
+    # Lo que paga el cliente: es el precio que va en la ficha y en la etiqueta.
+    mgs_list_price_taxed = fields.Float(
+        "Precio de venta con IVA", compute="_compute_mgs_list_price_taxed",
+        digits="Product Price",
+        help="Precio de venta más los impuestos de venta del producto (IVA).")
+
+    @api.depends("list_price", "taxes_id")
+    @api.depends_context("company")
+    def _compute_mgs_list_price_taxed(self):
+        # Igual que Odoo calcula el «IVA incluido» de la ficha
+        # (account/models/product.py, _construct_tax_string).
+        for tmpl in self:
+            taxes = tmpl.taxes_id._filter_taxes_by_company(self.env.company)
+            tmpl.mgs_list_price_taxed = taxes.compute_all(
+                tmpl.list_price, product=tmpl, partner=self.env["res.partner"],
+            )["total_included"] if taxes else tmpl.list_price
 
     # ------------------------------------------------------------------
     # Recepción y caducidad (se actualizan en cada entrada de mercancía,
@@ -59,6 +101,11 @@ class ProductTemplate(models.Model):
         if "categ_id" in vals:
             self._mgs_apply_pos_category()
         return res
+
+    def unlink(self):
+        archived = _mgs_unlink_or_archive(self, lambda tmpl: super(ProductTemplate, tmpl).unlink())
+        archived.write({"active": False})
+        return True
 
     def _mgs_apply_pos_category(self):
         """`pos_categ_ids` (el botón del TPV) sigue a `categ_id` (la categoría
@@ -299,3 +346,18 @@ class ProductTemplate(models.Model):
             # consulta), igual que hace la página de inicio.
             "is_manager": is_manager(self.env),
         }
+
+
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
+
+    def unlink(self):
+        archived = _mgs_unlink_or_archive(self, lambda product: super(ProductProduct, product).unlink())
+        # En la tienda cada producto es una ficha con una sola variante: si se
+        # archiva la última variante activa, se archiva la ficha entera (que
+        # archiva también la variante); si no, solo la variante.
+        templates = archived.product_tmpl_id.filtered(
+            lambda tmpl: not (tmpl.product_variant_ids - archived))
+        templates.write({"active": False})
+        (archived - templates.product_variant_ids).write({"active": False})
+        return True

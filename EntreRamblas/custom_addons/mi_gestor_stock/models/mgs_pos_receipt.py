@@ -7,6 +7,8 @@ QWeb/PDF), así que las líneas con precio final y el relabel del cambio se repi
 aquí: son ~10 líneas cada uno, no compensa acoplar un modelo (pos.order) con
 el otro (mgs.config) por evitar duplicarlas.
 """
+import base64
+import io
 from uuid import uuid4
 
 from odoo import _, fields, models
@@ -49,6 +51,18 @@ class PosOrder(models.Model):
                 _("No hay impresora configurada (Configuración → Dispositivos)."), "warning")
         return self.env["mgs.config"]._mgs_notify(
             _("Reimpresión solicitada. Comprueba la impresora."))
+
+    def _mgs_receipt_logo(self):
+        """Logo del ticket en base64 para el PDF de reimpresión: el mismo dibujo
+        que sale por la térmica (mgs_config._mgs_ticket_logo_image), o el logo
+        de la empresa si ese archivo no está."""
+        self.ensure_one()
+        image = self.env["mgs.config"]._mgs_ticket_logo_image()
+        if not image:
+            return self.company_id.logo or False
+        buffer = io.BytesIO()
+        image.save(buffer, "PNG")
+        return base64.b64encode(buffer.getvalue())
 
     def _mgs_receipt_date_str(self):
         """Misma fecha/hora, mismo formato, que _mgs_pos_ticket."""
