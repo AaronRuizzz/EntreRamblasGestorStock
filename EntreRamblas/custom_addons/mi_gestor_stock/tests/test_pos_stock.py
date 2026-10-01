@@ -380,7 +380,10 @@ class TestPosStock(TestPointOfSaleCommon):
         config = self.env["mgs.config"]._mgs_get()
         html, _ = self.env["ir.actions.report"]._render_qweb_html(
             "mi_gestor_stock.action_report_mgs_pos_order_receipt", sale.ids)
-        text = html.decode()
+        # Sin las imágenes incrustadas (logo en base64): una secuencia como
+        # «IVA» puede aparecer por casualidad dentro de ellas y no es texto
+        # visible del ticket, que es lo que se comprueba.
+        text = re.sub(r"data:image/[a-z]+;base64,[A-Za-z0-9+/=]+", "", html.decode())
         self.assertIn("Rosa TPV", text)
         self.assertIn(config._mgs_amount(12.1, sale.currency_id), text)
         self.assertIn("TOTAL", text)
