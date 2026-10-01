@@ -1,4 +1,4 @@
-<#
+﻿<#
     Orquesta la instalación después de que Inno Setup ha copiado los archivos.
     Se ejecuta ELEVADO (el instalador pide UAC).
 
@@ -181,6 +181,16 @@ if (-not (Get-Service -Name $OdooServiceName -EA SilentlyContinue)) {
         --name $OdooServiceName --config $config --database $Database --postgres-service $PgServiceName
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo registrar el servicio de la aplicación.' }
 }
+# El servicio arranca Odoo SIN comprobar actualizaciones: si el codigo es mas
+# nuevo que la base (reinstalacion/actualizacion) hay que migrar ANTES de
+# servir, o la app sigue con las vistas y datos de la version anterior.
+Stop-Service -Name $OdooServiceName -Force -EA SilentlyContinue
+$pendiente = (& $python (Join-Path $CodeDir 'tools\check_pending_upgrade.py') --config $config --database $Database | Out-String).Trim()
+if ($pendiente -eq 'upgrade') {
+    Write-Host 'El codigo es mas nuevo que la base. Actualizando mi_gestor_stock...'
+    & (Join-Path $CodeDir 'start-odoo.ps1') -Config $config -Database $Database -Update mi_gestor_stock -NoStart
+    if ($LASTEXITCODE -ne 0) { throw 'La actualizacion de mi_gestor_stock ha fallado.' }
+}
 Start-Service -Name $OdooServiceName
 
 # ------------------------------------------------ Servicio actualizador (H9)
@@ -228,12 +238,20 @@ Write-Paso 'Informe de prueba'
 # Contra la base recién instalada, con los permisos reales (la propietaria) y el
 # servidor ya en marcha. Si falla, la instalación falla: un PDF roto en el PC de
 # la tienda no es aceptable.
-& $venvPython (Join-Path $CodeDir 'tools\check_report_pdf.py') `
-    --config $config --database $Database `
-    --wkhtmltopdf-bin $pdfBinDir `
-    --salida (Join-Path $logDir 'informe-prueba.pdf') 2>&1 |
-    Tee-Object -FilePath (Join-Path $logDir 'informe-prueba.txt')
-if ($LASTEXITCODE -ne 0) { throw 'El informe de prueba PDF no se generó correctamente. Revisa instalacion\informe-prueba.txt.' }
+# El servicio recien arrancado y esta prueba cargan el registro a la vez y pueden
+# chocar ("could not serialize access due to concurrent update"): se espera a que
+# el servicio se estabilice y se reintenta antes de dar la instalacion por fallida.
+Start-Sleep -Seconds 30
+$okPdf = $false
+for ($intento = 1; $intento -le 5 -and -not $okPdf; $intento++) {
+    & $venvPython (Join-Path $CodeDir 'tools\check_report_pdf.py') `
+        --config $config --database $Database `
+        --wkhtmltopdf-bin $pdfBinDir `
+        --salida (Join-Path $logDir 'informe-prueba.pdf') 2>&1 |
+        Tee-Object -FilePath (Join-Path $logDir 'informe-prueba.txt')
+    if ($LASTEXITCODE -eq 0) { $okPdf = $true } else { Start-Sleep -Seconds 20 }
+}
+if (-not $okPdf) { throw 'El informe de prueba PDF no se generÃ³ correctamente. Revisa instalacion\informe-prueba.txt.' }
 
 Write-Host ''
 Write-Host 'Instalación completada.' -ForegroundColor Green

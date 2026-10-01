@@ -166,25 +166,41 @@
         <field name="arch" type="xml">
             <form string="Actualizaciones">
                 <sheet>
-                    <div class="oe_title"><h1>Actualizaciones</h1></div>
+                    <field name="phase" invisible="1"/>
+                    <!-- Cabecera: icono según el estado, estado en grande y versión -->
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="me-3 fs-1 text-success"
+                             invisible="phase not in ('al-dia', 'hecho')"><i class="fa fa-check-circle" title="Al día"/></div>
+                        <div class="me-3 fs-1 text-primary"
+                             invisible="phase not in ('disponible', 'preparado')"><i class="fa fa-arrow-circle-down" title="Actualización disponible"/></div>
+                        <div class="me-3 fs-1 text-primary"
+                             invisible="phase != 'aplicando'"><i class="fa fa-spinner fa-spin" title="Instalando"/></div>
+                        <div class="me-3 fs-1 text-warning"
+                             invisible="phase != 'fallo'"><i class="fa fa-exclamation-triangle" title="Requiere atención"/></div>
+                        <div>
+                            <h2 class="mb-0"><field name="phase_label" nolabel="1" readonly="1"/></h2>
+                            <div class="text-muted">
+                                Versión instalada <field name="installed_version" nolabel="1" readonly="1"/>
+                            </div>
+                        </div>
+                    </div>
                     <group>
-                        <field name="installed_version" string="Versión instalada"/>
-                        <field name="available_version" string="Versión disponible"
+                        <field name="available_version" string="Versión nueva"
                                invisible="not available_version"/>
-                        <field name="phase" string="Estado"/>
                         <field name="checked_at" string="Última comprobación"/>
-                        <field name="accepted" string="Aceptada para instalar al cerrar"/>
+                        <field name="accepted" string="Se instalará al cerrar"
+                               invisible="phase not in ('disponible', 'preparado')"/>
                     </group>
                     <field name="notes" string="Cambios / notas" readonly="1"
                            invisible="not notes"/>
+                    <div class="alert alert-warning" role="status" invisible="not message">
+                        <field name="message" nolabel="1" readonly="1"/>
+                    </div>
                     <div class="alert alert-info" role="status"
                          invisible="phase in ('disponible', 'preparado', 'fallo')">
-                        El programa está al día. Comprueba si hay novedades al arrancar y
-                        una vez al día; sin internet sigue funcionando y vuelve a mirar
-                        más adelante.
-                    </div>
-                    <div class="alert alert-warning" role="status" invisible="phase != 'fallo'">
-                        <field name="message" nolabel="1" readonly="1"/>
+                        El programa comprueba si hay novedades al arrancar y una vez al día;
+                        también puedes hacerlo ahora con «Buscar actualizaciones». Sin
+                        internet sigue funcionando y vuelve a mirar más adelante.
                     </div>
                     <div class="alert alert-primary" role="status"
                          invisible="phase not in ('disponible', 'preparado')">
@@ -199,6 +215,9 @@
                             invisible="phase not in ('disponible', 'preparado') or accepted"/>
                     <button name="action_defer" type="object" string="Ahora no"
                             invisible="not accepted"/>
+                    <button name="action_check_now" type="object" string="Buscar actualizaciones"
+                            icon="fa-refresh"
+                            invisible="phase == 'aplicando'"/>
                     <button string="Cerrar" special="cancel"/>
                 </footer>
             </form>

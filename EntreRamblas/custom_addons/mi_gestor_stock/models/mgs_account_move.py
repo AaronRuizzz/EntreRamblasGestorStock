@@ -102,22 +102,11 @@ class AccountMove(models.Model):
         filename = "%s.pdf" % (self.name or _("Factura")).replace("/", "-")
         config = self.env["mgs.config"]._mgs_get()
         output_path = config._mgs_save_output("facturas", filename, pdf_content)
-        attachment = self.env["ir.attachment"].create({
-            "name": filename,
-            "type": "binary",
-            "raw": pdf_content,
-            "mimetype": "application/pdf",
-            "res_model": self._name,
-            "res_id": self.id,
-        })
-        return {
-            "type": "ir.actions.act_url",
-            "url": "/web/content/%s?download=true" % attachment.id,
-            "target": "download",
-            # El TPV usa este dato solo para confirmar al usuario dónde ha
-            # quedado la copia ordenada en disco.
-            "mgs_output_path": output_path,
-        }
+        # Solo se guarda en la carpeta Facturas: no se descarga en el navegador
+        # (antes se devolvía una acción de descarga y un adjunto para servirla).
+        result = config._mgs_notify(_("Factura guardada en %s", output_path))
+        result["mgs_output_path"] = output_path
+        return result
 
 
 class AccountEdiCii(models.AbstractModel):

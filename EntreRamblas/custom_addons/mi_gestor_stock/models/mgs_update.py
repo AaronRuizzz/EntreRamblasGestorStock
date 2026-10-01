@@ -9,6 +9,7 @@ cerrar» (deja aceptada la actualización; la aplica el servicio, no Odoo).
 """
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 from odoo import _, api, fields, models
@@ -29,11 +30,22 @@ def _read_state():
         return {}
 
 
+PHASE_LABELS = {
+    "al-dia": "Al día",
+    "disponible": "Actualización disponible",
+    "preparado": "Lista para instalar",
+    "aplicando": "Instalando…",
+    "hecho": "Actualizada",
+    "fallo": "Requiere atención",
+}
+
+
 class MgsUpdate(models.TransientModel):
     _name = "mgs.update"
     _description = "Actualizaciones"
 
     phase = fields.Char(readonly=True)
+    phase_label = fields.Char("Estado", readonly=True)
     available_version = fields.Char(readonly=True)
     installed_version = fields.Char(readonly=True)
     notes = fields.Text(readonly=True)
@@ -65,19 +77,56 @@ class MgsUpdate(models.TransientModel):
         from .mgs_permissions import require_manager
         require_manager(self.env)
         state = _read_state()
+        phase = state.get("fase") or "al-dia"
+        # En «disponible/preparado» el mensaje del estado son las notas de la
+        # versión; en el resto (sin conexión, fallo...) es un aviso.
+        has_release_notes = phase in ("disponible", "preparado")
         rec = self.create({
-            "phase": state.get("fase") or "al-dia",
-            "available_version": state.get("version_disponible") or "",
+            "phase": phase,
+            "phase_label": PHASE_LABELS.get(phase, phase),
+            # La versión «disponible» de un estado al día es la misma que la
+            # instalada: solo tiene sentido enseñarla si es una novedad.
+            "available_version": state.get("version_disponible") or "" if has_release_notes else "",
             "installed_version": state.get("version_instalada") or "",
-            "notes": state.get("notas") and " ".join(state["notas"]) or state.get("mensaje") or "",
+            "notes": state.get("notas") and " ".join(state["notas"]) or state.get("mensaje") or "" if has_release_notes else "",
             "accepted": bool(state.get("aceptada_por_duena")),
-            "message": state.get("mensaje") or "",
-            "checked_at": state.get("comprobado_en") or "",
+            "message": "" if has_release_notes else state.get("mensaje") or "",
+            "checked_at": self._format_checked_at(state.get("comprobado_en")),
         })
         return {
             "type": "ir.actions.act_window", "name": _("Actualizaciones"),
             "res_model": "mgs.update", "res_id": rec.id, "view_mode": "form", "target": "new",
         }
+
+    @api.model
+    def _format_checked_at(self, iso_value):
+        """«21/09/2026 18:51» en hora local, en vez del ISO en UTC del estado."""
+        if not iso_value:
+            return _("Todavía no se ha comprobado")
+        try:
+            moment = datetime.fromisoformat(iso_value)
+            if moment.tzinfo:
+                moment = moment.astimezone(timezone.utc).replace(tzinfo=None)
+            return fields.Datetime.context_timestamp(self, moment).strftime("%d/%m/%Y %H:%M")
+        except ValueError:
+            return iso_value
+
+    def action_check_now(self):
+        """Botón «Buscar actualizaciones»: la misma comprobación que el cron
+        diario, pero al momento. Solo COMPRUEBA (rápido, con firma); si hay una
+        versión nueva, su descarga y verificación se lanzan en segundo plano
+        para no dejar la pantalla bloqueada. No instala nada: eso sigue
+        requiriendo «Actualizar al cerrar»."""
+        from .mgs_permissions import require_manager
+        require_manager(self.env)
+        url = self.env["ir.config_parameter"].sudo().get_param("mgs.update.releases_url")
+        if not url:
+            raise UserError(_("No hay configurada una dirección de actualizaciones."))
+        if not self._mgs_run_check(url, download_in_background=True):
+            raise UserError(_(
+                "No se ha podido comprobar las actualizaciones ahora mismo. "
+                "Revisa la conexión a internet y vuelve a intentarlo."))
+        return self.action_open()
 
     def _write_state(self, **changes):
         from .mgs_permissions import require_manager
@@ -149,27 +198,43 @@ class MgsUpdate(models.TransientModel):
     # ------------------------------------------------------------------
     @api.model
     def _cron_check(self):
-        import subprocess
-        import sys
         url = self.env["ir.config_parameter"].sudo().get_param("mgs.update.releases_url")
         if not url:
             return
+        self._mgs_run_check(url, download_in_background=False)
+
+    @api.model
+    def _mgs_run_check(self, url, download_in_background):
+        import subprocess
+        import sys
         runtime = config.get("data_dir") or "."
         script = Path(__file__).resolve().parents[3] / "tools" / "actualizador.py"
+        base = [sys.executable, str(script), "--runtime", runtime]
+        # Dentro del servicio de Windows no hay consola: sin stdin propio el
+        # proceso hijo se quedaba esperando hasta agotar el tiempo (la
+        # comprobación tardaba 180 s en vez de ~1 s). Con la cuenta del
+        # servicio, fuera de Odoo, responde en un segundo.
+        quiet = {"stdin": subprocess.DEVNULL,
+                 "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
         try:
             result = subprocess.run(
-                [sys.executable, str(script), "--runtime", runtime, "comprobar",
-                 "--releases-url", url],
-                timeout=180, capture_output=True, check=False)
+                base + ["comprobar", "--releases-url", url],
+                timeout=60, capture_output=True, check=False, **quiet)
             # Si hay una versión nueva y compatible, descargarla y verificarla
             # YA (firma + SHA-256): cuando la dueña acepte, el paquete ya está
             # listo en disco y el servicio aplicador no tiene que esperar a
             # una descarga. `preparar` no instala nada por sí solo.
             output = (result.stdout or b"").decode("utf-8", "replace").strip()
             if output.startswith("disponible"):
-                subprocess.run(
-                    [sys.executable, str(script), "--runtime", runtime, "preparar",
-                     "--releases-url", url],
-                    timeout=300, capture_output=True, check=False)
+                prepare = base + ["preparar", "--releases-url", url]
+                if download_in_background:
+                    # Descarga grande: sin esperar, para no bloquear el botón.
+                    subprocess.Popen(prepare, stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL, **quiet)
+                else:
+                    subprocess.run(prepare, timeout=300, capture_output=True,
+                                   check=False, **quiet)
+            return output
         except (OSError, subprocess.SubprocessError):
             _logger.warning("mi_gestor_stock: no se pudo comprobar actualizaciones", exc_info=True)
+            return ""

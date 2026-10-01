@@ -1,4 +1,4 @@
-; Instalador de Gestor Stock Clavel Y Azahar (Windows 11 x64).
+﻿; Instalador de Gestor Stock Clavel Y Azahar (Windows 11 x64).
 ;
 ; Compilar con Inno Setup 6:
 ;   1) .\publicar\empaquetar.ps1 -Salida ..\dist   (prepara dist\payload\)
@@ -67,6 +67,32 @@ Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\instalador\pasos-instalacion.ps1"" -CodeDir ""{app}"" -DataDir ""{commonappdata}\{#AppShort}"""; \
   StatusMsg: "Preparando la base de datos, el servicio y el motor PDF..."; \
   Flags: runhidden waituntilterminated
+
+[Code]
+{ Al actualizar, el servicio de la app (y el actualizador) mantienen abiertos
+  python.exe y sus DLL; sin pararlos, la copia falla con "DeleteFile fallo;
+  codigo 5". PostgreSQL no se toca: sus binarios viven en otra carpeta. }
+procedure PararServicio(const Nombre: String);
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + Nombre, '', SW_HIDE,
+    ewWaitUntilTerminated, ResultCode);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  PararServicio('EntreRamblasActualizador');
+  PararServicio('EntreRamblasOdoo');
+  Sleep(4000);
+  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -ExecutionPolicy Bypass -Command "Get-Process | Where-Object { $_.Path -like ''' +
+    ExpandConstant('{app}') + '\*'' } | Stop-Process -Force -ErrorAction SilentlyContinue"',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := '';
+end;
 
 [UninstallRun]
 ; Solo se retira el servicio de la aplicacion. NO se toca PostgreSQL, ni la

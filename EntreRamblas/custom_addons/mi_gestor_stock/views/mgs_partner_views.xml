@@ -87,7 +87,7 @@
                                            decoration-success="state == 'posted'"
                                            decoration-danger="state == 'cancel'"/>
                                     <button name="action_mgs_invoice_pdf" type="object"
-                                            string="Ver PDF" icon="fa-file-pdf-o"
+                                            string="Guardar PDF" icon="fa-file-pdf-o"
                                             invisible="state != 'posted'"/>
                                 </list>
                             </field>

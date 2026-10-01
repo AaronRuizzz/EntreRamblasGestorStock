@@ -33,10 +33,10 @@
         <field name="arch" type="xml">
             <form string="Ticket" create="0" edit="0" delete="0" js_class="mgs_clean_form">
                 <header>
-                    <button name="%(action_report_mgs_pos_order_receipt)d" type="action"
-                            string="Ver ticket (PDF)" class="btn-primary"/>
+                    <!-- El PDF se guarda en la carpeta Tickets; no se descarga en
+                         el navegador (antes «Ver ticket (PDF)» lo mandaba a Descargas). -->
                     <button name="action_mgs_save_ticket_pdf" type="object"
-                            string="Guardar en carpeta Tickets"/>
+                            string="Guardar en carpeta Tickets" class="btn-primary"/>
                     <button name="action_mgs_reprint_ticket" type="object"
                             string="Reimprimir en la térmica"
                             invisible="state not in ('paid', 'done', 'invoiced')"/>
